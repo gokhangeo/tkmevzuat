@@ -23,19 +23,62 @@
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* PDF viewer container styles */
-        #pdf-container {
+        /* PDF Modal Styles (YENİ) */
+        #pdf-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: calc(100vh - 120px); /* Full height minus header/footer */
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none; /* Başlangıçta gizli */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+        #pdf-modal.active {
+            display: flex;
+        }
+        #pdf-modal-content {
+            background-color: #1f2937; /* bg-gray-800 */
+            width: 95%;
+            height: 95%;
+            max-width: 1200px;
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #pdf-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #374151; /* border-gray-700 */
+            flex-shrink: 0;
+        }
+        #pdf-render-area {
+            flex-grow: 1;
             overflow: auto;
+            padding: 1rem;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
         }
         #pdf-canvas {
-            border: 1px solid #4b5563;
             border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        #pdf-modal-footer {
+             display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #374151; /* border-gray-700 */
+            gap: 1rem;
+            flex-shrink: 0;
         }
         
         /* Loading spinner styles */
@@ -75,7 +118,7 @@
         <p class="text-white">Mevzuat verileri yükleniyor...</p>
     </div>
 
-    <div id="app-container" class="h-full flex-col" style="display: none;">
+    <div id="app-container" class="h-full flex flex-col" style="display: none;">
 
         <!-- =================================================================== -->
         <!-- ANA SAYFA (HOME PAGE)                                               -->
@@ -98,10 +141,8 @@
                 </div>
             </div>
             
-            <!-- Arama Sonuçları Alanı -->
             <div id="search-results" class="max-w-2xl w-full mx-auto flex-grow overflow-y-auto"></div>
 
-            <!-- Ana Kategoriler -->
             <div id="main-categories" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
                 <div id="tapu-card" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:bg-gray-700/70 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                     <h2 class="text-2xl font-bold text-yellow-400 mb-2">TAPU</h2>
@@ -130,34 +171,34 @@
             </div>
             <div id="pdf-list" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
         </section>
+    </div>
 
-        <!-- =================================================================== -->
-        <!-- PDF GÖRÜNTÜLEYİCİ SAYFASI (PDF VIEWER PAGE)                         -->
-        <!-- =================================================================== -->
-        <section id="pdf-viewer-page" class="page flex-grow flex flex-col h-full bg-gray-900">
-            <header class="flex items-center justify-between p-3 bg-gray-800 shadow-md flex-shrink-0">
-                <button id="back-to-list-btn" class="p-2 rounded-full hover:bg-gray-700 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </button>
-                <h3 id="pdf-title" class="text-sm sm:text-lg font-bold text-center truncate mx-2"></h3>
-                <div class="flex items-center space-x-2">
-                    <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-gray-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
-                    <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-gray-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+    <!-- =================================================================== -->
+    <!-- PDF GÖRÜNTÜLEYİCİ MODAL (YENİ)                                      -->
+    <!-- =================================================================== -->
+    <div id="pdf-modal">
+        <div id="pdf-modal-content">
+            <header id="pdf-modal-header">
+                <h3 id="pdf-title" class="text-lg font-bold text-white truncate"></h3>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                        <span id="zoom-level" class="text-sm w-12 text-center">100%</span>
+                        <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                    </div>
+                     <button id="close-modal-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 </div>
             </header>
-            <div id="pdf-render-area" class="flex-grow relative bg-gray-800/50">
-                <div id="pdf-loader" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="display: none;"><div class="loader"></div></div>
-                <div id="pdf-container">
-                    <canvas id="pdf-canvas"></canvas>
-                </div>
+            <div id="pdf-render-area" class="relative">
+                 <div id="pdf-loader" class="absolute inset-0 flex items-center justify-center" style="display: none;"><div class="loader"></div></div>
+                 <canvas id="pdf-canvas"></canvas>
             </div>
-            <footer class="flex items-center justify-between p-2 bg-gray-800 flex-shrink-0">
-                <button id="prev-page-btn" class="p-2 rounded-lg hover:bg-gray-700 transition">Önceki Sayfa</button>
-                <div id="page-num" class="text-sm"></div>
-                <button id="next-page-btn" class="p-2 rounded-lg hover:bg-gray-700 transition">Sonraki Sayfa</button>
+            <footer id="pdf-modal-footer">
+                <button id="prev-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">Önceki</button>
+                <div id="page-num" class="text-sm font-medium"></div>
+                <button id="next-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">Sonraki</button>
             </footer>
-        </section>
-
+        </div>
     </div>
 
     <script type="module">
@@ -171,7 +212,6 @@
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
 
-        // Mevzuat verisi dinamik olarak yüklenecek
         let mevzuatData = {
             tapu: { genelge: [], talimat: [] },
             kadastro: { genelge: [], talimat: [] }
@@ -185,7 +225,6 @@
         const pages = {
             home: document.getElementById('home-page'),
             list: document.getElementById('list-page'),
-            viewer: document.getElementById('pdf-viewer-page')
         };
         const searchInput = document.getElementById('search-input');
         const searchResultsContainer = document.getElementById('search-results');
@@ -197,7 +236,9 @@
         const pdfListContainer = document.getElementById('pdf-list');
         const genelgeBtn = document.getElementById('genelge-btn');
         const talimatBtn = document.getElementById('talimat-btn');
-        const backToViewerBtn = document.getElementById('back-to-list-btn');
+        
+        // Modal DOM Elements
+        const pdfModal = document.getElementById('pdf-modal');
         const pdfTitle = document.getElementById('pdf-title');
         const pdfLoader = document.getElementById('pdf-loader');
         const pdfCanvas = document.getElementById('pdf-canvas');
@@ -206,6 +247,8 @@
         const nextPageBtn = document.getElementById('next-page-btn');
         const zoomInBtn = document.getElementById('zoom-in-btn');
         const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomLevelDisplay = document.getElementById('zoom-level');
+        const closeModalBtn = document.getElementById('close-modal-btn');
         
         // ===================================================================
         // UYGULAMA DURUMU (STATE)
@@ -216,48 +259,44 @@
         let pageNum = 1;
         let pageRendering = false;
         let pageNumPending = null;
-        let scale = 1.5;
+        let scale = 1.0; // Başlangıç ölçeği
 
         // ===================================================================
-        // GITHUB API FONKSİYONLARI (TOKEN'SIZ)
+        // GITHUB API FONKSİYONLARI
         // ===================================================================
         
-        /** Dosya adını daha okunaklı bir başlığa çevirir */
         function formatTitle(filename) {
             return filename
-                .replace('.pdf', '')
+                .replace(/\.pdf$/i, '') // Büyük/küçük harf duyarsız .pdf uzantısını kaldır
                 .replace(/[-_]/g, ' ')
                 .replace(/\b\w/g, char => char.toUpperCase());
         }
 
-        /** Belirtilen yoldaki PDF dosyalarını GitHub'dan çeker */
         async function fetchFilesFromRepo(path) {
             try {
                 const response = await fetch(githubApiUrl + path);
                 if (!response.ok) {
                     if (response.status === 403) {
-                        const message = "GitHub API istek limiti aşıldı. Lütfen bir saat bekleyip tekrar deneyin.";
-                        console.error(message);
-                        alert(message);
-                    } else if (response.status === 404) {
-                        console.warn(`'${path}' yolu bulunamadı. Bu klasör boş olabilir veya hiç oluşturulmamış olabilir.`);
+                        alert("GitHub API istek limiti aşıldı. Lütfen bir süre bekleyip tekrar deneyin.");
+                    } else {
+                        console.warn(`'${path}' yolu bulunamadı veya boş.`);
                     }
-                    throw new Error(`GitHub API Hatası: ${response.status}`);
+                    return [];
                 }
                 const files = await response.json();
+                if (!Array.isArray(files)) return [];
                 return files
-                    .filter(file => file.type === 'file' && file.name.endsWith('.pdf'))
+                    .filter(file => file.type === 'file' && file.name.toLowerCase().endsWith('.pdf'))
                     .map(file => ({
                         title: formatTitle(file.name),
                         path: file.path
                     }));
             } catch (error) {
-                console.error(`'${path}' yolu yüklenemedi:`, error);
+                console.error(`'${path}' yolu yüklenirken hata oluştu:`, error);
                 return []; 
             }
         }
 
-        /** Uygulamayı başlatır ve tüm verileri çeker */
         async function initializeApp() {
             const [tapuGenelgeler, tapuTalimatlar, kadastroGenelgeler, kadastroTalimatlar] = await Promise.all([
                 fetchFilesFromRepo('tapu/genelgeler'),
@@ -274,7 +313,6 @@
             mainLoader.style.display = 'none';
             appContainer.style.display = 'flex';
         }
-
 
         // ===================================================================
         // SAYFA NAVİGASYONU
@@ -326,7 +364,7 @@
                 item.addEventListener('click', () => {
                     const path = item.getAttribute('data-path');
                     const title = item.getAttribute('data-title');
-                    loadPdf(path, title);
+                    openPdfModal(path, title);
                 });
             });
         }
@@ -360,7 +398,7 @@
                     <span class="font-medium">${doc.title}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 `;
-                item.addEventListener('click', () => loadPdf(doc.path, doc.title));
+                item.addEventListener('click', () => openPdfModal(doc.path, doc.title));
                 pdfListContainer.appendChild(item);
             });
         }
@@ -379,32 +417,35 @@
         talimatBtn.addEventListener('click', () => { currentType = 'talimat'; updateActiveTypeButton(); populatePdfList(); });
 
         // ===================================================================
-        // PDF GÖRÜNTÜLEYİCİ MANTIĞI (GÜNCELLENDİ)
+        // PDF MODAL MANTIĞI (YENİ VE GÜNCELLENMİŞ)
         // ===================================================================
         const { pdfjsLib } = globalThis;
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://mozilla.github.io/pdf.js/build/pdf.worker.mjs`;
 
-        async function loadPdf(path, title) {
-            const url = githubRawUrl + path;
+        async function openPdfModal(path, title) {
+            pdfModal.classList.add('active');
             pdfTitle.textContent = title;
-            showPage('viewer');
-            pdfLoader.style.display = 'block';
+            pdfLoader.style.display = 'flex';
             pdfCanvas.style.display = 'none';
             
+            const url = githubRawUrl + path;
+            
             try {
-                // GÜNCELLENDİ: PDF yükleme hatasını yakalamak için .catch eklendi.
                 const loadingTask = pdfjsLib.getDocument(url);
                 pdfDoc = await loadingTask.promise;
                 pageNum = 1;
+                scale = 1.0; // Reset scale
                 renderPage(pageNum);
             } catch (error) {
                 console.error('PDF yüklenirken hata oluştu:', error);
-                pdfLoader.style.display = 'none';
-                // GÜNCELLENDİ: Kullanıcıya daha net bir hata mesajı gösteriliyor.
                 alert('PDF dosyası yüklenemedi. Lütfen GitHub deponuzdaki dosya yolunun doğru olduğundan ve deponuzun "public" olduğundan emin olun.');
-                // GÜNCELLENDİ: Hata durumunda liste sayfasına geri dönülüyor.
-                showPage('list');
+                closePdfModal();
             }
+        }
+
+        function closePdfModal() {
+            pdfModal.classList.remove('active');
+            pdfDoc = null; // Belleği temizle
         }
 
         function renderPage(num) {
@@ -427,16 +468,23 @@
                 });
             });
             pageNumDisplay.textContent = `Sayfa ${num} / ${pdfDoc.numPages}`;
+            zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
+            prevPageBtn.disabled = (num <= 1);
+            nextPageBtn.disabled = (num >= pdfDoc.numPages);
         }
 
         function queueRenderPage(num) {
-            if (pageRendering) { pageNumPending = num; } else { renderPage(num); }
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
         }
 
         function onPrevPage() { if (pageNum <= 1) return; pageNum--; queueRenderPage(pageNum); }
         function onNextPage() { if (pageNum >= pdfDoc.numPages) return; pageNum++; queueRenderPage(pageNum); }
-        function onZoomIn() { scale += 0.2; renderPage(pageNum); }
-        function onZoomOut() { if (scale <= 0.4) return; scale -= 0.2; renderPage(pageNum); }
+        function onZoomIn() { scale = parseFloat((scale + 0.1).toFixed(2)); renderPage(pageNum); }
+        function onZoomOut() { if (scale <= 0.2) return; scale = parseFloat((scale - 0.1).toFixed(2)); renderPage(pageNum); }
 
         // ===================================================================
         // EVENT LISTENERS
@@ -444,11 +492,19 @@
         tapuCard.addEventListener('click', () => showListPage('tapu'));
         kadastroCard.addEventListener('click', () => showListPage('kadastro'));
         backToHomeBtn.addEventListener('click', () => showPage('home'));
-        backToViewerBtn.addEventListener('click', () => showPage('list'));
+        
+        // Modal Listeners
+        closeModalBtn.addEventListener('click', closePdfModal);
         prevPageBtn.addEventListener('click', onPrevPage);
         nextPageBtn.addEventListener('click', onNextPage);
         zoomInBtn.addEventListener('click', onZoomIn);
         zoomOutBtn.addEventListener('click', onZoomOut);
+        // Klavyeden Escape tuşu ile modalı kapatma
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && pdfModal.classList.contains('active')) {
+                closePdfModal();
+            }
+        });
 
         // Uygulamayı Başlat
         initializeApp();
