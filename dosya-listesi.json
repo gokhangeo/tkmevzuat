@@ -1,0 +1,38 @@
+{
+    "tapu": {
+        "genelge": [
+            {
+                "title": "2022 5 2B ALANLARINDA YAPILACAK UYGULAMA",
+                "path": "tapu/genelgeler/2022-5-2B ALANLARINDA YAPILACAK UYGULAMA.pdf"
+            }
+        ],
+        "talimat": [
+            {
+                "title": "2B KullaniciG Muhdesat Bilgileri",
+                "path": "tapu/talimatlar/2B-KullaniciG-Muhdesat-Bilgileri.pdf"
+            }
+        ]
+    },
+    "kadastro": {
+        "genelge": [
+            {
+                "title": "2018 3 Ormanlarnn Kadastrosu Ve Tescili",
+                "path": "kadastro/genelgeler/2018-3 Ormanlarnn Kadastrosu ve Tescili.pdf"
+            },
+            {
+                "title": "2016 2",
+                "path": "kadastro/genelgeler/2016-2.pdf"
+            }
+        ],
+        "talimat": [
+            {
+                "title": "5403 SAYILI KANUN UYGULAMALARI",
+                "path": "kadastro/talimatlar/5403 SAYILI KANUN UYGULAMALARI.pdf"
+            },
+            {
+                "title": "5403 SAYILI KANUN UYG",
+                "path": "kadastro/talimatlar/5403-SAYILI-KANUN-UYG.pdf"
+            }
+        ]
+    }
+}
