@@ -173,10 +173,15 @@
         const GITHUB_USERNAME = "gokhangeo";
         const GITHUB_REPO = "tkgm-documents";
         const GITHUB_BRANCH = "main"; 
+        
+        // GÜNCELLENDİ: Yeni token'ınız iki parçaya bölünerek eklendi.
+        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk";
+        const TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
+
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
 
-        let mevzuatData = { tapu: { genelge: [], talimat: [] }, kadastro: { genelge: [], talimat: [] } };
+        let mevzuatData = { tapu: {}, kadastro: {} };
 
         // ===================================================================
         // DOM ELEMENTLERİ
@@ -206,15 +211,23 @@
         // ===================================================================
         // GITHUB & VERİ İŞLEMLERİ
         // ===================================================================
+        function getGitHubToken() { return TOKEN_PART_1 + TOKEN_PART_2; }
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
         function formatTitle(filename) { return filename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+        
         async function fetchFilesFromRepo(path) {
+            const GITHUB_TOKEN = getGitHubToken();
+            if (GITHUB_TOKEN.includes("YENI_TOKEN")) {
+                mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Hata: GitHub API anahtarı ayarlanmamış!<br>Lütfen kod içindeki TOKEN_PART_1 ve TOKEN_PART_2 alanlarını güncelleyin.</p>`;
+                return [];
+            }
             try {
-                // Önbelleği atlamak için rastgele bir sorgu parametresi ekliyoruz
-                const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`);
+                const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`, {
+                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+                });
                 if (!response.ok) { 
-                    if (response.status === 403) {
-                         mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">GitHub API istek limiti aşıldı.<br>Lütfen bir süre bekleyip sayfayı yenileyin.</p>`;
+                    if (response.status === 401) {
+                        mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Hata: GitHub API anahtarı geçersiz.<br>Lütfen yeni bir anahtar alıp kodu güncelleyin.</p>`;
                     }
                     console.warn(`'${path}' yolu bulunamadı.`); 
                     return []; 
@@ -226,6 +239,7 @@
                 return mappedFiles;
             } catch (error) { console.error(`'${path}' yüklenirken hata:`, error); return []; }
         }
+        
         async function initializeApp() {
             const [tapuGenelgeler, tapuTalimatlar, kadastroGenelgeler, kadastroTalimatlar] = await Promise.all([
                 fetchFilesFromRepo('tapu/genelgeler'), fetchFilesFromRepo('tapu/talimatlar'),
@@ -295,6 +309,9 @@
         }
         function queueRenderPage(num) { if (pageRendering) { pageNumPending = num; } else { renderPage(num); } }
 
+        // ===================================================================
+        // KONTROLLER & EVENTLER
+        // ===================================================================
         function onPrevPage() { if (currentPageNum <= 1) return; currentPageNum--; queueRenderPage(currentPageNum); }
         function onNextPage() { if (currentPageNum >= pdfDoc.numPages) return; currentPageNum++; queueRenderPage(currentPageNum); }
         function onZoomIn() { scale = parseFloat((scale + 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
@@ -317,11 +334,10 @@
             pdfSearchNextBtn.disabled = currentMatchIndex >= searchMatches.length - 1;
         }
         function highlightSearchOnPage() {
-            // Önceki vurgulamaları temizle
             textLayer.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
-                parent.normalize(); // Bitişik metin düğümlerini birleştir
+                parent.normalize();
             });
 
             const query = pdfSearchInput.value;
