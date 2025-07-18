@@ -297,9 +297,8 @@
             
             await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport }).promise;
             
-            // Metin katmanını oluşturmak için pdf.js'in kendi render metodunu kullanıyoruz
             const textContent = await page.getTextContent();
-            pdfPageTextContents.set(num, textContent); // Metin içeriğini önbelleğe al
+            pdfPageTextContents.set(num, textContent);
             const textLayerFragment = document.createDocumentFragment();
             pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerFragment, viewport, textDivs: [] });
             textLayer.appendChild(textLayerFragment);
@@ -329,11 +328,10 @@
             if (e.touches.length === 2) { e.preventDefault(); const newDist = getPinchDistance(e); scale *= newDist / initialPinchDistance; queueRenderPage(currentPageNum); initialPinchDistance = newDist; }
         }, { passive: false });
 
-        // GÜNCELLENDİ: Akıllı PDF içi arama fonksiyonları
+        // Akıllı PDF içi arama fonksiyonları
         function resetSearch() {
             searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
             updateSearchUI();
-            // Tüm vurgulamaları temizle
             document.querySelectorAll('mark.highlight, mark.current-highlight').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
@@ -346,7 +344,6 @@
             pdfSearchNextBtn.disabled = currentMatchIndex >= searchMatches.length - 1;
         }
         function highlightSearchOnPage() {
-            // Önceki vurgulamaları temizle
             textLayer.querySelectorAll('mark.highlight, mark.current-highlight').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
