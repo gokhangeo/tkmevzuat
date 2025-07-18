@@ -152,24 +152,12 @@
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        // ===================================================================
-        // AYARLAR
-        // ===================================================================
-        const GITHUB_USERNAME = "gokhangeo";
-        // GÜNCELLENDİ: Depo adı değiştirildi.
-        const GITHUB_REPO = "tkmevzuat"; 
-        const GITHUB_BRANCH = "main"; 
-        
-        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk";
-        const TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
-
+        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main"; 
+        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk", TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
         let mevzuatData = { tapu: {}, kadastro: {} };
 
-        // ===================================================================
-        // DOM ELEMENTLERİ
-        // ===================================================================
         const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const mainCategoriesContainer = document.getElementById('main-categories');
@@ -187,9 +175,6 @@
         const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
         const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
-        // ===================================================================
-        // UYGULAMA DURUMU (STATE)
-        // ===================================================================
         let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
         let searchMatches = [], currentMatchIndex = -1;
         let pdfPageTextContents = new Map();
@@ -305,7 +290,6 @@
                 textContentSource: textContent,
                 container: textLayer,
                 viewport,
-                textDivs: []
             }).promise;
 
             pageRendering = false;
@@ -421,6 +405,51 @@
             updateSearchUI();
         }
         
+        // GÜNCELLENDİ: Ana sayfa arama fonksiyonu eklendi
+        function displayGlobalSearchResults(results) {
+            if (results.length === 0) {
+                searchResultsContainer.innerHTML = `<p class="text-center text-gray-400">Aramanızla eşleşen sonuç bulunamadı.</p>`;
+                return;
+            }
+            searchResultsContainer.innerHTML = results.map(doc => `
+                <div class="p-4 bg-gray-800 rounded-lg mb-3 cursor-pointer hover:bg-gray-700 transition" data-path="${doc.path}" data-title="${doc.title}">
+                    <h4 class="font-bold text-white">${doc.title}</h4>
+                    <p class="text-sm text-gray-400 capitalize">${doc.section} / ${doc.type}</p>
+                </div>
+            `).join('');
+            
+            searchResultsContainer.querySelectorAll('div[data-path]').forEach(item => {
+                item.addEventListener('click', () => {
+                    const path = item.getAttribute('data-path');
+                    const title = item.getAttribute('data-title');
+                    openPdfModal(path, title);
+                });
+            });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+
+            if (query.length < 2) {
+                searchResultsContainer.innerHTML = '';
+                mainCategoriesContainer.style.display = 'grid';
+                return;
+            }
+
+            mainCategoriesContainer.style.display = 'none';
+            const results = [];
+            for (const section in mevzuatData) {
+                for (const type in mevzuatData[section]) {
+                    mevzuatData[section][type].forEach(doc => {
+                        if (doc.title.toLowerCase().includes(query)) {
+                            results.push({ ...doc, section, type });
+                        }
+                    });
+                }
+            }
+            displayGlobalSearchResults(results);
+        });
+
         pdfSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
         pdfSearchPrevBtn.addEventListener('click', () => goToMatch(currentMatchIndex - 1));
         pdfSearchNextBtn.addEventListener('click', () => goToMatch(currentMatchIndex + 1));
