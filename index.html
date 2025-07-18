@@ -72,7 +72,7 @@
     <!-- Ana Yükleyici -->
     <div id="main-loader-container">
         <div class="loader"></div>
-        <p class="text-white">Mevzuat envanteri yükleniyor...</p>
+        <p class="text-white">Mevzuat verileri yükleniyor...</p>
     </div>
 
     <div id="app-container" class="h-full flex-col" style="display: none;">
@@ -169,8 +169,14 @@
         const GITHUB_BRANCH = "main"; 
         
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
-        
-        let mevzuatData = {};
+        // GÜNCELLENDİ: Token'a ihtiyaç kalmadı, API adresi tekrar tanımlandı.
+        const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
+
+        // Mevzuat verisi dinamik olarak yüklenecek
+        let mevzuatData = {
+            tapu: { genelge: [], talimat: [] },
+            kadastro: { genelge: [], talimat: [] }
+        };
 
         // ===================================================================
         // DOM ELEMENTLERİ
@@ -214,41 +220,59 @@
         let scale = 1.5;
 
         // ===================================================================
-        // VERİ YÜKLEME FONKSİYONLARI (GÜNCELLENDİ)
+        // GITHUB API FONKSİYONLARI (TOKEN'SIZ)
         // ===================================================================
         
-        // 'dosya-listesi.json' bulunamazsa kullanılacak yedek veri
-        const fallbackMevzuatData = {
-            "tapu": {
-                "genelge": [{ "title": "Örnek Tapu Genelgesi", "path": "tapu/genelgeler/ornek.pdf" }],
-                "talimat": [{ "title": "Örnek Tapu Talimatı", "path": "tapu/talimatlar/ornek.pdf" }]
-            },
-            "kadastro": {
-                "genelge": [{ "title": "Örnek Kadastro Genelgesi", "path": "kadastro/genelgeler/ornek.pdf" }],
-                "talimat": [{ "title": "Örnek Kadastro Talimatı", "path": "kadastro/talimatlar/ornek.pdf" }]
-            }
-        };
+        /** Dosya adını daha okunaklı bir başlığa çevirir */
+        function formatTitle(filename) {
+            return filename
+                .replace('.pdf', '')
+                .replace(/[-_]/g, ' ')
+                .replace(/\b\w/g, char => char.toUpperCase());
+        }
 
-        /** Uygulamayı başlatır ve verileri JSON dosyasından veya yedek veriden çeker */
-        async function initializeApp() {
+        /** Belirtilen yoldaki PDF dosyalarını GitHub'dan çeker */
+        async function fetchFilesFromRepo(path) {
             try {
-                // Önbelleği atlamak için rastgele bir sorgu parametresi ekliyoruz
-                const manifestUrl = `${githubRawUrl}dosya-listesi.json?_=${new Date().getTime()}`;
-                const response = await fetch(manifestUrl);
+                // GÜNCELLENDİ: API isteği artık token olmadan yapılıyor.
+                const response = await fetch(githubApiUrl + path);
                 if (!response.ok) {
-                    // Dosya bulunamazsa (404 hatası), yakalanacak bir hata fırlat
-                    throw new Error("'dosya-listesi.json' bulunamadı, yedek veriler kullanılıyor.");
+                    if (response.status === 403) {
+                        const message = "GitHub API istek limiti aşıldı. Lütfen bir saat bekleyip tekrar deneyin.";
+                        console.error(message);
+                        alert(message);
+                    } else if (response.status === 404) {
+                        console.warn(`'${path}' yolu bulunamadı. Bu klasör boş olabilir veya hiç oluşturulmamış olabilir.`);
+                    }
+                    throw new Error(`GitHub API Hatası: ${response.status}`);
                 }
-                const manifest = await response.json();
-                mevzuatData = manifest;
-                console.log("Mevzuat verileri 'dosya-listesi.json' dosyasından başarıyla yüklendi.");
+                const files = await response.json();
+                // Sadece PDF dosyalarını al ve formatla
+                return files
+                    .filter(file => file.type === 'file' && file.name.endsWith('.pdf'))
+                    .map(file => ({
+                        title: formatTitle(file.name),
+                        path: file.path
+                    }));
             } catch (error) {
-                console.warn(error.message);
-                // Veri çekme başarısız olursa, yedek verileri kullan ve kullanıcıyı uyar
-                mevzuatData = fallbackMevzuatData;
-                // alert() yerine console.warn kullanmak daha az rahatsız edici olabilir
-                console.warn("Uyarı: 'dosya-listesi.json' dosyası bulunamadı. Uygulama örnek verilerle çalışacak. Dinamik güncellemeler için lütfen bu dosyayı deponuza ekleyin.");
+                console.error(`'${path}' yolu yüklenemedi:`, error);
+                return []; // Hata durumunda boş dizi döndür
             }
+        }
+
+        /** Uygulamayı başlatır ve tüm verileri çeker */
+        async function initializeApp() {
+            const [tapuGenelgeler, tapuTalimatlar, kadastroGenelgeler, kadastroTalimatlar] = await Promise.all([
+                fetchFilesFromRepo('tapu/genelgeler'),
+                fetchFilesFromRepo('tapu/talimatlar'),
+                fetchFilesFromRepo('kadastro/genelgeler'),
+                fetchFilesFromRepo('kadastro/talimatlar')
+            ]);
+            
+            mevzuatData.tapu.genelge = tapuGenelgeler;
+            mevzuatData.tapu.talimat = tapuTalimatlar;
+            mevzuatData.kadastro.genelge = kadastroGenelgeler;
+            mevzuatData.kadastro.talimat = kadastroTalimatlar;
 
             // Yükleyiciyi gizle ve uygulamayı göster
             mainLoader.style.display = 'none';
@@ -281,7 +305,7 @@
             for (const section in mevzuatData) {
                 for (const type in mevzuatData[section]) {
                     mevzuatData[section][type].forEach(doc => {
-                        if (doc.title.toLowerCase().includes(query)) {
+                        if (doc.title.toLowerCase().includes(query) || doc.path.toLowerCase().includes(query)) {
                             results.push({ ...doc, section, type });
                         }
                     });
