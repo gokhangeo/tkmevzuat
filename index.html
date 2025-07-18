@@ -97,7 +97,7 @@
         </main>
     </div>
 
-    <!-- GÜNCELLENDİ: Seçim Modalı -->
+    <!-- Seçim Modalı -->
     <div id="selection-modal" class="modal">
         <div id="selection-modal-content" class="modal-content">
             <header id="selection-modal-header" class="modal-header">
@@ -113,7 +113,7 @@
         </div>
     </div>
 
-    <!-- PDF Görüntüleyici Modalı (Değişmedi) -->
+    <!-- PDF Görüntüleyici Modalı -->
     <div id="pdf-modal" class="modal">
         <div id="pdf-modal-content" class="modal-content">
             <header id="pdf-modal-header" class="modal-header">
@@ -163,12 +163,10 @@
         const mainCategoriesContainer = document.getElementById('main-categories');
         const tapuCard = document.getElementById('tapu-card'), kadastroCard = document.getElementById('kadastro-card');
         
-        // Selection Modal
         const selectionModal = document.getElementById('selection-modal'), selectionModalTitle = document.getElementById('selection-modal-title');
         const selectionModalBody = document.getElementById('selection-modal-body'), selectionBackBtn = document.getElementById('selection-back-btn');
         const selectionCloseBtn = document.getElementById('selection-close-btn');
 
-        // PDF Modal
         const pdfModal = document.getElementById('pdf-modal'), pdfTitle = document.getElementById('pdf-title'), pdfLoader = document.getElementById('pdf-loader');
         const pdfViewportContainer = document.getElementById('pdf-viewport-container'), pdfCanvas = document.getElementById('pdf-canvas'), textLayer = document.getElementById('text-layer');
         const pageNumDisplay = document.getElementById('page-num'), prevPageBtn = document.getElementById('prev-page-btn'), nextPageBtn = document.getElementById('next-page-btn');
@@ -213,7 +211,6 @@
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
         }
 
-        // GÜNCELLENDİ: Yeni Seçim Modalı Mantığı
         function openSelectionModal(section) {
             currentSection = section;
             selectionModal.classList.add('active');
@@ -259,12 +256,11 @@
             });
         }
 
-        // GÜNCELLENDİ: PDF Yükleme Hatası Düzeltmesi
         async function openPdfModal(path, title) {
             pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
             pdfViewportContainer.style.display = 'none'; resetSearch();
             try {
-                const url = githubRawUrl + encodeURI(path); // URL'yi encode ederek hatayı düzeltiyoruz
+                const url = githubRawUrl + encodeURI(path);
                 pdfDoc = await pdfjsLib.getDocument(url).promise;
                 pdfPageTextContents.clear();
                 currentPageNum = 1; scale = 1.0; renderPage(currentPageNum);
@@ -284,9 +280,8 @@
             
             const textContent = await page.getTextContent();
             pdfPageTextContents.set(num, textContent);
-            const textLayerFragment = document.createDocumentFragment();
-            pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerFragment, viewport, textDivs: [] });
-            textLayer.appendChild(textLayerFragment);
+            // DÜZELTME: Metin katmanını doğrudan DOM elementine render ediyoruz.
+            await pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayer, viewport, textDivs: [] }).promise;
 
             pageRendering = false;
             pdfLoader.style.display = 'none'; pdfViewportContainer.style.display = 'block';
