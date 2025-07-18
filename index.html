@@ -45,19 +45,14 @@
             flex-grow: 1; overflow: auto; padding: 1rem;
             display: flex; justify-content: center;
         }
-        /* GÜNCELLENDİ: Canvas ve text layer için container */
-        #pdf-viewport-container {
-            position: relative;
-        }
+        #pdf-viewport-container { position: relative; }
         #text-layer {
             position: absolute; top: 0; left: 0;
-            line-height: 1.0;
-            pointer-events: auto; /* Yazı seçimi için gerekli */
+            line-height: 1.0; pointer-events: auto;
         }
         #text-layer > span {
             position: absolute; color: transparent;
-            white-space: pre;
-            transform-origin: 0% 0%;
+            white-space: pre; transform-origin: 0% 0%;
         }
         #pdf-modal-footer {
             display: flex; justify-content: center; align-items: center;
@@ -79,10 +74,9 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Arama vurgulama stili */
-        .highlight {
-            background-color: rgba(255, 255, 0, 0.5);
-        }
+        /* GÜNCELLENDİ: Arama vurgulama stilleri */
+        .highlight { background-color: rgba(255, 255, 0, 0.4); }
+        .current-highlight { background-color: rgba(255, 165, 0, 0.6); }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans h-full overflow-hidden">
@@ -117,41 +111,43 @@
             </div>
         </main>
 
-        <!-- GÜNCELLENDİ: Liste sayfası yapısı tamamen değişti -->
-        <section id="list-page" class="page p-4 sm:p-6 lg:p-8 flex-grow flex flex-col h-full">
+        <section id="list-page" class="page p-4 sm:p-6 lg:p-8 flex flex-col h-full">
             <header class="flex items-center mb-6">
                 <button id="back-to-home-btn" class="p-2 rounded-full hover:bg-gray-700 transition mr-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
                 <h2 id="list-title" class="text-2xl sm:text-3xl font-bold">Liste Başlığı</h2>
             </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow overflow-y-auto">
-                <div>
-                    <h3 class="text-xl font-bold text-yellow-400 border-b-2 border-yellow-400 pb-2 mb-4">Genelgeler</h3>
-                    <div id="genelge-list" class="space-y-3 pr-2"></div>
+            <!-- GÜNCELLENDİ: Kaydırma sorunu düzeltildi -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow overflow-hidden h-full">
+                <div class="flex flex-col overflow-hidden">
+                    <h3 class="text-xl font-bold text-yellow-400 border-b-2 border-yellow-400 pb-2 mb-4 flex-shrink-0">Genelgeler</h3>
+                    <div id="genelge-list" class="space-y-3 pr-2 overflow-y-auto"></div>
                 </div>
-                <div>
-                    <h3 class="text-xl font-bold text-blue-400 border-b-2 border-blue-400 pb-2 mb-4">Talimatlar</h3>
-                    <div id="talimat-list" class="space-y-3 pr-2"></div>
+                <div class="flex flex-col overflow-hidden">
+                    <h3 class="text-xl font-bold text-blue-400 border-b-2 border-blue-400 pb-2 mb-4 flex-shrink-0">Talimatlar</h3>
+                    <div id="talimat-list" class="space-y-3 pr-2 overflow-y-auto"></div>
                 </div>
             </div>
         </section>
     </div>
 
-    <!-- GÜNCELLENDİ: PDF Görüntüleyici Modal yapısı -->
     <div id="pdf-modal">
         <div id="pdf-modal-content">
             <header id="pdf-modal-header">
                 <h3 id="pdf-title" class="text-lg font-bold text-white truncate mr-4"></h3>
+                <!-- GÜNCELLENDİ: Gelişmiş arama kontrolleri -->
                 <div class="flex items-center gap-2 flex-grow">
-                     <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-sm w-48 focus:w-64 transition-all">
-                     <button id="pdf-search-btn" class="p-2 rounded-md bg-blue-600 hover:bg-blue-500 transition text-sm">Bul</button>
+                     <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-sm w-40 focus:w-56 transition-all">
+                     <button id="pdf-search-prev" class="p-1.5 rounded-md bg-gray-600 hover:bg-gray-500 transition disabled:opacity-50 disabled:cursor-not-allowed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                     <span id="pdf-search-results-count" class="text-sm text-gray-400 w-16 text-center">0 / 0</span>
+                     <button id="pdf-search-next" class="p-1.5 rounded-md bg-gray-600 hover:bg-gray-500 transition disabled:opacity-50 disabled:cursor-not-allowed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2">
-                        <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                        <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
                         <span id="zoom-level" class="text-sm w-12 text-center">100%</span>
-                        <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                        <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
                     </div>
-                     <button id="close-modal-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                     <button id="close-modal-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 </div>
             </header>
             <div id="pdf-render-area">
@@ -173,90 +169,52 @@
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        // ===================================================================
-        // AYARLAR
-        // ===================================================================
-        const GITHUB_USERNAME = "gokhangeo";
-        const GITHUB_REPO = "tkgm-documents";
-        const GITHUB_BRANCH = "main"; 
+        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkgm-documents", GITHUB_BRANCH = "main"; 
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
+        let mevzuatData = { tapu: {}, kadastro: {} };
 
-        let mevzuatData = { tapu: { genelge: [], talimat: [] }, kadastro: { genelge: [], talimat: [] } };
-
-        // ===================================================================
-        // DOM ELEMENTLERİ
-        // ===================================================================
-        const mainLoader = document.getElementById('main-loader-container');
-        const appContainer = document.getElementById('app-container');
+        const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const pages = { home: document.getElementById('home-page'), list: document.getElementById('list-page') };
-        const searchInput = document.getElementById('search-input');
-        const searchResultsContainer = document.getElementById('search-results');
+        const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const mainCategoriesContainer = document.getElementById('main-categories');
-        const tapuCard = document.getElementById('tapu-card');
-        const kadastroCard = document.getElementById('kadastro-card');
-        const backToHomeBtn = document.getElementById('back-to-home-btn');
-        const listTitle = document.getElementById('list-title');
-        const genelgeListContainer = document.getElementById('genelge-list');
-        const talimatListContainer = document.getElementById('talimat-list');
-        const pdfModal = document.getElementById('pdf-modal');
-        const pdfTitle = document.getElementById('pdf-title');
-        const pdfLoader = document.getElementById('pdf-loader');
-        const pdfViewportContainer = document.getElementById('pdf-viewport-container');
-        const pdfCanvas = document.getElementById('pdf-canvas');
-        const textLayer = document.getElementById('text-layer');
-        const pageNumDisplay = document.getElementById('page-num');
-        const prevPageBtn = document.getElementById('prev-page-btn');
-        const nextPageBtn = document.getElementById('next-page-btn');
-        const zoomInBtn = document.getElementById('zoom-in-btn');
-        const zoomOutBtn = document.getElementById('zoom-out-btn');
-        const zoomLevelDisplay = document.getElementById('zoom-level');
+        const tapuCard = document.getElementById('tapu-card'), kadastroCard = document.getElementById('kadastro-card');
+        const backToHomeBtn = document.getElementById('back-to-home-btn'), listTitle = document.getElementById('list-title');
+        const genelgeListContainer = document.getElementById('genelge-list'), talimatListContainer = document.getElementById('talimat-list');
+        const pdfModal = document.getElementById('pdf-modal'), pdfTitle = document.getElementById('pdf-title'), pdfLoader = document.getElementById('pdf-loader');
+        const pdfViewportContainer = document.getElementById('pdf-viewport-container'), pdfCanvas = document.getElementById('pdf-canvas'), textLayer = document.getElementById('text-layer');
+        const pageNumDisplay = document.getElementById('page-num'), prevPageBtn = document.getElementById('prev-page-btn'), nextPageBtn = document.getElementById('next-page-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn'), zoomOutBtn = document.getElementById('zoom-out-btn'), zoomLevelDisplay = document.getElementById('zoom-level');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        const pdfSearchInput = document.getElementById('pdf-search-input');
-        const pdfSearchBtn = document.getElementById('pdf-search-btn');
+        const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
+        const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
-        // ===================================================================
-        // UYGULAMA DURUMU (STATE)
-        // ===================================================================
-        let currentSection = null;
-        let pdfDoc = null;
-        let currentPageNum = 1;
-        let pageRendering = false;
-        let pageNumPending = null;
-        let scale = 1.0;
-        let initialPinchDistance = null;
-        let searchResults = [];
-        let currentSearchIndex = -1;
+        let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
+        let searchMatches = [], currentMatchIndex = -1;
 
-        // ===================================================================
-        // GITHUB & VERİ İŞLEMLERİ
-        // ===================================================================
+        function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
         function formatTitle(filename) { return filename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
         async function fetchFilesFromRepo(path) {
             try {
                 const response = await fetch(githubApiUrl + path);
-                if (!response.ok) { console.warn(`'${path}' yolu bulunamadı veya boş.`); return []; }
+                if (!response.ok) { console.warn(`'${path}' yolu bulunamadı.`); return []; }
                 const files = await response.json();
                 if (!Array.isArray(files)) return [];
-                return files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf')).map(f => ({ title: formatTitle(f.name), path: f.path }));
-            } catch (error) { console.error(`'${path}' yolu yüklenirken hata:`, error); return []; }
+                const mappedFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf')).map(f => ({ title: formatTitle(f.name), path: f.path }));
+                // GÜNCELLENDİ: Yıla göre sıralama
+                mappedFiles.sort((a, b) => extractYear(b.title) - extractYear(a.title));
+                return mappedFiles;
+            } catch (error) { console.error(`'${path}' yüklenirken hata:`, error); return []; }
         }
         async function initializeApp() {
             const [tapuGenelgeler, tapuTalimatlar, kadastroGenelgeler, kadastroTalimatlar] = await Promise.all([
                 fetchFilesFromRepo('tapu/genelgeler'), fetchFilesFromRepo('tapu/talimatlar'),
                 fetchFilesFromRepo('kadastro/genelgeler'), fetchFilesFromRepo('kadastro/talimatlar')
             ]);
-            mevzuatData = {
-                tapu: { genelge: tapuGenelgeler, talimat: tapuTalimatlar },
-                kadastro: { genelge: kadastroGenelgeler, talimat: kadastroTalimatlar }
-            };
-            mainLoader.style.display = 'none';
-            appContainer.style.display = 'flex';
+            mevzuatData = { tapu: { genelge: tapuGenelgeler, talimat: tapuTalimatlar }, kadastro: { genelge: kadastroGenelgeler, talimat: kadastroTalimatlar } };
+            mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
         }
 
-        // ===================================================================
-        // SAYFA NAVİGASYONU & LİSTELEME
-        // ===================================================================
         function showPage(pageId) { Object.values(pages).forEach(p => p.classList.remove('active')); if(pages[pageId]) pages[pageId].classList.add('active'); }
         function showListPage(section) {
             currentSection = section;
@@ -272,122 +230,143 @@
             documents.forEach(doc => {
                 const item = document.createElement('div');
                 item.className = 'p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition flex items-center justify-between';
-                item.innerHTML = `<span class="font-medium text-sm">${doc.title}</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+                item.innerHTML = `<span class="font-medium text-sm">${doc.title}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
                 item.addEventListener('click', () => openPdfModal(doc.path, doc.title));
                 container.appendChild(item);
             });
         }
 
-        // ===================================================================
-        // PDF MODAL & GÖRÜNTÜLEME
-        // ===================================================================
         async function openPdfModal(path, title) {
-            pdfModal.classList.add('active');
-            pdfTitle.textContent = title;
-            pdfLoader.style.display = 'flex';
-            pdfViewportContainer.style.display = 'none';
-            pdfSearchInput.value = '';
-            const url = githubRawUrl + path;
+            pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
+            pdfViewportContainer.style.display = 'none'; resetSearch();
             try {
-                pdfDoc = await pdfjsLib.getDocument(url).promise;
-                currentPageNum = 1; scale = 1.0;
-                renderPage(currentPageNum);
-            } catch (error) {
-                console.error('PDF yüklenirken hata:', error);
-                alert('PDF dosyası yüklenemedi. Dosya yolunu veya adını kontrol edin.');
-                closePdfModal();
-            }
+                pdfDoc = await pdfjsLib.getDocument(githubRawUrl + path).promise;
+                currentPageNum = 1; scale = 1.0; renderPage(currentPageNum);
+            } catch (error) { console.error('PDF yüklenirken hata:', error); alert('PDF yüklenemedi.'); closePdfModal(); }
         }
         function closePdfModal() { pdfModal.classList.remove('active'); pdfDoc = null; }
-        function renderPage(num) {
+        
+        async function renderPage(num) {
             pageRendering = true;
-            pdfDoc.getPage(num).then(async page => {
-                const viewport = page.getViewport({ scale });
-                pdfCanvas.height = viewport.height; pdfCanvas.width = viewport.width;
-                pdfViewportContainer.style.height = `${viewport.height}px`; pdfViewportContainer.style.width = `${viewport.width}px`;
-                textLayer.innerHTML = ''; textLayer.style.height = `${viewport.height}px`; textLayer.style.width = `${viewport.width}px`;
-                
-                const renderContext = { canvasContext: pdfCanvas.getContext('2d'), viewport };
-                await page.render(renderContext).promise;
-
-                const textContent = await page.getTextContent();
-                pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayer, viewport, textDivs: [] });
-                
-                pageRendering = false;
-                pdfLoader.style.display = 'none'; pdfViewportContainer.style.display = 'block';
-                if (pageNumPending !== null) { renderPage(pageNumPending); pageNumPending = null; }
-            });
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale });
+            pdfCanvas.height = viewport.height; pdfCanvas.width = viewport.width;
+            pdfViewportContainer.style.height = `${viewport.height}px`; pdfViewportContainer.style.width = `${viewport.width}px`;
+            textLayer.innerHTML = ''; textLayer.style.height = `${viewport.height}px`; textLayer.style.width = `${viewport.width}px`;
+            
+            await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport }).promise;
+            const textContent = await page.getTextContent();
+            pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayer, viewport, textDivs: [] });
+            
+            pageRendering = false;
+            pdfLoader.style.display = 'none'; pdfViewportContainer.style.display = 'block';
+            if (pageNumPending !== null) { renderPage(pageNumPending); pageNumPending = null; }
+            highlightSearchOnPage();
+            
             pageNumDisplay.textContent = `Sayfa ${num} / ${pdfDoc.numPages}`;
             zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
             prevPageBtn.disabled = (num <= 1); nextPageBtn.disabled = (num >= pdfDoc.numPages);
         }
         function queueRenderPage(num) { if (pageRendering) { pageNumPending = num; } else { renderPage(num); } }
 
-        // ===================================================================
-        // KONTROLLER & EVENTLER
-        // ===================================================================
         function onPrevPage() { if (currentPageNum <= 1) return; currentPageNum--; queueRenderPage(currentPageNum); }
         function onNextPage() { if (currentPageNum >= pdfDoc.numPages) return; currentPageNum++; queueRenderPage(currentPageNum); }
         function onZoomIn() { scale = parseFloat((scale + 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
         function onZoomOut() { if (scale <= 0.2) return; scale = parseFloat((scale - 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
         
-        // Pinch-to-Zoom Eventleri
-        function getPinchDistance(event) {
-            return Math.hypot(event.touches[0].pageX - event.touches[1].pageX, event.touches[0].pageY - event.touches[1].pageY);
-        }
-        pdfViewportContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) { e.preventDefault(); initialPinchDistance = getPinchDistance(e); }
-        }, { passive: false });
+        function getPinchDistance(e) { return Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); }
+        pdfViewportContainer.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); initialPinchDistance = getPinchDistance(e); } }, { passive: false });
         pdfViewportContainer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const newDist = getPinchDistance(e);
-                const factor = newDist / initialPinchDistance;
-                scale = Math.max(0.1, Math.min(scale * factor, 5.0)); // Ölçeği sınırla
-                queueRenderPage(currentPageNum);
-                initialPinchDistance = newDist;
-            }
+            if (e.touches.length === 2) { e.preventDefault(); const newDist = getPinchDistance(e); scale *= newDist / initialPinchDistance; queueRenderPage(currentPageNum); initialPinchDistance = newDist; }
         }, { passive: false });
 
-        // PDF içi arama
-        async function searchInPdf() {
-            const query = pdfSearchInput.value;
-            if (!query || !pdfDoc) return;
-            pdfLoader.style.display = 'flex';
-            searchResults = [];
-            currentSearchIndex = -1;
-
-            for (let i = 1; i <= pdfDoc.numPages; i++) {
-                const page = await pdfDoc.getPage(i);
-                const textContent = await page.getTextContent();
-                textContent.items.forEach(item => {
-                    if (item.str.toLowerCase().includes(query.toLowerCase())) {
-                        searchResults.push({ pageNum: i });
-                    }
-                });
-            }
-            pdfLoader.style.display = 'none';
-            if (searchResults.length > 0) {
-                currentSearchIndex = 0;
-                goToSearchResult(currentSearchIndex);
-                alert(`${searchResults.length} sonuç bulundu.`);
-            } else {
-                alert("Sonuç bulunamadı.");
-            }
+        // GÜNCELLENDİ: Gelişmiş PDF içi arama fonksiyonları
+        function resetSearch() {
+            searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
+            updateSearchUI();
         }
-        function goToSearchResult(index) {
-            if (searchResults[index]) {
-                const { pageNum } = searchResults[index];
-                if (pageNum !== currentPageNum) {
-                    currentPageNum = pageNum;
-                    queueRenderPage(currentPageNum);
+        function updateSearchUI() {
+            pdfSearchResultsCount.textContent = searchMatches.length > 0 ? `${currentMatchIndex + 1} / ${searchMatches.length}` : "0 / 0";
+            pdfSearchPrevBtn.disabled = currentMatchIndex <= 0;
+            pdfSearchNextBtn.disabled = currentMatchIndex >= searchMatches.length - 1;
+        }
+        function highlightSearchOnPage() {
+            const query = pdfSearchInput.value;
+            if (query.length < 2) return;
+            
+            const textDivs = textLayer.querySelectorAll("span");
+            textDivs.forEach(div => {
+                const text = div.textContent;
+                const regex = new RegExp(query, 'gi');
+                let match;
+                const newHtml = text.replace(regex, (matchText) => `<mark class="highlight">${matchText}</mark>`);
+                if (newHtml !== text) {
+                    div.innerHTML = newHtml;
+                }
+            });
+            
+            if (currentMatchIndex > -1) {
+                const currentMatch = searchMatches[currentMatchIndex];
+                if (currentMatch.pageNum === currentPageNum) {
+                    const allMarks = textLayer.querySelectorAll('mark');
+                    if (allMarks.length > 0) {
+                        let markIndex = 0;
+                        for(let i = 0; i < currentMatchIndex; i++) {
+                            if(searchMatches[i].pageNum === currentPageNum) {
+                                markIndex++;
+                            }
+                        }
+                        const currentMark = allMarks[markIndex];
+                        if (currentMark) {
+                            currentMark.classList.add('current-highlight');
+                            currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
                 }
             }
         }
-        pdfSearchBtn.addEventListener('click', searchInPdf);
-        pdfSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchInPdf(); });
-
-        // Genel Eventler
+        async function startSearch() {
+            const query = pdfSearchInput.value;
+            if (query.length < 2 || !pdfDoc) { resetSearch(); return; }
+            pdfLoader.style.display = 'flex';
+            searchMatches = [];
+            
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join('');
+                const regex = new RegExp(query, 'gi');
+                let match;
+                while ((match = regex.exec(pageText)) !== null) {
+                    searchMatches.push({ pageNum: i, index: match.index });
+                }
+            }
+            pdfLoader.style.display = 'none';
+            if (searchMatches.length > 0) {
+                currentMatchIndex = 0;
+                goToMatch(currentMatchIndex);
+            } else {
+                alert("Sonuç bulunamadı.");
+            }
+            updateSearchUI();
+        }
+        function goToMatch(index) {
+            if (index < 0 || index >= searchMatches.length) return;
+            currentMatchIndex = index;
+            const { pageNum } = searchMatches[index];
+            if (pageNum !== currentPageNum) {
+                currentPageNum = pageNum;
+                queueRenderPage(currentPageNum);
+            } else {
+                highlightSearchOnPage();
+            }
+            updateSearchUI();
+        }
+        
+        pdfSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
+        pdfSearchPrevBtn.addEventListener('click', () => goToMatch(currentMatchIndex - 1));
+        pdfSearchNextBtn.addEventListener('click', () => goToMatch(currentMatchIndex + 1));
+        
         tapuCard.addEventListener('click', () => showListPage('tapu'));
         kadastroCard.addEventListener('click', () => showListPage('kadastro'));
         backToHomeBtn.addEventListener('click', () => showPage('home'));
@@ -396,7 +375,7 @@
         nextPageBtn.addEventListener('click', onNextPage);
         zoomInBtn.addEventListener('click', onZoomIn);
         zoomOutBtn.addEventListener('click', onZoomOut);
-        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pdfModal.classList.contains('active')) closePdfModal(); });
+        window.addEventListener('keydown', e => { if (e.key === 'Escape' && pdfModal.classList.contains('active')) closePdfModal(); });
 
         initializeApp();
     </script>
