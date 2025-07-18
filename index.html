@@ -152,12 +152,24 @@
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkgm-documents", GITHUB_BRANCH = "main"; 
-        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk", TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
+        // ===================================================================
+        // AYARLAR
+        // ===================================================================
+        const GITHUB_USERNAME = "gokhangeo";
+        // GÜNCELLENDİ: Depo adı değiştirildi.
+        const GITHUB_REPO = "tkmevzuat"; 
+        const GITHUB_BRANCH = "main"; 
+        
+        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk";
+        const TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
+
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
         let mevzuatData = { tapu: {}, kadastro: {} };
 
+        // ===================================================================
+        // DOM ELEMENTLERİ
+        // ===================================================================
         const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const mainCategoriesContainer = document.getElementById('main-categories');
@@ -175,6 +187,9 @@
         const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
         const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
+        // ===================================================================
+        // UYGULAMA DURUMU (STATE)
+        // ===================================================================
         let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
         let searchMatches = [], currentMatchIndex = -1;
         let pdfPageTextContents = new Map();
@@ -268,7 +283,6 @@
         }
         function closePdfModal() { pdfModal.classList.remove('active'); pdfDoc = null; }
         
-        // DÜZELTME: renderPage fonksiyonu güncellendi
         async function renderPage(num) {
             pageRendering = true;
             const page = await pdfDoc.getPage(num);
@@ -280,7 +294,6 @@
             pdfViewportContainer.style.width = `${viewport.width}px`;
             textLayer.innerHTML = '';
             
-            // DÜZELTME: Gerekli CSS değişkenini ekliyoruz
             textLayer.style.setProperty('--scale-factor', viewport.scale);
 
             await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport }).promise;
@@ -288,7 +301,6 @@
             const textContent = await page.getTextContent();
             pdfPageTextContents.set(num, textContent);
             
-            // DÜZELTME: renderTextLayer'ı doğrudan DOM elementi ile çağırıyoruz
             await pdfjsLib.renderTextLayer({
                 textContentSource: textContent,
                 container: textLayer,
@@ -327,7 +339,7 @@
         function resetSearch() {
             searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
             updateSearchUI();
-            highlightSearchOnPage(); // Sadece vurguları temizle
+            highlightSearchOnPage();
         }
         function updateSearchUI() {
             pdfSearchResultsCount.textContent = searchMatches.length > 0 ? `${currentMatchIndex + 1} / ${searchMatches.length}` : "0 / 0";
