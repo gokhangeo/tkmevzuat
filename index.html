@@ -74,7 +74,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* GÜNCELLENDİ: Arama vurgulama stilleri */
+        /* Arama vurgulama stilleri */
         .highlight { background-color: rgba(255, 255, 0, 0.4); }
         .current-highlight { background-color: rgba(255, 165, 0, 0.6); }
     </style>
@@ -116,7 +116,6 @@
                 <button id="back-to-home-btn" class="p-2 rounded-full hover:bg-gray-700 transition mr-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
                 <h2 id="list-title" class="text-2xl sm:text-3xl font-bold">Liste Başlığı</h2>
             </header>
-            <!-- GÜNCELLENDİ: Kaydırma sorunu düzeltildi -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow overflow-hidden h-full">
                 <div class="flex flex-col overflow-hidden">
                     <h3 class="text-xl font-bold text-yellow-400 border-b-2 border-yellow-400 pb-2 mb-4 flex-shrink-0">Genelgeler</h3>
@@ -134,7 +133,6 @@
         <div id="pdf-modal-content">
             <header id="pdf-modal-header">
                 <h3 id="pdf-title" class="text-lg font-bold text-white truncate mr-4"></h3>
-                <!-- GÜNCELLENDİ: Gelişmiş arama kontrolleri -->
                 <div class="flex items-center gap-2 flex-grow">
                      <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-sm w-40 focus:w-56 transition-all">
                      <button id="pdf-search-prev" class="p-1.5 rounded-md bg-gray-600 hover:bg-gray-500 transition disabled:opacity-50 disabled:cursor-not-allowed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
@@ -169,12 +167,22 @@
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkgm-documents", GITHUB_BRANCH = "main"; 
+        // ===================================================================
+        // AYARLAR
+        // ===================================================================
+        const GITHUB_USERNAME = "gokhangeo";
+        const GITHUB_REPO = "tkgm-documents";
+        const GITHUB_BRANCH = "main"; 
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
-        let mevzuatData = { tapu: {}, kadastro: {} };
 
-        const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
+        let mevzuatData = { tapu: { genelge: [], talimat: [] }, kadastro: { genelge: [], talimat: [] } };
+
+        // ===================================================================
+        // DOM ELEMENTLERİ
+        // ===================================================================
+        const mainLoader = document.getElementById('main-loader-container');
+        const appContainer = document.getElementById('app-container');
         const pages = { home: document.getElementById('home-page'), list: document.getElementById('list-page') };
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const mainCategoriesContainer = document.getElementById('main-categories');
@@ -189,19 +197,31 @@
         const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
         const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
+        // ===================================================================
+        // UYGULAMA DURUMU (STATE)
+        // ===================================================================
         let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
         let searchMatches = [], currentMatchIndex = -1;
 
+        // ===================================================================
+        // GITHUB & VERİ İŞLEMLERİ
+        // ===================================================================
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
         function formatTitle(filename) { return filename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
         async function fetchFilesFromRepo(path) {
             try {
-                const response = await fetch(githubApiUrl + path);
-                if (!response.ok) { console.warn(`'${path}' yolu bulunamadı.`); return []; }
+                // Önbelleği atlamak için rastgele bir sorgu parametresi ekliyoruz
+                const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`);
+                if (!response.ok) { 
+                    if (response.status === 403) {
+                         mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">GitHub API istek limiti aşıldı.<br>Lütfen bir süre bekleyip sayfayı yenileyin.</p>`;
+                    }
+                    console.warn(`'${path}' yolu bulunamadı.`); 
+                    return []; 
+                }
                 const files = await response.json();
                 if (!Array.isArray(files)) return [];
                 const mappedFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf')).map(f => ({ title: formatTitle(f.name), path: f.path }));
-                // GÜNCELLENDİ: Yıla göre sıralama
                 mappedFiles.sort((a, b) => extractYear(b.title) - extractYear(a.title));
                 return mappedFiles;
             } catch (error) { console.error(`'${path}' yüklenirken hata:`, error); return []; }
@@ -215,6 +235,9 @@
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
         }
 
+        // ===================================================================
+        // SAYFA NAVİGASYONU & LİSTELEME
+        // ===================================================================
         function showPage(pageId) { Object.values(pages).forEach(p => p.classList.remove('active')); if(pages[pageId]) pages[pageId].classList.add('active'); }
         function showListPage(section) {
             currentSection = section;
@@ -236,6 +259,9 @@
             });
         }
 
+        // ===================================================================
+        // PDF MODAL & GÖRÜNTÜLEME
+        // ===================================================================
         async function openPdfModal(path, title) {
             pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
             pdfViewportContainer.style.display = 'none'; resetSearch();
@@ -280,7 +306,7 @@
             if (e.touches.length === 2) { e.preventDefault(); const newDist = getPinchDistance(e); scale *= newDist / initialPinchDistance; queueRenderPage(currentPageNum); initialPinchDistance = newDist; }
         }, { passive: false });
 
-        // GÜNCELLENDİ: Gelişmiş PDF içi arama fonksiyonları
+        // Gelişmiş PDF içi arama fonksiyonları
         function resetSearch() {
             searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
             updateSearchUI();
@@ -291,6 +317,13 @@
             pdfSearchNextBtn.disabled = currentMatchIndex >= searchMatches.length - 1;
         }
         function highlightSearchOnPage() {
+            // Önceki vurgulamaları temizle
+            textLayer.querySelectorAll('mark').forEach(m => {
+                const parent = m.parentNode;
+                parent.replaceChild(document.createTextNode(m.textContent), m);
+                parent.normalize(); // Bitişik metin düğümlerini birleştir
+            });
+
             const query = pdfSearchInput.value;
             if (query.length < 2) return;
             
@@ -298,9 +331,8 @@
             textDivs.forEach(div => {
                 const text = div.textContent;
                 const regex = new RegExp(query, 'gi');
-                let match;
-                const newHtml = text.replace(regex, (matchText) => `<mark class="highlight">${matchText}</mark>`);
-                if (newHtml !== text) {
+                if (regex.test(text)) {
+                    const newHtml = text.replace(regex, (matchText) => `<mark class="highlight">${matchText}</mark>`);
                     div.innerHTML = newHtml;
                 }
             });
@@ -308,19 +340,18 @@
             if (currentMatchIndex > -1) {
                 const currentMatch = searchMatches[currentMatchIndex];
                 if (currentMatch.pageNum === currentPageNum) {
-                    const allMarks = textLayer.querySelectorAll('mark');
-                    if (allMarks.length > 0) {
-                        let markIndex = 0;
-                        for(let i = 0; i < currentMatchIndex; i++) {
-                            if(searchMatches[i].pageNum === currentPageNum) {
-                                markIndex++;
-                            }
+                    const allMarks = Array.from(textLayer.querySelectorAll('mark'));
+                    let pageMatchIndex = 0;
+                    for(let i = 0; i < currentMatchIndex; i++) {
+                        if(searchMatches[i].pageNum === currentPageNum) {
+                            pageMatchIndex++;
                         }
-                        const currentMark = allMarks[markIndex];
-                        if (currentMark) {
-                            currentMark.classList.add('current-highlight');
-                            currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
+                    }
+                    const currentMark = allMarks[pageMatchIndex];
+                    if (currentMark) {
+                        currentMark.classList.remove('highlight');
+                        currentMark.classList.add('current-highlight');
+                        currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }
             }
