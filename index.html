@@ -175,34 +175,32 @@
         // UYGULAMA AYARLARI VE VERİLER
         // ===================================================================
         
-        // ÖNEMLİ: Buraya kendi GitHub kullanıcı adınızı ve repo adınızı yazın.
-        const GITHUB_USERNAME = "YOUR_GITHUB_USERNAME";
-        const GITHUB_REPO = "YOUR_REPO_NAME";
+        // GÜNCELLENDİ: GitHub kullanıcı adınız ve repo adınız.
+        const GITHUB_USERNAME = "gokhangeo";
+        const GITHUB_REPO = "tkgm-documents";
         const GITHUB_BRANCH = "main"; // Genellikle 'main' veya 'master' olur
         
         const githubBaseUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
 
-        // Mevzuat veritabanı. Burayı kendi dosya yapınıza göre doldurun.
+        // GÜNCELLENDİ: Mevzuat veritabanı.
+        // Lütfen bu listeyi GitHub deponuzdaki gerçek PDF dosyalarınızla güncelleyin.
         // 'title' kullanıcıya görünecek başlık, 'path' ise GitHub'daki dosya yoludur.
         const mevzuatData = {
             tapu: {
                 genelge: [
-                    { title: "2023/1 Sayılı Genelge - Elektronik İşlemler", path: "tapu/genelgeler/2023-1.pdf" },
-                    { title: "2022/4 Sayılı Genelge - Yabancıların Mülk Edinimi", path: "tapu/genelgeler/2022-4.pdf" },
-                    { title: "2021/8 Sayılı Genelge - Miras İşlemleri", path: "tapu/genelgeler/2021-8.pdf" },
+                    // Örnek: { title: "2024/1 Sayılı Genelge", path: "tapu/genelgeler/2024-1.pdf" },
+                    { title: "Tapu Genelge Örneği 1", path: "tapu/genelgeler/ornek1.pdf" },
                 ],
                 talimat: [
-                    { title: "Web Tapu Kullanım Talimatı", path: "tapu/talimatlar/webtapu.pdf" },
+                    // Örnek: { title: "Web Tapu Kullanım Talimatı", path: "tapu/talimatlar/webtapu.pdf" },
                 ]
             },
             kadastro: {
                 genelge: [
-                    { title: "2023/5 Sayılı Genelge - 22/A Uygulamaları", path: "kadastro/genelgeler/2023-5.pdf" },
-                    { title: "2020/2 Sayılı Genelge - Cins Değişikliği", path: "kadastro/genelgeler/2020-2.pdf" },
+                    // Örnek: { title: "2023/5 Sayılı Genelge - 22/A", path: "kadastro/genelgeler/2023-5.pdf" },
                 ],
                 talimat: [
-                    { title: "Parsel Sorgu Uygulaması Talimatı", path: "kadastro/talimatlar/parsel-sorgu.pdf" },
-                    { title: "TUSAGA-Aktif Kullanım Talimatı", path: "kadastro/talimatlar/tusaga-aktif.pdf" },
+                    // Örnek: { title: "TUSAGA-Aktif Kullanım Talimatı", path: "kadastro/talimatlar/tusaga-aktif.pdf" },
                 ]
             }
         };
@@ -386,7 +384,7 @@
             } catch (error) {
                 console.error('PDF yüklenirken hata oluştu:', error);
                 loader.style.display = 'none';
-                alert('PDF dosyası yüklenemedi. Lütfen GitHub ayarlarınızı ve dosya yolunu kontrol edin.');
+                alert('PDF dosyası yüklenemedi. Lütfen GitHub deponuzdaki dosya yolunun doğru olduğundan ve deponuzun "public" olduğundan emin olun.');
                 showListPage(currentSection);
             }
         }
