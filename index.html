@@ -169,7 +169,6 @@
         const GITHUB_BRANCH = "main"; 
         
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
-        // GÜNCELLENDİ: Token'a ihtiyaç kalmadı, API adresi tekrar tanımlandı.
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
 
         // Mevzuat verisi dinamik olarak yüklenecek
@@ -234,7 +233,6 @@
         /** Belirtilen yoldaki PDF dosyalarını GitHub'dan çeker */
         async function fetchFilesFromRepo(path) {
             try {
-                // GÜNCELLENDİ: API isteği artık token olmadan yapılıyor.
                 const response = await fetch(githubApiUrl + path);
                 if (!response.ok) {
                     if (response.status === 403) {
@@ -247,7 +245,6 @@
                     throw new Error(`GitHub API Hatası: ${response.status}`);
                 }
                 const files = await response.json();
-                // Sadece PDF dosyalarını al ve formatla
                 return files
                     .filter(file => file.type === 'file' && file.name.endsWith('.pdf'))
                     .map(file => ({
@@ -256,7 +253,7 @@
                     }));
             } catch (error) {
                 console.error(`'${path}' yolu yüklenemedi:`, error);
-                return []; // Hata durumunda boş dizi döndür
+                return []; 
             }
         }
 
@@ -274,7 +271,6 @@
             mevzuatData.kadastro.genelge = kadastroGenelgeler;
             mevzuatData.kadastro.talimat = kadastroTalimatlar;
 
-            // Yükleyiciyi gizle ve uygulamayı göster
             mainLoader.style.display = 'none';
             appContainer.style.display = 'flex';
         }
@@ -350,7 +346,7 @@
 
         function populatePdfList() {
             pdfListContainer.innerHTML = '';
-            const documents = mevzuatData[currentSection][currentType];
+            const documents = mevzuatData[currentSection]?.[currentType];
             
             if (!documents || documents.length === 0) {
                  pdfListContainer.innerHTML = `<p class="text-center text-gray-400 mt-8">Bu kategoride belge bulunmuyor.</p>`;
@@ -383,7 +379,7 @@
         talimatBtn.addEventListener('click', () => { currentType = 'talimat'; updateActiveTypeButton(); populatePdfList(); });
 
         // ===================================================================
-        // PDF GÖRÜNTÜLEYİCİ MANTIĞI
+        // PDF GÖRÜNTÜLEYİCİ MANTIĞI (GÜNCELLENDİ)
         // ===================================================================
         const { pdfjsLib } = globalThis;
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://mozilla.github.io/pdf.js/build/pdf.worker.mjs`;
@@ -396,13 +392,17 @@
             pdfCanvas.style.display = 'none';
             
             try {
-                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                // GÜNCELLENDİ: PDF yükleme hatasını yakalamak için .catch eklendi.
+                const loadingTask = pdfjsLib.getDocument(url);
+                pdfDoc = await loadingTask.promise;
                 pageNum = 1;
                 renderPage(pageNum);
             } catch (error) {
                 console.error('PDF yüklenirken hata oluştu:', error);
                 pdfLoader.style.display = 'none';
+                // GÜNCELLENDİ: Kullanıcıya daha net bir hata mesajı gösteriliyor.
                 alert('PDF dosyası yüklenemedi. Lütfen GitHub deponuzdaki dosya yolunun doğru olduğundan ve deponuzun "public" olduğundan emin olun.');
+                // GÜNCELLENDİ: Hata durumunda liste sayfasına geri dönülüyor.
                 showPage('list');
             }
         }
