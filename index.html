@@ -72,7 +72,7 @@
     <!-- Ana Yükleyici -->
     <div id="main-loader-container">
         <div class="loader"></div>
-        <p class="text-white">Mevzuat verileri yükleniyor...</p>
+        <p class="text-white">Mevzuat envanteri yükleniyor...</p>
     </div>
 
     <div id="app-container" class="h-full flex-col" style="display: none;">
@@ -167,17 +167,10 @@
         const GITHUB_USERNAME = "gokhangeo";
         const GITHUB_REPO = "tkgm-documents";
         const GITHUB_BRANCH = "main"; 
-        // GÜNCELLENDİ: GitHub API istek limitlerini artırmak için token eklendi.
-        const GITHUB_TOKEN = "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";
         
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
-        const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
-
-        // Mevzuat verisi dinamik olarak yüklenecek
-        let mevzuatData = {
-            tapu: { genelge: [], talimat: [] },
-            kadastro: { genelge: [], talimat: [] }
-        };
+        
+        let mevzuatData = {};
 
         // ===================================================================
         // DOM ELEMENTLERİ
@@ -221,62 +214,43 @@
         let scale = 1.5;
 
         // ===================================================================
-        // GITHUB API FONKSİYONLARI
+        // VERİ YÜKLEME FONKSİYONLARI (GÜNCELLENDİ)
         // ===================================================================
         
-        function formatTitle(filename) {
-            return filename
-                .replace('.pdf', '')
-                .replace(/[-_]/g, ' ')
-                .replace(/\b\w/g, char => char.toUpperCase());
-        }
-
-        async function fetchFilesFromRepo(path) {
-            try {
-                // GÜNCELLENDİ: API isteğine Authorization başlığı eklendi.
-                const response = await fetch(githubApiUrl + path, {
-                    headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`
-                    }
-                });
-                if (!response.ok) {
-                    if(response.status === 401) {
-                        console.error("GitHub Token geçersiz veya süresi dolmuş.");
-                        alert("GitHub Token geçersiz. Lütfen kodu güncelleyin.");
-                    }
-                     if(response.status === 404) {
-                        console.error(`'${path}' yolu bulunamadı. Lütfen GitHub deponuzdaki klasör yapısını kontrol edin.`);
-                        // Hata göstermeden devam et, sadece konsola yaz.
-                        return [];
-                    }
-                    throw new Error(`GitHub API Hatası: ${response.status}`);
-                }
-                const files = await response.json();
-                return files
-                    .filter(file => file.type === 'file' && file.name.endsWith('.pdf'))
-                    .map(file => ({
-                        title: formatTitle(file.name),
-                        path: file.path
-                    }));
-            } catch (error) {
-                console.error(`'${path}' yolu yüklenemedi:`, error);
-                return []; 
+        // 'dosya-listesi.json' bulunamazsa kullanılacak yedek veri
+        const fallbackMevzuatData = {
+            "tapu": {
+                "genelge": [{ "title": "Örnek Tapu Genelgesi", "path": "tapu/genelgeler/ornek.pdf" }],
+                "talimat": [{ "title": "Örnek Tapu Talimatı", "path": "tapu/talimatlar/ornek.pdf" }]
+            },
+            "kadastro": {
+                "genelge": [{ "title": "Örnek Kadastro Genelgesi", "path": "kadastro/genelgeler/ornek.pdf" }],
+                "talimat": [{ "title": "Örnek Kadastro Talimatı", "path": "kadastro/talimatlar/ornek.pdf" }]
             }
-        }
+        };
 
+        /** Uygulamayı başlatır ve verileri JSON dosyasından veya yedek veriden çeker */
         async function initializeApp() {
-            const [tapuGenelgeler, tapuTalimatlar, kadastroGenelgeler, kadastroTalimatlar] = await Promise.all([
-                fetchFilesFromRepo('tapu/genelgeler'),
-                fetchFilesFromRepo('tapu/talimatlar'),
-                fetchFilesFromRepo('kadastro/genelgeler'),
-                fetchFilesFromRepo('kadastro/talimatlar')
-            ]);
-            
-            mevzuatData.tapu.genelge = tapuGenelgeler;
-            mevzuatData.tapu.talimat = tapuTalimatlar;
-            mevzuatData.kadastro.genelge = kadastroGenelgeler;
-            mevzuatData.kadastro.talimat = kadastroTalimatlar;
+            try {
+                // Önbelleği atlamak için rastgele bir sorgu parametresi ekliyoruz
+                const manifestUrl = `${githubRawUrl}dosya-listesi.json?_=${new Date().getTime()}`;
+                const response = await fetch(manifestUrl);
+                if (!response.ok) {
+                    // Dosya bulunamazsa (404 hatası), yakalanacak bir hata fırlat
+                    throw new Error("'dosya-listesi.json' bulunamadı, yedek veriler kullanılıyor.");
+                }
+                const manifest = await response.json();
+                mevzuatData = manifest;
+                console.log("Mevzuat verileri 'dosya-listesi.json' dosyasından başarıyla yüklendi.");
+            } catch (error) {
+                console.warn(error.message);
+                // Veri çekme başarısız olursa, yedek verileri kullan ve kullanıcıyı uyar
+                mevzuatData = fallbackMevzuatData;
+                // alert() yerine console.warn kullanmak daha az rahatsız edici olabilir
+                console.warn("Uyarı: 'dosya-listesi.json' dosyası bulunamadı. Uygulama örnek verilerle çalışacak. Dinamik güncellemeler için lütfen bu dosyayı deponuza ekleyin.");
+            }
 
+            // Yükleyiciyi gizle ve uygulamayı göster
             mainLoader.style.display = 'none';
             appContainer.style.display = 'flex';
         }
@@ -307,7 +281,7 @@
             for (const section in mevzuatData) {
                 for (const type in mevzuatData[section]) {
                     mevzuatData[section][type].forEach(doc => {
-                        if (doc.title.toLowerCase().includes(query) || doc.path.toLowerCase().includes(query)) {
+                        if (doc.title.toLowerCase().includes(query)) {
                             results.push({ ...doc, section, type });
                         }
                     });
