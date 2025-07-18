@@ -24,54 +24,39 @@
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* PDF Modal Styles */
-        #pdf-modal {
+        /* Modal Base Styles */
+        .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px);
             display: none; justify-content: center; align-items: center;
             z-index: 1000; animation: fadeIn 0.3s;
         }
-        #pdf-modal.active { display: flex; }
-        #pdf-modal-content {
-            background-color: #1f2937; width: 95%; height: 95%; max-width: 1200px;
+        .modal.active { display: flex; }
+        .modal-content {
+            background-color: #1f2937; width: 95%; height: 95%;
             border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             display: flex; flex-direction: column; overflow: hidden;
         }
-        #pdf-modal-header {
+        .modal-header {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0.75rem 1rem; border-bottom: 1px solid #374151; flex-shrink: 0;
         }
-        #pdf-render-area {
-            flex-grow: 1; overflow: auto; padding: 1rem;
-            display: flex; justify-content: center;
-        }
+        
+        /* Selection Modal Specifics */
+        #selection-modal-content { max-width: 800px; max-height: 80%; }
+        #selection-modal-body { padding: 2rem; overflow-y: auto; }
+
+        /* PDF Modal Specifics */
+        #pdf-modal-content { max-width: 1200px; }
+        #pdf-render-area { flex-grow: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; }
         #pdf-viewport-container { position: relative; }
-        #text-layer {
-            position: absolute; top: 0; left: 0;
-            line-height: 1.0; pointer-events: auto;
-        }
-        #text-layer > span, #text-layer > br {
-            position: absolute; color: transparent;
-            white-space: pre; transform-origin: 0% 0%;
-        }
-        #pdf-modal-footer {
-            display: flex; justify-content: center; align-items: center;
-            padding: 0.5rem 1rem; border-top: 1px solid #374151;
-            gap: 1rem; flex-shrink: 0;
-        }
+        #text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
+        #text-layer > span, #text-layer > br { position: absolute; color: transparent; white-space: pre; transform-origin: 0% 0%; }
+        #pdf-modal-footer { display: flex; justify-content: center; align-items: center; padding: 0.5rem 1rem; border-top: 1px solid #374151; gap: 1rem; flex-shrink: 0; }
         
         /* Loading spinner styles */
-        .loader {
-            border: 4px solid #f3f3f3; border-top: 4px solid #0d47a1;
-            border-radius: 50%; width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        #main-loader-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(17, 24, 39, 0.8); display: flex;
-            justify-content: center; align-items: center; z-index: 9999;
-            flex-direction: column; gap: 1rem;
-        }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0d47a1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #main-loader-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Arama vurgulama stilleri */
@@ -100,38 +85,38 @@
             </div>
             <div id="search-results" class="max-w-2xl w-full mx-auto flex-grow overflow-y-auto"></div>
             <div id="main-categories" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
-                <div id="tapu-card" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:bg-gray-700/70 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
+                <div id="tapu-card" data-section="tapu" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:bg-gray-700/70 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                     <h2 class="text-2xl font-bold text-yellow-400 mb-2">TAPU</h2>
                     <p class="text-gray-300">Tapu Dairesi Başkanlığı ile ilgili genelge ve talimatlar.</p>
                 </div>
-                <div id="kadastro-card" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:bg-gray-700/70 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
+                <div id="kadastro-card" data-section="kadastro" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:bg-gray-700/70 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                     <h2 class="text-2xl font-bold text-blue-400 mb-2">KADASTRO</h2>
                     <p class="text-gray-300">Kadastro Dairesi Başkanlığı ile ilgili genelge ve talimatlar.</p>
                 </div>
             </div>
         </main>
-
-        <section id="list-page" class="page p-4 sm:p-6 lg:p-8 flex flex-col h-full">
-            <header class="flex items-center mb-6">
-                <button id="back-to-home-btn" class="p-2 rounded-full hover:bg-gray-700 transition mr-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
-                <h2 id="list-title" class="text-2xl sm:text-3xl font-bold">Liste Başlığı</h2>
-            </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow overflow-hidden h-full">
-                <div class="flex flex-col overflow-hidden">
-                    <h3 class="text-xl font-bold text-yellow-400 border-b-2 border-yellow-400 pb-2 mb-4 flex-shrink-0">Genelgeler</h3>
-                    <div id="genelge-list" class="space-y-3 pr-2 overflow-y-auto"></div>
-                </div>
-                <div class="flex flex-col overflow-hidden">
-                    <h3 class="text-xl font-bold text-blue-400 border-b-2 border-blue-400 pb-2 mb-4 flex-shrink-0">Talimatlar</h3>
-                    <div id="talimat-list" class="space-y-3 pr-2 overflow-y-auto"></div>
-                </div>
-            </div>
-        </section>
     </div>
 
-    <div id="pdf-modal">
-        <div id="pdf-modal-content">
-            <header id="pdf-modal-header">
+    <!-- GÜNCELLENDİ: Seçim Modalı -->
+    <div id="selection-modal" class="modal">
+        <div id="selection-modal-content" class="modal-content">
+            <header id="selection-modal-header" class="modal-header">
+                <div class="flex items-center gap-3">
+                    <button id="selection-back-btn" class="p-2 rounded-full hover:bg-gray-700 transition hidden"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                    <h2 id="selection-modal-title" class="text-2xl font-bold">Seçim yapınız</h2>
+                </div>
+                <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </header>
+            <div id="selection-modal-body">
+                <!-- İçerik dinamik olarak buraya gelecek -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Görüntüleyici Modalı (Değişmedi) -->
+    <div id="pdf-modal" class="modal">
+        <div id="pdf-modal-content" class="modal-content">
+            <header id="pdf-modal-header" class="modal-header">
                 <h3 id="pdf-title" class="text-lg font-bold text-white truncate mr-4"></h3>
                 <div class="flex items-center gap-2 flex-grow">
                      <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-sm w-40 focus:w-56 transition-all">
@@ -167,32 +152,23 @@
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        // ===================================================================
-        // AYARLAR
-        // ===================================================================
-        const GITHUB_USERNAME = "gokhangeo";
-        const GITHUB_REPO = "tkgm-documents";
-        const GITHUB_BRANCH = "main"; 
-        
-        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk";
-        const TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
-
+        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkgm-documents", GITHUB_BRANCH = "main"; 
+        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk", TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
-
         let mevzuatData = { tapu: {}, kadastro: {} };
 
-        // ===================================================================
-        // DOM ELEMENTLERİ
-        // ===================================================================
-        const mainLoader = document.getElementById('main-loader-container');
-        const appContainer = document.getElementById('app-container');
-        const pages = { home: document.getElementById('home-page'), list: document.getElementById('list-page') };
+        const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const mainCategoriesContainer = document.getElementById('main-categories');
         const tapuCard = document.getElementById('tapu-card'), kadastroCard = document.getElementById('kadastro-card');
-        const backToHomeBtn = document.getElementById('back-to-home-btn'), listTitle = document.getElementById('list-title');
-        const genelgeListContainer = document.getElementById('genelge-list'), talimatListContainer = document.getElementById('talimat-list');
+        
+        // Selection Modal
+        const selectionModal = document.getElementById('selection-modal'), selectionModalTitle = document.getElementById('selection-modal-title');
+        const selectionModalBody = document.getElementById('selection-modal-body'), selectionBackBtn = document.getElementById('selection-back-btn');
+        const selectionCloseBtn = document.getElementById('selection-close-btn');
+
+        // PDF Modal
         const pdfModal = document.getElementById('pdf-modal'), pdfTitle = document.getElementById('pdf-title'), pdfLoader = document.getElementById('pdf-loader');
         const pdfViewportContainer = document.getElementById('pdf-viewport-container'), pdfCanvas = document.getElementById('pdf-canvas'), textLayer = document.getElementById('text-layer');
         const pageNumDisplay = document.getElementById('page-num'), prevPageBtn = document.getElementById('prev-page-btn'), nextPageBtn = document.getElementById('next-page-btn');
@@ -201,16 +177,10 @@
         const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
         const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
-        // ===================================================================
-        // UYGULAMA DURUMU (STATE)
-        // ===================================================================
         let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
         let searchMatches = [], currentMatchIndex = -1;
-        let pdfPageTextContents = new Map(); // Sayfa metinlerini önbelleğe al
+        let pdfPageTextContents = new Map();
 
-        // ===================================================================
-        // GITHUB & VERİ İŞLEMLERİ
-        // ===================================================================
         function getGitHubToken() { return TOKEN_PART_1 + TOKEN_PART_2; }
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
         function formatTitle(filename) { return filename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
@@ -218,19 +188,13 @@
         async function fetchFilesFromRepo(path) {
             const GITHUB_TOKEN = getGitHubToken();
             if (GITHUB_TOKEN.includes("YENI_TOKEN")) {
-                mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Hata: GitHub API anahtarı ayarlanmamış!<br>Lütfen kod içindeki TOKEN_PART_1 ve TOKEN_PART_2 alanlarını güncelleyin.</p>`;
-                return [];
+                mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Hata: GitHub API anahtarı ayarlanmamış!</p>`; return [];
             }
             try {
-                const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`, {
-                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-                });
+                const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
                 if (!response.ok) { 
-                    if (response.status === 401) {
-                        mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Hata: GitHub API anahtarı geçersiz.<br>Lütfen yeni bir anahtar alıp kodu güncelleyin.</p>`;
-                    }
-                    console.warn(`'${path}' yolu bulunamadı.`); 
-                    return []; 
+                    if (response.status === 401) { mainLoader.innerHTML = `<p class="text-red-500 font-bold text-center p-4">Hata: GitHub API anahtarı geçersiz.</p>`; }
+                    console.warn(`'${path}' yolu bulunamadı.`); return []; 
                 }
                 const files = await response.json();
                 if (!Array.isArray(files)) return [];
@@ -249,39 +213,60 @@
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
         }
 
-        // ===================================================================
-        // SAYFA NAVİGASYONU & LİSTELEME
-        // ===================================================================
-        function showPage(pageId) { Object.values(pages).forEach(p => p.classList.remove('active')); if(pages[pageId]) pages[pageId].classList.add('active'); }
-        function showListPage(section) {
+        // GÜNCELLENDİ: Yeni Seçim Modalı Mantığı
+        function openSelectionModal(section) {
             currentSection = section;
-            listTitle.textContent = section === 'tapu' ? 'Tapu Mevzuatları' : 'Kadastro Mevzuatları';
-            listTitle.className = `text-2xl sm:text-3xl font-bold ${section === 'tapu' ? 'text-yellow-400' : 'text-blue-400'}`;
-            populatePdfList(mevzuatData[section].genelge, genelgeListContainer);
-            populatePdfList(mevzuatData[section].talimat, talimatListContainer);
-            showPage('list');
+            selectionModal.classList.add('active');
+            showCategoryChoice();
         }
-        function populatePdfList(documents, container) {
-            container.innerHTML = '';
-            if (!documents || documents.length === 0) { container.innerHTML = `<p class="text-center text-gray-400 mt-4">Bu kategoride belge bulunmuyor.</p>`; return; }
-            documents.forEach(doc => {
-                const item = document.createElement('div');
-                item.className = 'p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition flex items-center justify-between';
-                item.innerHTML = `<span class="font-medium text-sm">${doc.title}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
-                item.addEventListener('click', () => openPdfModal(doc.path, doc.title));
-                container.appendChild(item);
+        function closeSelectionModal() { selectionModal.classList.remove('active'); }
+        function showCategoryChoice() {
+            selectionModalTitle.textContent = `${currentSection.charAt(0).toUpperCase() + currentSection.slice(1)} Mevzuatları`;
+            selectionBackBtn.classList.add('hidden');
+            selectionModalBody.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div data-type="genelge" class="p-8 bg-gray-700 rounded-lg text-center cursor-pointer hover:bg-yellow-500 hover:text-gray-900 transition">
+                        <h3 class="text-2xl font-bold">Genelgeler</h3>
+                    </div>
+                    <div data-type="talimat" class="p-8 bg-gray-700 rounded-lg text-center cursor-pointer hover:bg-blue-500 hover:text-gray-900 transition">
+                        <h3 class="text-2xl font-bold">Talimatlar</h3>
+                    </div>
+                </div>`;
+            selectionModalBody.querySelectorAll('[data-type]').forEach(card => {
+                card.addEventListener('click', (e) => showDocumentList(e.currentTarget.dataset.type));
+            });
+        }
+        function showDocumentList(type) {
+            selectionModalTitle.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            selectionBackBtn.classList.remove('hidden');
+            const documents = mevzuatData[currentSection][type];
+            if (!documents || documents.length === 0) {
+                selectionModalBody.innerHTML = `<p class="text-center text-gray-400">Bu kategoride belge bulunmuyor.</p>`;
+                return;
+            }
+            selectionModalBody.innerHTML = `<div class="space-y-3">${documents.map(doc => `
+                <div data-path="${doc.path}" data-title="${doc.title}" class="p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 transition flex items-center justify-between">
+                    <span class="font-medium text-sm">${doc.title}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>`).join('')}</div>`;
+            
+            selectionModalBody.querySelectorAll('[data-path]').forEach(item => {
+                item.addEventListener('click', e => {
+                    const { path, title } = e.currentTarget.dataset;
+                    closeSelectionModal();
+                    openPdfModal(path, title);
+                });
             });
         }
 
-        // ===================================================================
-        // PDF MODAL & GÖRÜNTÜLEME
-        // ===================================================================
+        // GÜNCELLENDİ: PDF Yükleme Hatası Düzeltmesi
         async function openPdfModal(path, title) {
             pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
             pdfViewportContainer.style.display = 'none'; resetSearch();
             try {
-                pdfDoc = await pdfjsLib.getDocument(githubRawUrl + path).promise;
-                pdfPageTextContents.clear(); // Önbelleği temizle
+                const url = githubRawUrl + encodeURI(path); // URL'yi encode ederek hatayı düzeltiyoruz
+                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                pdfPageTextContents.clear();
                 currentPageNum = 1; scale = 1.0; renderPage(currentPageNum);
             } catch (error) { console.error('PDF yüklenirken hata:', error); alert('PDF yüklenemedi.'); closePdfModal(); }
         }
@@ -314,9 +299,6 @@
         }
         function queueRenderPage(num) { if (pageRendering) { pageNumPending = num; } else { renderPage(num); } }
 
-        // ===================================================================
-        // KONTROLLER & EVENTLER
-        // ===================================================================
         function onPrevPage() { if (currentPageNum <= 1) return; currentPageNum--; queueRenderPage(currentPageNum); }
         function onNextPage() { if (currentPageNum >= pdfDoc.numPages) return; currentPageNum++; queueRenderPage(currentPageNum); }
         function onZoomIn() { scale = parseFloat((scale + 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
@@ -328,7 +310,6 @@
             if (e.touches.length === 2) { e.preventDefault(); const newDist = getPinchDistance(e); scale *= newDist / initialPinchDistance; queueRenderPage(currentPageNum); initialPinchDistance = newDist; }
         }, { passive: false });
 
-        // Akıllı PDF içi arama fonksiyonları
         function resetSearch() {
             searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
             updateSearchUI();
@@ -423,15 +404,17 @@
         pdfSearchPrevBtn.addEventListener('click', () => goToMatch(currentMatchIndex - 1));
         pdfSearchNextBtn.addEventListener('click', () => goToMatch(currentMatchIndex + 1));
         
-        tapuCard.addEventListener('click', () => showListPage('tapu'));
-        kadastroCard.addEventListener('click', () => showListPage('kadastro'));
-        backToHomeBtn.addEventListener('click', () => showPage('home'));
+        tapuCard.addEventListener('click', (e) => openSelectionModal(e.currentTarget.dataset.section));
+        kadastroCard.addEventListener('click', (e) => openSelectionModal(e.currentTarget.dataset.section));
+        selectionCloseBtn.addEventListener('click', closeSelectionModal);
+        selectionBackBtn.addEventListener('click', showCategoryChoice);
+
         closeModalBtn.addEventListener('click', closePdfModal);
         prevPageBtn.addEventListener('click', onPrevPage);
         nextPageBtn.addEventListener('click', onNextPage);
         zoomInBtn.addEventListener('click', onZoomIn);
         zoomOutBtn.addEventListener('click', onZoomOut);
-        window.addEventListener('keydown', e => { if (e.key === 'Escape' && pdfModal.classList.contains('active')) closePdfModal(); });
+        window.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); closeSelectionModal(); } });
 
         initializeApp();
     </script>
