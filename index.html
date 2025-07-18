@@ -175,32 +175,36 @@
         // UYGULAMA AYARLARI VE VERİLER
         // ===================================================================
         
-        // GÜNCELLENDİ: GitHub kullanıcı adınız ve repo adınız.
         const GITHUB_USERNAME = "gokhangeo";
         const GITHUB_REPO = "tkgm-documents";
-        const GITHUB_BRANCH = "main"; // Genellikle 'main' veya 'master' olur
+        const GITHUB_BRANCH = "main"; 
         
         const githubBaseUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
 
-        // GÜNCELLENDİ: Mevzuat veritabanı.
-        // Lütfen bu listeyi GitHub deponuzdaki gerçek PDF dosyalarınızla güncelleyin.
-        // 'title' kullanıcıya görünecek başlık, 'path' ise GitHub'daki dosya yoludur.
+        // GÜNCELLENDİ: Mevzuat veritabanı örneklerle dolduruldu.
+        // ÖNEMLİ: Bu bölümü kendi PDF dosyalarınızla güncelleyin.
+        // 'title' -> kullanıcıya görünecek başlık
+        // 'path'  -> GitHub deponuzdaki dosyanın tam yolu (örn: "kadastro/genelgeler/2023-5.pdf")
         const mevzuatData = {
             tapu: {
                 genelge: [
-                    // Örnek: { title: "2024/1 Sayılı Genelge", path: "tapu/genelgeler/2024-1.pdf" },
-                    { title: "Tapu Genelge Örneği 1", path: "tapu/genelgeler/ornek1.pdf" },
+                    { title: "Örnek Tapu Genelgesi 2024/1", path: "tapu/genelgeler/ornek-genelge.pdf" },
+                    // Buraya kendi tapu genelgelerinizi ekleyin. Örnek:
+                    // { title: "Yabancı İşler Genelgesi", path: "tapu/genelgeler/yabanci-isler.pdf" },
                 ],
                 talimat: [
-                    // Örnek: { title: "Web Tapu Kullanım Talimatı", path: "tapu/talimatlar/webtapu.pdf" },
+                    { title: "Örnek Tapu Talimatı", path: "tapu/talimatlar/ornek-talimat.pdf" },
+                     // Buraya kendi tapu talimatlarınızı ekleyin
                 ]
             },
             kadastro: {
                 genelge: [
-                    // Örnek: { title: "2023/5 Sayılı Genelge - 22/A", path: "kadastro/genelgeler/2023-5.pdf" },
+                    { title: "Örnek Kadastro Genelgesi 2023/5", path: "kadastro/genelgeler/ornek-genelge-kadastro.pdf" },
+                    // Buraya kendi kadastro genelgelerinizi ekleyin
                 ],
                 talimat: [
-                    // Örnek: { title: "TUSAGA-Aktif Kullanım Talimatı", path: "kadastro/talimatlar/tusaga-aktif.pdf" },
+                    { title: "Örnek Kadastro Talimatı", path: "kadastro/talimatlar/ornek-talimat-kadastro.pdf" },
+                    // Buraya kendi kadastro talimatlarınızı ekleyin
                 ]
             }
         };
