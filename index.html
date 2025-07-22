@@ -78,24 +78,27 @@
         #pdf-modal-content { max-width: 1200px; }
         #pdf-render-area { 
             flex-grow: 1; 
-            overflow: auto; /* Changed from hidden to auto for scrolling pages */
+            overflow: auto; 
             padding: 1rem; 
-            touch-action: none; /* Disable default browser touch actions like pull-to-refresh */
+            touch-action: none; 
         }
         #pdf-pages-container {
             position: relative;
             width: fit-content;
             margin: auto;
-            /* transform-origin will be set by JS */
         }
         .page-container {
             position: relative;
             margin-bottom: 1rem;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            background-color: #374151; /* Placeholder color */
+        }
+        .page-container canvas {
+            display: block;
         }
         .text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
         .text-layer > span, .text-layer > br { position: absolute; color: transparent; white-space: pre; transform-origin: 0% 0%; }
-        #pdf-modal-footer { display: none; } /* Hide footer with page buttons */
+        #pdf-modal-footer { display: none; }
         
         /* Loading spinner styles */
         .loader { border: 4px solid #374151; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -135,7 +138,7 @@
             
             <!-- Center section for results and categories -->
             <div class="flex-grow flex flex-col justify-center">
-                <div id="search-results" class="max-w-2xl w-full mx-auto flex-grow overflow-y-auto"></div>
+                <div id="search-results" class="max-w-2xl w-full mx-auto overflow-y-auto"></div>
                 <div id="main-categories" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
                     <div data-section="tapu" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                         <h2 class="text-2xl font-bold text-yellow-400 mb-2">TAPU</h2>
@@ -197,7 +200,6 @@
                  </div>
             </div>
             <footer id="pdf-modal-footer">
-                <!-- This is now hidden by CSS but kept for potential future use -->
                 <button id="prev-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Önceki</button>
                 <div id="page-num" class="text-sm font-medium text-white"></div>
                 <button id="next-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Sonraki</button>
@@ -237,6 +239,7 @@
         let searchMatches = [], currentMatchIndex = -1;
         let pdfPageTextContents = new Map();
         let intersectionObserver = null;
+        let rerenderTimer;
 
         // Pan & Zoom State
         let pdfTransform = { scale: 1, translateX: 0, translateY: 0 };
@@ -391,8 +394,14 @@
                 
                 const firstPage = await pdfDoc.getPage(1);
                 const viewport = firstPage.getViewport({ scale: 1.0 });
-                const containerWidth = pdfRenderArea.clientWidth - 40;
-                initialScale = containerWidth / viewport.width;
+
+                // Fit-to-window logic
+                const containerWidth = pdfRenderArea.clientWidth - 20; // some padding
+                const containerHeight = pdfRenderArea.clientHeight - 20; // some padding
+                const scaleX = containerWidth / viewport.width;
+                const scaleY = containerHeight / viewport.height;
+                initialScale = Math.min(scaleX, scaleY);
+                
                 pdfTransform.scale = initialScale;
                 updatePdfTransform();
                 
@@ -429,24 +438,19 @@
                         if (!pageContainer.dataset.rendered) {
                             renderPage(pageNum, pageContainer);
                         }
-                    } else {
-                        // Optional: Unload pages that are far out of view to save memory
-                        // cleanupPage(pageContainer);
                     }
                 });
-            }, { root: pdfRenderArea, rootMargin: '500px 0px' }); // Pre-load pages 500px before they enter viewport
+            }, { root: pdfRenderArea, rootMargin: '500px 0px' });
 
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const pageContainer = document.createElement('div');
                 pageContainer.className = 'page-container';
                 pageContainer.dataset.pageNum = i;
-                // Set placeholder height later
                 fragment.appendChild(pageContainer);
                 intersectionObserver.observe(pageContainer);
             }
             pdfPagesContainer.appendChild(fragment);
 
-            // Set placeholder heights after the first page is inspected
             pdfDoc.getPage(1).then(page => {
                 const viewport = page.getViewport({ scale: initialScale });
                 pdfPagesContainer.querySelectorAll('.page-container').forEach(pc => {
@@ -457,10 +461,15 @@
         }
         
         async function renderPage(pageNum, container) {
+            if (container.dataset.renderedScale == pdfTransform.scale) return;
             container.dataset.rendered = 'true';
+            container.dataset.renderedScale = pdfTransform.scale;
+
             try {
                 const page = await pdfDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: initialScale });
+                const viewport = page.getViewport({ scale: pdfTransform.scale });
+                
+                container.innerHTML = ''; // Clear old content
 
                 const canvas = document.createElement('canvas');
                 const textLayerDiv = document.createElement('div');
@@ -469,38 +478,49 @@
                 container.appendChild(canvas);
                 container.appendChild(textLayerDiv);
 
-                canvas.height = viewport.height;
                 canvas.width = viewport.width;
-                textLayerDiv.style.width = `${viewport.width}px`;
-                textLayerDiv.style.height = `${viewport.height}px`;
+                canvas.height = viewport.height;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
 
-                // FIX: Set the --scale-factor CSS variable required by renderTextLayer
+                textLayerDiv.style.width = '100%';
+                textLayerDiv.style.height = '100%';
                 textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
 
-                const renderContext = {
-                    canvasContext: canvas.getContext('2d'),
-                    viewport: viewport
-                };
-                await page.render(renderContext).promise;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
                 
                 const textContent = await page.getTextContent();
                 pdfPageTextContents.set(pageNum, textContent);
                 
-                await pdfjsLib.renderTextLayer({
-                    textContentSource: textContent,
-                    container: textLayerDiv,
-                    viewport,
-                }).promise;
+                await pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport }).promise;
 
                 highlightSearchOnPage(pageNum);
 
             } catch (error) {
                 console.error(`Error rendering page ${pageNum}`, error);
-                container.dataset.rendered = 'false'; // Allow re-rendering on next intersection
+                delete container.dataset.rendered;
+                delete container.dataset.renderedScale;
             }
         }
         
-        // --- Pan and Zoom Logic ---
+        // --- Pan, Zoom, and High-Res Rerender Logic ---
+        function reRenderVisiblePages() {
+            if (!pdfDoc) return;
+            pdfPagesContainer.querySelectorAll('.page-container[data-rendered="true"]').forEach(container => {
+                const rect = container.getBoundingClientRect();
+                const areaRect = pdfRenderArea.getBoundingClientRect();
+                if (rect.bottom > areaRect.top && rect.top < areaRect.bottom) {
+                    const pageNum = parseInt(container.dataset.pageNum, 10);
+                    renderPage(pageNum, container);
+                }
+            });
+        }
+
+        function debouncedRerender() {
+            clearTimeout(rerenderTimer);
+            rerenderTimer = setTimeout(reRenderVisiblePages, 400);
+        }
+
         function setupTouchListeners() {
             pdfRenderArea.addEventListener('touchstart', onTouchStart);
             pdfRenderArea.addEventListener('touchmove', onTouchMove);
@@ -535,34 +555,38 @@
             } else if (isPinching && e.touches.length === 2) {
                 const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const scale = (newDist / pinchStartDist);
-                pdfTransform.scale = Math.max(0.5 * initialScale, Math.min(pdfTransform.scale * scale, 5 * initialScale));
+                pdfTransform.scale = Math.max(0.25 * initialScale, Math.min(pdfTransform.scale * scale, 4 * initialScale));
                 updatePdfTransform();
                 pinchStartDist = newDist;
             }
         }
 
         function onTouchEnd(e) {
+            if (isPinching) {
+                debouncedRerender();
+            }
             isPanning = false;
             isPinching = false;
         }
         
         function updatePdfTransform() {
-            pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px) scale(${pdfTransform.scale})`;
+            pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px) scale(${pdfTransform.scale / initialScale})`;
             zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
         }
         
         function resetPanAndZoom() {
             pdfTransform = { scale: 1, translateX: 0, translateY: 0 };
-            updatePdfTransform();
         }
         
         function onZoomIn() { 
-            pdfTransform.scale = Math.min(pdfTransform.scale + 0.2, 5 * initialScale);
+            pdfTransform.scale = Math.min(pdfTransform.scale + 0.2 * initialScale, 4 * initialScale);
             updatePdfTransform();
+            debouncedRerender();
         }
         function onZoomOut() { 
-            pdfTransform.scale = Math.max(pdfTransform.scale - 0.2, 0.5 * initialScale);
+            pdfTransform.scale = Math.max(pdfTransform.scale - 0.2 * initialScale, 0.25 * initialScale);
             updatePdfTransform();
+            debouncedRerender();
         }
 
         // --- Search Logic ---
@@ -585,7 +609,6 @@
             const textLayerDiv = pageContainer.querySelector('.text-layer');
             if (!textLayerDiv) return;
 
-            // Clear previous highlights
             textLayerDiv.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
@@ -603,7 +626,6 @@
                 }
             });
 
-            // Highlight current match on this page
             searchMatches.forEach((match, index) => {
                 if (match.pageNum === pageNum) {
                     const allMarks = Array.from(textLayerDiv.querySelectorAll('mark.highlight'));
@@ -647,7 +669,6 @@
                 alert("Sonuç bulunamadı.");
             }
             updateSearchUI();
-            // Re-highlight all rendered pages
             pdfPagesContainer.querySelectorAll('.page-container[data-rendered="true"]').forEach(pc => {
                 highlightSearchOnPage(parseInt(pc.dataset.pageNum, 10));
             });
@@ -661,7 +682,6 @@
             const targetPage = pdfPagesContainer.querySelector(`.page-container[data-page-num="${pageNum}"]`);
             if (targetPage) {
                 pdfRenderArea.scrollTo({ top: targetPage.offsetTop, behavior: 'smooth' });
-                // Ensure page is rendered and highlighted
                 setTimeout(() => {
                     pdfPagesContainer.querySelectorAll('.page-container[data-rendered="true"]').forEach(pc => {
                         highlightSearchOnPage(parseInt(pc.dataset.pageNum, 10));
@@ -670,7 +690,7 @@
                      if(currentMark) {
                          currentMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                      }
-                }, 500); // Wait for scroll and render
+                }, 500);
             }
             updateSearchUI();
         }
