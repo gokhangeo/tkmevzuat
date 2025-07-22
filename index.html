@@ -546,8 +546,19 @@
         function onTouchMove(e) {
             e.preventDefault();
             if (isPanning && e.touches.length === 1) {
-                pdfTransform.translateX = e.touches[0].clientX - panStart.x;
-                pdfTransform.translateY = e.touches[0].clientY - panStart.y;
+                let newX = e.touches[0].clientX - panStart.x;
+                let newY = e.touches[0].clientY - panStart.y;
+
+                const scaledWidth = pdfPagesContainer.offsetWidth * (pdfTransform.scale / initialScale);
+                const viewportWidth = pdfRenderArea.clientWidth;
+                
+                // Calculate the maximum allowed horizontal offset from the center
+                const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+
+                // Clamp the new translation values
+                pdfTransform.translateX = Math.max(-maxOffsetX, Math.min(newX, maxOffsetX));
+                pdfTransform.translateY = newY; // Vertical panning remains unconstrained for scrolling
+
                 updatePdfTransform();
             } else if (isPinching && e.touches.length === 2) {
                 const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
