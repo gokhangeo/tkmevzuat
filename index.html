@@ -542,21 +542,30 @@
             const container = pdfPagesContainer.querySelector('.page-container');
             if (!container) return;
 
-            // Use getBoundingClientRect for visually-scaled dimensions
-            const scaledRect = container.getBoundingClientRect();
-            const viewportRect = pdfRenderArea.getBoundingClientRect();
+            const scaledWidth = container.offsetWidth;
+            const scaledHeight = container.offsetHeight;
+            const viewportWidth = pdfRenderArea.clientWidth;
+            const viewportHeight = pdfRenderArea.clientHeight;
             
-            const maxOffsetX = Math.max(0, (scaledRect.width - viewportRect.width) / 2);
-            const maxOffsetY = Math.max(0, (scaledRect.height - viewportRect.height) / 2);
+            let finalX = 0;
+            if (scaledWidth > viewportWidth) {
+                const maxOffsetX = (scaledWidth - viewportWidth) / 2;
+                finalX = Math.max(-maxOffsetX, Math.min(newX, maxOffsetX));
+            }
 
-            pdfTransform.translateX = Math.max(-maxOffsetX, Math.min(newX, maxOffsetX));
-            pdfTransform.translateY = Math.max(-maxOffsetY, Math.min(newY, maxOffsetY));
+            let finalY = 0;
+            if (scaledHeight > viewportHeight) {
+                const maxOffsetY = (scaledHeight - viewportHeight) / 2;
+                finalY = Math.max(-maxOffsetY, Math.min(newY, maxOffsetY));
+            }
+            
+            pdfTransform.translateX = finalX;
+            pdfTransform.translateY = finalY;
 
             updatePdfTransform();
         }
         
         function updatePdfTransform() {
-            // The scale is now handled by re-rendering the canvas, not a CSS transform on the container
             pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px)`;
             zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
         }
