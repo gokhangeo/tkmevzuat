@@ -27,14 +27,12 @@
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; } /* bg-indigo-600 */
         ::-webkit-scrollbar-thumb:hover { background: #6366f1; } /* bg-indigo-500 */
         
-        /* GÜNCELLENDİ: Koyu tema ve yeni font */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #111827; /* bg-gray-900 */
             overflow: hidden;
         }
 
-        /* YENİ: Three.js canvas stili */
         #dynamic-bg {
             position: fixed;
             top: 0;
@@ -78,11 +76,11 @@
 
         /* PDF Modal Specifics */
         #pdf-modal-content { max-width: 1200px; }
-        #pdf-render-area { flex-grow: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; }
-        #pdf-viewport-container { position: relative; }
-        #text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
-        #text-layer > span, #text-layer > br { position: absolute; color: transparent; white-space: pre; transform-origin: 0% 0%; }
-        #pdf-modal-footer { display: flex; justify-content: center; align-items: center; padding: 0.5rem 1rem; border-top: 1px solid #475569; gap: 1rem; flex-shrink: 0; }
+        #pdf-render-area { flex-grow: 1; overflow: auto; padding: 1rem; }
+        #pdf-viewport-container { position: relative; width: fit-content; margin: auto; }
+        .pdf-page-container { position: relative; margin-bottom: 1rem; }
+        .text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
+        .text-layer > span, .text-layer > br { position: absolute; color: transparent; white-space: pre; transform-origin: 0% 0%; }
         
         /* Loading spinner styles */
         .loader { border: 4px solid #374151; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -95,7 +93,6 @@
     </style>
 </head>
 <body class="h-full text-gray-200">
-    <!-- YENİ: Three.js Canvas Arka Planı -->
     <canvas id="dynamic-bg"></canvas>
 
     <div id="main-loader-container">
@@ -104,7 +101,7 @@
     </div>
 
     <div id="app-container" class="content-wrapper h-full flex flex-col" style="display: none;">
-        <main id="home-page" class="page active p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
+        <main id="home-page" class="page active p-4 sm:p-6 lg:p-8 flex-grow flex flex-col justify-center">
             <header class="text-center mb-8">
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
                     TKGM Mevzuat Sistemi
@@ -174,15 +171,9 @@
             <div id="pdf-render-area">
                  <div id="pdf-loader" class="absolute inset-0 flex items-center justify-center" style="display: none;"><div class="loader"></div></div>
                  <div id="pdf-viewport-container">
-                    <canvas id="pdf-canvas"></canvas>
-                    <div id="text-layer"></div>
+                    <!-- Sayfalar buraya eklenecek -->
                  </div>
             </div>
-            <footer id="pdf-modal-footer">
-                <button id="prev-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Önceki</button>
-                <div id="page-num" class="text-sm font-medium text-white"></div>
-                <button id="next-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Sonraki</button>
-            </footer>
         </div>
     </div>
 
@@ -205,18 +196,17 @@
         const selectionCloseBtn = document.getElementById('selection-close-btn');
 
         const pdfModal = document.getElementById('pdf-modal'), pdfTitle = document.getElementById('pdf-title'), pdfLoader = document.getElementById('pdf-loader');
-        const pdfViewportContainer = document.getElementById('pdf-viewport-container'), pdfCanvas = document.getElementById('pdf-canvas'), textLayer = document.getElementById('text-layer');
-        const pageNumDisplay = document.getElementById('page-num'), prevPageBtn = document.getElementById('prev-page-btn'), nextPageBtn = document.getElementById('next-page-btn');
+        const pdfViewportContainer = document.getElementById('pdf-viewport-container');
         const zoomInBtn = document.getElementById('zoom-in-btn'), zoomOutBtn = document.getElementById('zoom-out-btn'), zoomLevelDisplay = document.getElementById('zoom-level');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
         const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
-        let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
+        let currentSection = null, pdfDoc = null, scale = 1.5, initialPinchDistance = null;
         let searchMatches = [], currentMatchIndex = -1;
+        // DÜZELTME: Eksik değişken eklendi
         let pdfPageTextContents = new Map();
 
-        // GÜNCELLENDİ: Three.js Arka Plan Animasyonu
         const canvas = document.getElementById('dynamic-bg');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -226,27 +216,15 @@
         const particlesGeometry = new THREE.BufferGeometry;
         const particlesCnt = 5000;
         const posArray = new Float32Array(particlesCnt * 3);
-        for(let i = 0; i < particlesCnt * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 10;
-        }
+        for(let i = 0; i < particlesCnt * 3; i++) { posArray[i] = (Math.random() - 0.5) * 10; }
         particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        
-        const particlesMaterial = new THREE.PointsMaterial({
-            size: 0.008,
-            color: 0x87CEEB // Açık mavi
-        });
+        const particlesMaterial = new THREE.PointsMaterial({ size: 0.008, color: 0x87CEEB });
         const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
         scene.add(particlesMesh);
-
         camera.position.z = 5;
 
-        let mouseX = 0;
-        let mouseY = 0;
-        document.addEventListener('mousemove', (event) => {
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-        });
-
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (event) => { mouseX = event.clientX; mouseY = event.clientY; });
         const clock = new THREE.Clock();
         const animate = () => {
             const elapsedTime = clock.getElapsedTime();
@@ -259,13 +237,11 @@
             window.requestAnimationFrame(animate);
         };
         animate();
-
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
         });
-
 
         function getGitHubToken() { return TOKEN_PART_1 + TOKEN_PART_2; }
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
@@ -363,66 +339,64 @@
 
         async function openPdfModal(path, title) {
             pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
-            pdfViewportContainer.style.display = 'none'; resetSearch();
+            pdfViewportContainer.innerHTML = '';
+            resetSearch();
             try {
                 const url = githubRawUrl + encodeURI(path);
                 pdfDoc = await pdfjsLib.getDocument(url).promise;
                 pdfPageTextContents.clear();
-                currentPageNum = 1; scale = 1.0; renderPage(currentPageNum);
+                scale = 1.5;
+                if (window.innerWidth > 768) scale = 1.5;
+                
+                await renderAllPages();
             } catch (error) { console.error('PDF yüklenirken hata:', error); alert('PDF yüklenemedi.'); closePdfModal(); }
         }
         function closePdfModal() { pdfModal.classList.remove('active'); pdfDoc = null; }
         
-        async function renderPage(num) {
-            pageRendering = true;
-            const page = await pdfDoc.getPage(num);
-            const viewport = page.getViewport({ scale });
+        async function renderAllPages() {
+            pdfLoader.style.display = 'flex';
+            for (let num = 1; num <= pdfDoc.numPages; num++) {
+                const page = await pdfDoc.getPage(num);
+                const viewport = page.getViewport({ scale });
 
-            pdfCanvas.height = viewport.height;
-            pdfCanvas.width = viewport.width;
-            pdfViewportContainer.style.height = `${viewport.height}px`;
-            pdfViewportContainer.style.width = `${viewport.width}px`;
-            textLayer.innerHTML = '';
-            
-            textLayer.style.setProperty('--scale-factor', viewport.scale);
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'pdf-page-container';
+                
+                const canvas = document.createElement('canvas');
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'text-layer';
+                
+                pageContainer.appendChild(canvas);
+                pageContainer.appendChild(textLayerDiv);
+                pdfViewportContainer.appendChild(pageContainer);
 
-            await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport }).promise;
-            
-            const textContent = await page.getTextContent();
-            pdfPageTextContents.set(num, textContent);
-            
-            await pdfjsLib.renderTextLayer({
-                textContentSource: textContent,
-                container: textLayer,
-                viewport,
-            }).promise;
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
+                textLayerDiv.style.width = `${viewport.width}px`;
+                textLayerDiv.style.height = `${viewport.height}px`;
 
-            pageRendering = false;
-            pdfLoader.style.display = 'none';
-            pdfViewportContainer.style.display = 'block';
-            if (pageNumPending !== null) {
-                renderPage(pageNumPending);
-                pageNumPending = null;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                
+                const textContent = await page.getTextContent();
+                pdfPageTextContents.set(num, textContent);
+                
+                await pdfjsLib.renderTextLayer({
+                    textContentSource: textContent,
+                    container: textLayerDiv,
+                    viewport,
+                }).promise;
             }
-            highlightSearchOnPage();
-            
-            pageNumDisplay.textContent = `Sayfa ${num} / ${pdfDoc.numPages}`;
-            zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
-            prevPageBtn.disabled = (num <= 1);
-            nextPageBtn.disabled = (num >= pdfDoc.numPages);
+            pdfLoader.style.display = 'none';
         }
 
-        function queueRenderPage(num) { if (pageRendering) { pageNumPending = num; } else { renderPage(num); } }
-
-        function onPrevPage() { if (currentPageNum <= 1) return; currentPageNum--; queueRenderPage(currentPageNum); }
-        function onNextPage() { if (currentPageNum >= pdfDoc.numPages) return; currentPageNum++; queueRenderPage(currentPageNum); }
-        function onZoomIn() { scale = parseFloat((scale + 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
-        function onZoomOut() { if (scale <= 0.2) return; scale = parseFloat((scale - 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
+        function onZoomIn() { scale = parseFloat((scale + 0.2).toFixed(2)); pdfViewportContainer.innerHTML = ''; renderAllPages(); }
+        function onZoomOut() { if (scale <= 0.4) return; scale = parseFloat((scale - 0.2).toFixed(2)); pdfViewportContainer.innerHTML = ''; renderAllPages(); }
         
         function getPinchDistance(e) { return Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); }
         pdfViewportContainer.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); initialPinchDistance = getPinchDistance(e); } }, { passive: false });
         pdfViewportContainer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) { e.preventDefault(); const newDist = getPinchDistance(e); scale *= newDist / initialPinchDistance; queueRenderPage(currentPageNum); initialPinchDistance = newDist; }
+            if (e.touches.length === 2) { e.preventDefault(); const newDist = getPinchDistance(e); scale *= newDist / initialPinchDistance; pdfViewportContainer.innerHTML = ''; renderAllPages(); initialPinchDistance = newDist; }
         }, { passive: false });
 
         function resetSearch() {
@@ -437,7 +411,7 @@
         }
         
         function highlightSearchOnPage() {
-            textLayer.querySelectorAll('mark').forEach(m => {
+            pdfViewportContainer.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
                 parent.normalize();
@@ -446,7 +420,7 @@
             const query = pdfSearchInput.value;
             if (query.length < 2) return;
             
-            const textDivs = textLayer.querySelectorAll("span");
+            const textDivs = pdfViewportContainer.querySelectorAll(".text-layer span");
             const regex = new RegExp(`(^|\\s|\\p{P})(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})($|\\s|\\p{P})`, 'giu');
             
             textDivs.forEach(div => {
@@ -455,40 +429,22 @@
                 }
             });
             
-            if (currentMatchIndex > -1) {
-                const currentMatch = searchMatches[currentMatchIndex];
-                if (currentMatch.pageNum === currentPageNum) {
-                    const allMarks = Array.from(textLayer.querySelectorAll('mark.highlight'));
-                    let pageMatchIndex = searchMatches.filter((match, index) => match.pageNum === currentPageNum && index < currentMatchIndex).length;
-                    const currentMark = allMarks[pageMatchIndex];
-                    if (currentMark) {
-                        currentMark.classList.remove('highlight');
-                        currentMark.classList.add('current-highlight');
-                        currentMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-                    }
-                }
+            const allMarks = Array.from(pdfViewportContainer.querySelectorAll('mark.highlight'));
+            searchMatches = allMarks;
+
+            if (currentMatchIndex > -1 && searchMatches[currentMatchIndex]) {
+                const currentMark = searchMatches[currentMatchIndex];
+                currentMark.classList.remove('highlight');
+                currentMark.classList.add('current-highlight');
+                currentMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             }
         }
 
         async function startSearch() {
             const query = pdfSearchInput.value;
             if (query.length < 2 || !pdfDoc) { resetSearch(); return; }
-            pdfLoader.style.display = 'flex';
-            searchMatches = [];
+            highlightSearchOnPage();
             
-            const regex = new RegExp(`(^|\\s|\\p{P})(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})($|\\s|\\p{P})`, 'giu');
-
-            for (let i = 1; i <= pdfDoc.numPages; i++) {
-                const textContent = pdfPageTextContents.has(i) ? pdfPageTextContents.get(i) : await (await pdfDoc.getPage(i)).getTextContent();
-                if (!pdfPageTextContents.has(i)) pdfPageTextContents.set(i, textContent);
-                
-                const pageText = textContent.items.map(item => item.str).join('');
-                let match;
-                while ((match = regex.exec(pageText)) !== null) {
-                    searchMatches.push({ pageNum: i, index: match.index });
-                }
-            }
-            pdfLoader.style.display = 'none';
             if (searchMatches.length > 0) {
                 currentMatchIndex = 0;
                 goToMatch(currentMatchIndex);
@@ -499,14 +455,18 @@
         }
         function goToMatch(index) {
             if (index < 0 || index >= searchMatches.length) return;
-            currentMatchIndex = index;
-            const { pageNum } = searchMatches[index];
-            if (pageNum !== currentPageNum) {
-                currentPageNum = pageNum;
-                queueRenderPage(currentPageNum);
-            } else {
-                highlightSearchOnPage();
+            
+            if(currentMatchIndex > -1 && searchMatches[currentMatchIndex]) {
+                searchMatches[currentMatchIndex].classList.remove('current-highlight');
+                searchMatches[currentMatchIndex].classList.add('highlight');
             }
+
+            currentMatchIndex = index;
+            const currentMark = searchMatches[currentMatchIndex];
+            currentMark.classList.remove('highlight');
+            currentMark.classList.add('current-highlight');
+            currentMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            
             updateSearchUI();
         }
         
@@ -565,8 +525,6 @@
         selectionBackBtn.addEventListener('click', showCategoryChoice);
 
         closeModalBtn.addEventListener('click', closePdfModal);
-        prevPageBtn.addEventListener('click', onPrevPage);
-        nextPageBtn.addEventListener('click', onNextPage);
         zoomInBtn.addEventListener('click', onZoomIn);
         zoomOutBtn.addEventListener('click', onZoomOut);
         window.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); closeSelectionModal(); } });
