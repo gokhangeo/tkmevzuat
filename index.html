@@ -35,19 +35,20 @@
         .modal-content {
             background-color: #f8fafc; /* bg-slate-50 */
             width: 95%;
-            /* GÜNCELLENDİ: Mobil uyumluluk için max-height eklendi */
-            max-height: 95vh;
+            /* GÜNCELLENDİ: Mobil uyumluluk için height kullanıldı */
+            height: 95%;
             border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             display: flex; flex-direction: column; overflow: hidden;
         }
         .modal-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; /* border-slate-200 */
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+            padding: 0.5rem; /* Mobil için daha küçük padding */
+            border-bottom: 1px solid #e2e8f0; /* border-slate-200 */
             flex-shrink: 0;
         }
         
         /* Selection Modal Specifics */
-        #selection-modal-content { max-width: 800px; }
+        #selection-modal-content { max-width: 800px; max-height: 90%; }
         #selection-modal-body { padding: 1rem; md:padding: 2rem; overflow-y: auto; }
 
         /* PDF Modal Specifics */
@@ -145,21 +146,22 @@
     <!-- PDF Görüntüleyici Modalı -->
     <div id="pdf-modal" class="modal">
         <div id="pdf-modal-content" class="modal-content">
-            <header id="pdf-modal-header" class="modal-header">
-                <h3 id="pdf-title" class="text-lg font-bold text-white truncate mr-4"></h3>
-                <div class="flex items-center gap-2 flex-grow">
-                     <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-slate-600 border border-slate-500 rounded-md py-1 px-2 text-sm w-40 focus:w-56 transition-all text-white placeholder:text-slate-400">
-                     <button id="pdf-search-prev" class="p-1.5 rounded-md bg-slate-600 hover:bg-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                     <span id="pdf-search-results-count" class="text-sm text-slate-400 w-16 text-center">0 / 0</span>
-                     <button id="pdf-search-next" class="p-1.5 rounded-md bg-slate-600 hover:bg-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2 text-white">
+            <!-- GÜNCELLENDİ: Mobil uyumlu başlık -->
+            <header id="pdf-modal-header" class="modal-header flex flex-wrap items-center justify-between gap-y-2">
+                <h3 id="pdf-title" class="text-base sm:text-lg font-bold text-white truncate w-full sm:w-auto sm:flex-1 order-1 sm:order-none"></h3>
+                <div class="flex items-center gap-2 sm:gap-4 order-2 sm:order-none justify-end">
+                    <div class="hidden sm:flex items-center gap-2 text-white">
                         <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-slate-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
                         <span id="zoom-level" class="text-sm w-12 text-center">100%</span>
                         <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-slate-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
                     </div>
                      <button id="close-modal-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                </div>
+                <div class="flex items-center gap-2 w-full order-3">
+                     <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-slate-600 border border-slate-500 rounded-md py-1 px-2 text-sm w-full text-white placeholder:text-slate-400">
+                     <button id="pdf-search-prev" class="p-1.5 rounded-md bg-slate-600 hover:bg-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                     <span id="pdf-search-results-count" class="text-sm text-slate-400 w-16 text-center flex-shrink-0">0 / 0</span>
+                     <button id="pdf-search-next" class="p-1.5 rounded-md bg-slate-600 hover:bg-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
                 </div>
             </header>
             <div id="pdf-render-area">
