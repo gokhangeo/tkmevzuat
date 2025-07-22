@@ -163,7 +163,10 @@
                 <div class="mb-8 max-w-2xl w-full mx-auto">
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
-                        <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
+                        <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-10 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
+                        <button id="clear-search-btn" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -296,6 +299,7 @@
         // DOM Elements
         const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
         const mainCategoriesContainer = document.getElementById('main-categories');
         const favoritesMainBtn = document.getElementById('favorites-main-btn');
         
@@ -722,10 +726,10 @@
 
         // --- Search Logic ---
         function resetSearch() {
-            searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
-            updateSearchUI();
-            const container = pdfPagesContainer.querySelector('.page-container');
-            if(container) highlightSearchOnPage(parseInt(container.dataset.pageNum, 10));
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+            searchResultsContainer.innerHTML = '';
+            mainCategoriesContainer.style.display = 'grid';
         }
         function updateSearchUI() {
             pdfSearchResultsCount.textContent = searchMatches.length > 0 ? `${currentMatchIndex + 1} / ${searchMatches.length}` : "0 / 0";
@@ -844,18 +848,22 @@
             searchResultsContainer.innerHTML = `<div class="space-y-3">${results.map(doc => createDocumentListItemHTML({ ...doc })).join('')}</div>`;
             addDocumentListEventListeners(searchResultsContainer);
         }
-        
-        // This function is no longer needed as the content is static HTML
-        function renderNewsAndTenders() {}
-
 
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
+            
+            if(query.length > 0) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+
             if (query.length < 2) {
                 searchResultsContainer.innerHTML = '';
                 mainCategoriesContainer.style.display = 'grid';
                 return;
             }
+
             mainCategoriesContainer.style.display = 'none';
             const results = [];
             for (const section in mevzuatData) {
@@ -871,6 +879,7 @@
         });
         
         // --- Event Listeners ---
+        clearSearchBtn.addEventListener('click', resetSearch);
         favoritesMainBtn.addEventListener('click', openFavoritesModal);
         favoritesCloseBtn.addEventListener('click', closeFavoritesModal);
         pdfSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
