@@ -347,17 +347,20 @@
                 
                 const firstPage = await pdfDoc.getPage(1);
                 const viewport = firstPage.getViewport({ scale: 1.0 });
-                const containerWidth = pdfViewportContainer.parentElement.clientWidth - 40; // padding
+                const containerWidth = pdfViewportContainer.parentElement.clientWidth - 40;
                 scale = containerWidth / viewport.width;
+                initialScale = scale;
 
                 await renderAllPages();
             } catch (error) { console.error('PDF yüklenirken hata:', error); alert('PDF yüklenemedi.'); closePdfModal(); }
         }
         function closePdfModal() { pdfModal.classList.remove('active'); pdfDoc = null; }
         
-        async function renderAllPages() {
+        async function renderAllPages(newScale = null) {
+            if (newScale) scale = newScale;
             pdfLoader.style.display = 'flex';
-            pdfViewportContainer.innerHTML = ''; // Temizle
+            pdfViewportContainer.innerHTML = '';
+            
             for (let num = 1; num <= pdfDoc.numPages; num++) {
                 const page = await pdfDoc.getPage(num);
                 const viewport = page.getViewport({ scale });
@@ -391,6 +394,7 @@
                 }).promise;
             }
             pdfLoader.style.display = 'none';
+            zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
         }
 
         function onZoomIn() { scale = parseFloat((scale + 0.2).toFixed(2)); renderAllPages(); }
@@ -402,17 +406,16 @@
                 e.preventDefault(); 
                 const newDist = getPinchDistance(e);
                 const newScale = initialScale * (newDist / initialPinchDistance);
-                pdfViewportContainer.style.transform = `scale(${newScale / scale})`;
+                pdfViewportContainer.style.transform = `scale(${newScale})`;
             }
         }, { passive: false });
         pdfViewportContainer.addEventListener('touchend', (e) => {
             if (e.touches.length < 2) {
                 const finalTransform = pdfViewportContainer.style.transform;
-                if (finalTransform) {
-                    const newScale = parseFloat(finalTransform.replace('scale(', '').replace(')', '')) * scale;
+                if (finalTransform && finalTransform.includes('scale')) {
+                    const newScale = parseFloat(finalTransform.replace('scale(', '').replace(')', ''));
                     pdfViewportContainer.style.transform = '';
-                    scale = newScale;
-                    renderAllPages();
+                    renderAllPages(newScale);
                 }
                 initialPinchDistance = null;
             }
