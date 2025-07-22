@@ -71,7 +71,12 @@
         }
         
         /* Modal Specifics */
-        #selection-modal-content, #favorites-modal-content { max-width: 800px; max-height: 90%; background-color: #111827; }
+        #selection-modal-content, #favorites-modal-content { 
+            max-width: 800px; 
+            max-height: 90%; 
+            background-color: rgba(17, 24, 39, 0.8); /* bg-gray-900 with opacity */
+            backdrop-filter: blur(10px);
+        }
         #selection-modal-body, #favorites-modal-body { padding: 1rem; md:padding: 2rem; overflow-y: auto; }
 
         /* PDF Modal Specifics */
@@ -454,10 +459,10 @@
             selectionBackBtn.classList.add('hidden');
             selectionModalBody.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div data-type="genelge" class="group p-6 bg-gray-700 rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-yellow-500">
+                    <div data-type="genelge" class="group p-6 bg-gray-800/50 backdrop-blur-sm rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-yellow-500">
                         <h3 class="text-xl font-bold text-white">Genelgeler</h3>
                     </div>
-                    <div data-type="talimat" class="group p-6 bg-gray-700 rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-blue-500">
+                    <div data-type="talimat" class="group p-6 bg-gray-800/50 backdrop-blur-sm rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-blue-500">
                         <h3 class="text-xl font-bold text-white">Talimatlar</h3>
                     </div>
                 </div>`;
@@ -559,8 +564,7 @@
             const page = await pdfDoc.getPage(num);
             const viewport = page.getViewport({ scale: 1.0 });
             
-            // **FIX: Change initial scale logic to fit width**
-            const containerWidth = pdfRenderArea.clientWidth - 32; // padding
+            const containerWidth = pdfRenderArea.clientWidth - 32;
             initialScale = containerWidth / viewport.width;
             pdfTransform.scale = initialScale;
 
