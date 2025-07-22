@@ -76,11 +76,26 @@
 
         /* PDF Modal Specifics */
         #pdf-modal-content { max-width: 1200px; }
-        #pdf-render-area { flex-grow: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; align-items: center; }
-        #pdf-viewport-container { position: relative; width: fit-content; margin: auto; }
+        #pdf-render-area { 
+            flex-grow: 1; 
+            overflow: auto; /* Changed from hidden to auto for scrolling pages */
+            padding: 1rem; 
+            touch-action: none; /* Disable default browser touch actions like pull-to-refresh */
+        }
+        #pdf-pages-container {
+            position: relative;
+            width: fit-content;
+            margin: auto;
+            /* transform-origin will be set by JS */
+        }
+        .page-container {
+            position: relative;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
         .text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
         .text-layer > span, .text-layer > br { position: absolute; color: transparent; white-space: pre; transform-origin: 0% 0%; }
-        #pdf-modal-footer { display: flex; justify-content: center; align-items: center; padding: 0.5rem 1rem; border-top: 1px solid #475569; gap: 1rem; flex-shrink: 0; }
+        #pdf-modal-footer { display: none; } /* Hide footer with page buttons */
         
         /* Loading spinner styles */
         .loader { border: 4px solid #374151; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -101,8 +116,9 @@
     </div>
 
     <div id="app-container" class="content-wrapper h-full flex flex-col" style="display: none;">
-        <main id="home-page" class="page active p-4 sm:p-6 lg:p-8 flex-grow flex flex-col justify-center">
-            <div class="my-auto">
+        <main id="home-page" class="page active p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
+            <!-- Top section for Title and Search -->
+            <div class="pt-8">
                 <header class="text-center mb-8">
                     <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
                         TKGM Mevzuat Sistemi
@@ -115,6 +131,10 @@
                         <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
                     </div>
                 </div>
+            </div>
+            
+            <!-- Center section for results and categories -->
+            <div class="flex-grow flex flex-col justify-center">
                 <div id="search-results" class="max-w-2xl w-full mx-auto flex-grow overflow-y-auto"></div>
                 <div id="main-categories" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
                     <div data-section="tapu" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
@@ -172,12 +192,12 @@
             </header>
             <div id="pdf-render-area">
                  <div id="pdf-loader" class="absolute inset-0 flex items-center justify-center" style="display: none;"><div class="loader"></div></div>
-                 <div id="pdf-viewport-container">
-                    <canvas id="pdf-canvas"></canvas>
-                    <div id="text-layer"></div>
+                 <div id="pdf-pages-container">
+                    <!-- PDF pages will be rendered here -->
                  </div>
             </div>
             <footer id="pdf-modal-footer">
+                <!-- This is now hidden by CSS but kept for potential future use -->
                 <button id="prev-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Önceki</button>
                 <div id="page-num" class="text-sm font-medium text-white"></div>
                 <button id="next-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Sonraki</button>
@@ -189,12 +209,13 @@
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main"; 
+        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
         const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk", TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
 
+        // DOM Elements
         const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const mainCategoriesContainer = document.getElementById('main-categories');
@@ -204,23 +225,31 @@
         const selectionCloseBtn = document.getElementById('selection-close-btn');
 
         const pdfModal = document.getElementById('pdf-modal'), pdfTitle = document.getElementById('pdf-title'), pdfLoader = document.getElementById('pdf-loader');
-        const pdfViewportContainer = document.getElementById('pdf-viewport-container'), pdfCanvas = document.getElementById('pdf-canvas'), textLayer = document.getElementById('text-layer');
-        const pageNumDisplay = document.getElementById('page-num'), prevPageBtn = document.getElementById('prev-page-btn'), nextPageBtn = document.getElementById('next-page-btn');
+        const pdfRenderArea = document.getElementById('pdf-render-area');
+        const pdfPagesContainer = document.getElementById('pdf-pages-container');
         const zoomInBtn = document.getElementById('zoom-in-btn'), zoomOutBtn = document.getElementById('zoom-out-btn'), zoomLevelDisplay = document.getElementById('zoom-level');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const pdfSearchInput = document.getElementById('pdf-search-input'), pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
         const pdfSearchNextBtn = document.getElementById('pdf-search-next'), pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
         
-        let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0;
+        // PDF State
+        let currentSection = null, pdfDoc = null, initialScale = 1.0;
         let searchMatches = [], currentMatchIndex = -1;
         let pdfPageTextContents = new Map();
+        let intersectionObserver = null;
 
+        // Pan & Zoom State
+        let pdfTransform = { scale: 1, translateX: 0, translateY: 0 };
+        let isPinching = false, isPanning = false;
+        let pinchStartDist = 0;
+        let panStart = { x: 0, y: 0 };
+
+        // 3D Background
         const canvas = document.getElementById('dynamic-bg');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-
         const particlesGeometry = new THREE.BufferGeometry;
         const particlesCnt = 5000;
         const posArray = new Float32Array(particlesCnt * 3);
@@ -230,7 +259,6 @@
         const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
         scene.add(particlesMesh);
         camera.position.z = 5;
-
         let mouseX = 0, mouseY = 0;
         document.addEventListener('mousemove', (event) => { mouseX = event.clientX; mouseY = event.clientY; });
         const clock = new THREE.Clock();
@@ -251,6 +279,7 @@
             camera.updateProjectionMatrix();
         });
 
+        // Utility Functions
         function getGitHubToken() { return TOKEN_PART_1 + TOKEN_PART_2; }
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
         function formatTitle(filename) { return filename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
@@ -345,10 +374,16 @@
             });
         }
 
+        // --- PDF Modal Logic ---
         async function openPdfModal(path, title) {
-            pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
-            pdfViewportContainer.innerHTML = '';
+            pdfModal.classList.add('active'); 
+            pdfTitle.textContent = title; 
+            pdfLoader.style.display = 'flex';
+            pdfPagesContainer.innerHTML = '';
             resetSearch();
+            resetPanAndZoom();
+            setupTouchListeners();
+
             try {
                 const url = githubRawUrl + encodeURI(path);
                 pdfDoc = await pdfjsLib.getDocument(url).promise;
@@ -356,69 +391,184 @@
                 
                 const firstPage = await pdfDoc.getPage(1);
                 const viewport = firstPage.getViewport({ scale: 1.0 });
-                const containerWidth = pdfViewportContainer.parentElement.clientWidth - 40;
-                scale = containerWidth / viewport.width;
+                const containerWidth = pdfRenderArea.clientWidth - 40;
+                initialScale = containerWidth / viewport.width;
+                pdfTransform.scale = initialScale;
+                updatePdfTransform();
                 
-                await renderPage(1);
-            } catch (error) { console.error('PDF yüklenirken hata:', error); alert('PDF yüklenemedi.'); closePdfModal(); }
-        }
-        function closePdfModal() { pdfModal.classList.remove('active'); pdfDoc = null; }
-        
-        async function renderPage(num) {
-            pageRendering = true;
-            pdfLoader.style.display = 'flex';
-            const page = await pdfDoc.getPage(num);
-            const viewport = page.getViewport({ scale });
-
-            pdfViewportContainer.innerHTML = ''; // Önceki sayfayı temizle
-            const canvas = document.createElement('canvas');
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'text-layer';
-            pdfViewportContainer.appendChild(canvas);
-            pdfViewportContainer.appendChild(textLayerDiv);
-
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
-            textLayerDiv.style.width = `${viewport.width}px`;
-            textLayerDiv.style.height = `${viewport.height}px`;
-
-            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-            
-            const textContent = await page.getTextContent();
-            pdfPageTextContents.set(num, textContent);
-            
-            await pdfjsLib.renderTextLayer({
-                textContentSource: textContent,
-                container: textLayerDiv,
-                viewport,
-            }).promise;
-
-            pageRendering = false;
-            pdfLoader.style.display = 'none';
-            if (pageNumPending !== null) {
-                renderPage(pageNumPending);
-                pageNumPending = null;
+                setupPagePlaceholders();
+            } catch (error) { 
+                console.error('PDF yüklenirken hata:', error); 
+                alert('PDF yüklenemedi.'); 
+                closePdfModal(); 
+            } finally {
+                pdfLoader.style.display = 'none';
             }
-            highlightSearchOnPage();
-            
-            pageNumDisplay.textContent = `Sayfa ${num} / ${pdfDoc.numPages}`;
-            zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
-            prevPageBtn.disabled = (num <= 1);
-            nextPageBtn.disabled = (num >= pdfDoc.numPages);
         }
 
-        function queueRenderPage(num) { if (pageRendering) { pageNumPending = num; } else { renderPage(num); } }
+        function closePdfModal() { 
+            pdfModal.classList.remove('active'); 
+            pdfDoc = null; 
+            if (intersectionObserver) {
+                intersectionObserver.disconnect();
+                intersectionObserver = null;
+            }
+            removeTouchListeners();
+        }
 
-        function onPrevPage() { if (currentPageNum <= 1) return; currentPageNum--; queueRenderPage(currentPageNum); }
-        function onNextPage() { if (currentPageNum >= pdfDoc.numPages) return; currentPageNum++; queueRenderPage(currentPageNum); }
-        function onZoomIn() { scale = parseFloat((scale + 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
-        function onZoomOut() { if (scale <= 0.2) return; scale = parseFloat((scale - 0.1).toFixed(2)); queueRenderPage(currentPageNum); }
+        function setupPagePlaceholders() {
+            if (!pdfDoc) return;
+            pdfPagesContainer.innerHTML = '';
+            const fragment = document.createDocumentFragment();
 
+            intersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const pageContainer = entry.target;
+                    const pageNum = parseInt(pageContainer.dataset.pageNum, 10);
+                    if (entry.isIntersecting) {
+                        if (!pageContainer.dataset.rendered) {
+                            renderPage(pageNum, pageContainer);
+                        }
+                    } else {
+                        // Optional: Unload pages that are far out of view to save memory
+                        // cleanupPage(pageContainer);
+                    }
+                });
+            }, { root: pdfRenderArea, rootMargin: '500px 0px' }); // Pre-load pages 500px before they enter viewport
+
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'page-container';
+                pageContainer.dataset.pageNum = i;
+                // Set placeholder height later
+                fragment.appendChild(pageContainer);
+                intersectionObserver.observe(pageContainer);
+            }
+            pdfPagesContainer.appendChild(fragment);
+
+            // Set placeholder heights after the first page is inspected
+            pdfDoc.getPage(1).then(page => {
+                const viewport = page.getViewport({ scale: initialScale });
+                pdfPagesContainer.querySelectorAll('.page-container').forEach(pc => {
+                    pc.style.width = `${viewport.width}px`;
+                    pc.style.height = `${viewport.height}px`;
+                });
+            });
+        }
+        
+        async function renderPage(pageNum, container) {
+            container.dataset.rendered = 'true';
+            try {
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: initialScale });
+
+                const canvas = document.createElement('canvas');
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'text-layer';
+                
+                container.appendChild(canvas);
+                container.appendChild(textLayerDiv);
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                textLayerDiv.style.width = `${viewport.width}px`;
+                textLayerDiv.style.height = `${viewport.height}px`;
+
+                const renderContext = {
+                    canvasContext: canvas.getContext('2d'),
+                    viewport: viewport
+                };
+                await page.render(renderContext).promise;
+                
+                const textContent = await page.getTextContent();
+                pdfPageTextContents.set(pageNum, textContent);
+                
+                await pdfjsLib.renderTextLayer({
+                    textContentSource: textContent,
+                    container: textLayerDiv,
+                    viewport,
+                }).promise;
+
+                highlightSearchOnPage(pageNum);
+
+            } catch (error) {
+                console.error(`Error rendering page ${pageNum}`, error);
+                container.dataset.rendered = 'false'; // Allow re-rendering on next intersection
+            }
+        }
+        
+        // --- Pan and Zoom Logic ---
+        function setupTouchListeners() {
+            pdfRenderArea.addEventListener('touchstart', onTouchStart);
+            pdfRenderArea.addEventListener('touchmove', onTouchMove);
+            pdfRenderArea.addEventListener('touchend', onTouchEnd);
+            pdfRenderArea.addEventListener('touchcancel', onTouchEnd);
+        }
+        function removeTouchListeners() {
+            pdfRenderArea.removeEventListener('touchstart', onTouchStart);
+            pdfRenderArea.removeEventListener('touchmove', onTouchMove);
+            pdfRenderArea.removeEventListener('touchend', onTouchEnd);
+            pdfRenderArea.removeEventListener('touchcancel', onTouchEnd);
+        }
+
+        function onTouchStart(e) {
+            if (e.touches.length === 1) {
+                isPanning = true;
+                panStart.x = e.touches[0].clientX - pdfTransform.translateX;
+                panStart.y = e.touches[0].clientY - pdfTransform.translateY;
+            } else if (e.touches.length === 2) {
+                isPanning = false;
+                isPinching = true;
+                pinchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            }
+        }
+
+        function onTouchMove(e) {
+            e.preventDefault();
+            if (isPanning && e.touches.length === 1) {
+                pdfTransform.translateX = e.touches[0].clientX - panStart.x;
+                pdfTransform.translateY = e.touches[0].clientY - panStart.y;
+                updatePdfTransform();
+            } else if (isPinching && e.touches.length === 2) {
+                const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const scale = (newDist / pinchStartDist);
+                pdfTransform.scale = Math.max(0.5 * initialScale, Math.min(pdfTransform.scale * scale, 5 * initialScale));
+                updatePdfTransform();
+                pinchStartDist = newDist;
+            }
+        }
+
+        function onTouchEnd(e) {
+            isPanning = false;
+            isPinching = false;
+        }
+        
+        function updatePdfTransform() {
+            pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px) scale(${pdfTransform.scale})`;
+            zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
+        }
+        
+        function resetPanAndZoom() {
+            pdfTransform = { scale: 1, translateX: 0, translateY: 0 };
+            updatePdfTransform();
+        }
+        
+        function onZoomIn() { 
+            pdfTransform.scale = Math.min(pdfTransform.scale + 0.2, 5 * initialScale);
+            updatePdfTransform();
+        }
+        function onZoomOut() { 
+            pdfTransform.scale = Math.max(pdfTransform.scale - 0.2, 0.5 * initialScale);
+            updatePdfTransform();
+        }
+
+        // --- Search Logic ---
         function resetSearch() {
             searchMatches = []; currentMatchIndex = -1; pdfSearchInput.value = '';
             updateSearchUI();
-            highlightSearchOnPage();
+            pdfPagesContainer.querySelectorAll('.page-container').forEach(pc => {
+                if(pc.dataset.rendered) highlightSearchOnPage(parseInt(pc.dataset.pageNum, 10));
+            });
         }
         function updateSearchUI() {
             pdfSearchResultsCount.textContent = searchMatches.length > 0 ? `${currentMatchIndex + 1} / ${searchMatches.length}` : "0 / 0";
@@ -426,10 +576,13 @@
             pdfSearchNextBtn.disabled = currentMatchIndex >= searchMatches.length - 1;
         }
         
-        function highlightSearchOnPage() {
-            const textLayerDiv = pdfViewportContainer.querySelector('.text-layer');
+        function highlightSearchOnPage(pageNum) {
+            const pageContainer = pdfPagesContainer.querySelector(`.page-container[data-page-num="${pageNum}"]`);
+            if (!pageContainer) return;
+            const textLayerDiv = pageContainer.querySelector('.text-layer');
             if (!textLayerDiv) return;
 
+            // Clear previous highlights
             textLayerDiv.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
@@ -439,24 +592,24 @@
             const query = pdfSearchInput.value;
             if (query.length < 2) return;
             
-            const textSpans = textLayerDiv.querySelectorAll("span");
-            const regex = new RegExp(`(^|\\s|\\p{P})(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})($|\\s|\\p{P})`, 'giu');
+            const regex = new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'giu');
             
-            textSpans.forEach(span => {
+            textLayerDiv.querySelectorAll("span").forEach(span => {
                 if (regex.test(span.textContent)) {
-                    span.innerHTML = span.textContent.replace(regex, (match, p1, p2, p3) => `${p1}<mark class="highlight">${p2}</mark>${p3}`);
+                    span.innerHTML = span.textContent.replace(regex, `<mark class="highlight">$1</mark>`);
                 }
             });
-            
-            const allMarks = Array.from(textLayerDiv.querySelectorAll('mark.highlight'));
-            searchMatches = allMarks;
 
-            if (currentMatchIndex > -1 && searchMatches[currentMatchIndex]) {
-                const currentMark = searchMatches[currentMatchIndex];
-                currentMark.classList.remove('highlight');
-                currentMark.classList.add('current-highlight');
-                currentMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            }
+            // Highlight current match on this page
+            searchMatches.forEach((match, index) => {
+                if (match.pageNum === pageNum) {
+                    const allMarks = Array.from(textLayerDiv.querySelectorAll('mark.highlight'));
+                    if (index === currentMatchIndex && allMarks[match.matchIndexOnPage]) {
+                         allMarks[match.matchIndexOnPage].classList.add('current-highlight');
+                         allMarks[match.matchIndexOnPage].classList.remove('highlight');
+                    }
+                }
+            });
         }
 
         async function startSearch() {
@@ -465,17 +618,23 @@
             pdfLoader.style.display = 'flex';
             searchMatches = [];
             
-            const regex = new RegExp(`(^|\\s|\\p{P})(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})($|\\s|\\p{P})`, 'giu');
+            const regex = new RegExp(`(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'giu');
 
             for (let i = 1; i <= pdfDoc.numPages; i++) {
-                const textContent = pdfPageTextContents.has(i) ? pdfPageTextContents.get(i) : await (await pdfDoc.getPage(i)).getTextContent();
-                if (!pdfPageTextContents.has(i)) pdfPageTextContents.set(i, textContent);
-                
-                const pageText = textContent.items.map(item => item.str).join('');
-                let match;
-                while ((match = regex.exec(pageText)) !== null) {
-                    searchMatches.push({ pageNum: i, index: match.index });
+                if (!pdfPageTextContents.has(i)) {
+                    const page = await pdfDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    pdfPageTextContents.set(i, textContent);
                 }
+                const textContent = pdfPageTextContents.get(i);
+                
+                let matchIndexOnPage = 0;
+                textContent.items.forEach(item => {
+                    let match;
+                    while ((match = regex.exec(item.str)) !== null) {
+                        searchMatches.push({ pageNum: i, matchIndexOnPage: matchIndexOnPage++ });
+                    }
+                });
             }
             pdfLoader.style.display = 'none';
             if (searchMatches.length > 0) {
@@ -485,16 +644,30 @@
                 alert("Sonuç bulunamadı.");
             }
             updateSearchUI();
+            // Re-highlight all rendered pages
+            pdfPagesContainer.querySelectorAll('.page-container[data-rendered="true"]').forEach(pc => {
+                highlightSearchOnPage(parseInt(pc.dataset.pageNum, 10));
+            });
         }
+
         function goToMatch(index) {
             if (index < 0 || index >= searchMatches.length) return;
             currentMatchIndex = index;
             const { pageNum } = searchMatches[index];
-            if (pageNum !== currentPageNum) {
-                currentPageNum = pageNum;
-                queueRenderPage(currentPageNum);
-            } else {
-                highlightSearchOnPage();
+            
+            const targetPage = pdfPagesContainer.querySelector(`.page-container[data-page-num="${pageNum}"]`);
+            if (targetPage) {
+                pdfRenderArea.scrollTo({ top: targetPage.offsetTop, behavior: 'smooth' });
+                // Ensure page is rendered and highlighted
+                setTimeout(() => {
+                    pdfPagesContainer.querySelectorAll('.page-container[data-rendered="true"]').forEach(pc => {
+                        highlightSearchOnPage(parseInt(pc.dataset.pageNum, 10));
+                    });
+                     const currentMark = targetPage.querySelector('.current-highlight');
+                     if(currentMark) {
+                         currentMark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                     }
+                }, 500); // Wait for scroll and render
             }
             updateSearchUI();
         }
@@ -542,7 +715,8 @@
             }
             displayGlobalSearchResults(results);
         });
-
+        
+        // Event Listeners
         pdfSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') startSearch(); });
         pdfSearchPrevBtn.addEventListener('click', () => goToMatch(currentMatchIndex - 1));
         pdfSearchNextBtn.addEventListener('click', () => goToMatch(currentMatchIndex + 1));
@@ -554,8 +728,6 @@
         selectionBackBtn.addEventListener('click', showCategoryChoice);
 
         closeModalBtn.addEventListener('click', closePdfModal);
-        prevPageBtn.addEventListener('click', onPrevPage);
-        nextPageBtn.addEventListener('click', onNextPage);
         zoomInBtn.addEventListener('click', onZoomIn);
         zoomOutBtn.addEventListener('click', onZoomOut);
         window.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); closeSelectionModal(); } });
