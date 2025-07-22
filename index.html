@@ -558,10 +558,12 @@
             pdfLoader.style.display = 'flex';
             const page = await pdfDoc.getPage(num);
             const viewport = page.getViewport({ scale: 1.0 });
-            const containerWidth = pdfRenderArea.clientWidth - 32;
-            const containerHeight = pdfRenderArea.clientHeight - 32;
-            initialScale = Math.min(containerWidth / viewport.width, containerHeight / viewport.height);
+            
+            // **FIX: Change initial scale logic to fit width**
+            const containerWidth = pdfRenderArea.clientWidth - 32; // padding
+            initialScale = containerWidth / viewport.width;
             pdfTransform.scale = initialScale;
+
             pdfPagesContainer.innerHTML = '';
             const pageContainer = document.createElement('div');
             pageContainer.className = 'page-container';
