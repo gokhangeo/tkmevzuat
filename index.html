@@ -12,17 +12,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
     
+    <!-- Three.js for animated background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; } /* bg-slate-100 */
-        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; } /* bg-slate-400 */
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; } /* bg-slate-500 */
+        ::-webkit-scrollbar-track { background: #1f2937; } /* bg-gray-800 */
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; } /* bg-indigo-600 */
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; } /* bg-indigo-500 */
         
-        /* Page transition animation */
-        .page { display: none; animation: fadeIn 0.5s; }
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* GÜNCELLENDİ: Koyu tema ve yeni font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+            overflow: hidden;
+        }
+
+        /* YENİ: Three.js canvas stili */
+        #dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
         
         /* Modal Base Styles */
         .modal {
@@ -31,97 +56,80 @@
             display: none; justify-content: center; align-items: center;
             z-index: 1000; animation: fadeIn 0.3s;
         }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal.active { display: flex; }
         .modal-content {
-            background-color: #f8fafc; /* bg-slate-50 */
-            width: 95%;
-            /* GÜNCELLENDİ: Mobil uyumluluk için height kullanıldı */
-            height: 95%;
+            background-color: #1f2937; /* bg-gray-800 */
+            width: 95%; height: 95%;
             border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             display: flex; flex-direction: column; overflow: hidden;
+            border: 1px solid #374151; /* border-gray-700 */
         }
         .modal-header {
             display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
-            padding: 0.5rem; /* Mobil için daha küçük padding */
-            border-bottom: 1px solid #e2e8f0; /* border-slate-200 */
+            padding: 0.5rem;
+            border-bottom: 1px solid #374151; /* border-gray-700 */
             flex-shrink: 0;
         }
         
         /* Selection Modal Specifics */
-        #selection-modal-content { max-width: 800px; max-height: 90%; }
+        #selection-modal-content { max-width: 800px; max-height: 90%; background-color: #111827; }
         #selection-modal-body { padding: 1rem; md:padding: 2rem; overflow-y: auto; }
 
         /* PDF Modal Specifics */
-        #pdf-modal-content { max-width: 1200px; background-color: #334155; /* bg-slate-700 */ }
+        #pdf-modal-content { max-width: 1200px; }
         #pdf-render-area { flex-grow: 1; overflow: auto; padding: 1rem; display: flex; justify-content: center; }
         #pdf-viewport-container { position: relative; }
         #text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
         #text-layer > span, #text-layer > br { position: absolute; color: transparent; white-space: pre; transform-origin: 0% 0%; }
-        #pdf-modal-footer { display: flex; justify-content: center; align-items: center; padding: 0.5rem 1rem; border-top: 1px solid #475569; /* border-slate-600 */ gap: 1rem; flex-shrink: 0; }
+        #pdf-modal-footer { display: flex; justify-content: center; align-items: center; padding: 0.5rem 1rem; border-top: 1px solid #475569; gap: 1rem; flex-shrink: 0; }
         
         /* Loading spinner styles */
-        .loader { border: 4px solid #e2e8f0; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .loader { border: 4px solid #374151; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         #main-loader-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Arama vurgulama stilleri */
         .highlight { background-color: rgba(255, 255, 0, 0.4); }
         .current-highlight { background-color: rgba(255, 165, 0, 0.6); }
-
-        /* Arka plan görseli ve overlay */
-        body {
-            background-image: url('https://images.unsplash.com/photo-1589216532372-1c2a36790049?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        .body-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(248, 250, 252, 0.8); /* bg-slate-50 with opacity */
-            backdrop-filter: blur(4px);
-            z-index: -1;
-        }
     </style>
 </head>
-<body class="h-full">
-    <div class="body-overlay"></div>
+<body class="h-full text-gray-200">
+    <!-- YENİ: Three.js Canvas Arka Planı -->
+    <canvas id="dynamic-bg"></canvas>
 
     <div id="main-loader-container">
         <div class="loader"></div>
         <p class="text-white font-bold text-lg">Mevzuat verileri yükleniyor...</p>
     </div>
 
-    <div id="app-container" class="h-full flex flex-col" style="display: none;">
+    <div id="app-container" class="content-wrapper h-full flex flex-col" style="display: none;">
         <main id="home-page" class="page active p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
             <header class="text-center mb-8">
-                <h1 class="text-4xl sm:text-5xl font-bold text-slate-800">
-                    <span class="text-yellow-500">TKGM</span> Mevzuat Sistemi
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
+                    TKGM Mevzuat Sistemi
                 </h1>
-                <p class="text-slate-500 mt-2">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
+                <p class="text-gray-400 mt-2">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
             </header>
             <div class="mb-8 max-w-2xl w-full mx-auto">
                 <div class="relative">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
-                    <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-white/80 border border-slate-300 rounded-full py-3 pl-12 pr-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition shadow-sm">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                    <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
                 </div>
             </div>
             <div id="search-results" class="max-w-2xl w-full mx-auto flex-grow overflow-y-auto"></div>
             <div id="main-categories" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
-                <div data-section="tapu" class="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-slate-200">
-                    <h2 class="text-2xl font-bold text-yellow-500 mb-2">TAPU</h2>
-                    <p class="text-slate-600">Tapu Dairesi Başkanlığı ile ilgili belgeler.</p>
+                <div data-section="tapu" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
+                    <h2 class="text-2xl font-bold text-yellow-400 mb-2">TAPU</h2>
+                    <p class="text-gray-400">Tapu Dairesi Başkanlığı ile ilgili belgeler.</p>
                 </div>
-                <div data-section="kadastro" class="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-slate-200">
-                    <h2 class="text-2xl font-bold text-blue-500 mb-2">KADASTRO</h2>
-                    <p class="text-slate-600">Kadastro Dairesi Başkanlığı ile ilgili belgeler.</p>
+                <div data-section="kadastro" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
+                    <h2 class="text-2xl font-bold text-blue-400 mb-2">KADASTRO</h2>
+                    <p class="text-gray-400">Kadastro Dairesi Başkanlığı ile ilgili belgeler.</p>
                 </div>
-                <div data-section="genel" class="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-slate-200">
-                    <h2 class="text-2xl font-bold text-green-500 mb-2">GENEL</h2>
-                    <p class="text-slate-600">Tüm birimleri ilgilendiren ortak belgeler.</p>
+                <div data-section="genel" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
+                    <h2 class="text-2xl font-bold text-green-400 mb-2">GENEL</h2>
+                    <p class="text-gray-400">Tüm birimleri ilgilendiren ortak belgeler.</p>
                 </div>
             </div>
         </main>
@@ -132,10 +140,10 @@
         <div id="selection-modal-content" class="modal-content">
             <header id="selection-modal-header" class="modal-header">
                 <div class="flex items-center gap-3">
-                    <button id="selection-back-btn" class="p-2 rounded-full hover:bg-slate-200 transition hidden text-slate-600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
-                    <h2 id="selection-modal-title" class="text-2xl font-bold text-slate-800">Seçim yapınız</h2>
+                    <button id="selection-back-btn" class="p-2 rounded-full hover:bg-gray-700 transition hidden text-gray-300"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                    <h2 id="selection-modal-title" class="text-2xl font-bold text-white">Seçim yapınız</h2>
                 </div>
-                <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/10 text-red-500 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </header>
             <div id="selection-modal-body">
                 <!-- İçerik dinamik olarak buraya gelecek -->
@@ -146,22 +154,21 @@
     <!-- PDF Görüntüleyici Modalı -->
     <div id="pdf-modal" class="modal">
         <div id="pdf-modal-content" class="modal-content">
-            <!-- GÜNCELLENDİ: Mobil uyumlu başlık -->
             <header id="pdf-modal-header" class="modal-header flex flex-wrap items-center justify-between gap-y-2">
                 <h3 id="pdf-title" class="text-base sm:text-lg font-bold text-white truncate w-full sm:w-auto sm:flex-1 order-1 sm:order-none"></h3>
                 <div class="flex items-center gap-2 sm:gap-4 order-2 sm:order-none justify-end">
                     <div class="hidden sm:flex items-center gap-2 text-white">
-                        <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-slate-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                        <button id="zoom-out-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
                         <span id="zoom-level" class="text-sm w-12 text-center">100%</span>
-                        <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-slate-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
+                        <button id="zoom-in-btn" class="p-2 rounded-full hover:bg-gray-600 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
                     </div>
                      <button id="close-modal-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 </div>
                 <div class="flex items-center gap-2 w-full order-3">
-                     <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-slate-600 border border-slate-500 rounded-md py-1 px-2 text-sm w-full text-white placeholder:text-slate-400">
-                     <button id="pdf-search-prev" class="p-1.5 rounded-md bg-slate-600 hover:bg-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                     <span id="pdf-search-results-count" class="text-sm text-slate-400 w-16 text-center flex-shrink-0">0 / 0</span>
-                     <button id="pdf-search-next" class="p-1.5 rounded-md bg-slate-600 hover:bg-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                     <input type="text" id="pdf-search-input" placeholder="PDF içinde ara..." class="bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-sm w-full text-white placeholder:text-gray-400">
+                     <button id="pdf-search-prev" class="p-1.5 rounded-md bg-gray-600 hover:bg-gray-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                     <span id="pdf-search-results-count" class="text-sm text-gray-400 w-16 text-center flex-shrink-0">0 / 0</span>
+                     <button id="pdf-search-next" class="p-1.5 rounded-md bg-gray-600 hover:bg-gray-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
                 </div>
             </header>
             <div id="pdf-render-area">
@@ -172,9 +179,9 @@
                  </div>
             </div>
             <footer id="pdf-modal-footer">
-                <button id="prev-page-btn" class="px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 transition text-white">Önceki</button>
+                <button id="prev-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Önceki</button>
                 <div id="page-num" class="text-sm font-medium text-white"></div>
-                <button id="next-page-btn" class="px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 transition text-white">Sonraki</button>
+                <button id="next-page-btn" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-white">Sonraki</button>
             </footer>
         </div>
     </div>
@@ -208,6 +215,57 @@
         let currentSection = null, pdfDoc = null, currentPageNum = 1, pageRendering = false, pageNumPending = null, scale = 1.0, initialPinchDistance = null;
         let searchMatches = [], currentMatchIndex = -1;
         let pdfPageTextContents = new Map();
+
+        // GÜNCELLENDİ: Three.js Arka Plan Animasyonu
+        const canvas = document.getElementById('dynamic-bg');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const particlesGeometry = new THREE.BufferGeometry;
+        const particlesCnt = 5000;
+        const posArray = new Float32Array(particlesCnt * 3);
+        for(let i = 0; i < particlesCnt * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 10;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.008,
+            color: 0x87CEEB // Açık mavi
+        });
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        camera.position.z = 5;
+
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
+        const clock = new THREE.Clock();
+        const animate = () => {
+            const elapsedTime = clock.getElapsedTime();
+            particlesMesh.rotation.y = -0.05 * elapsedTime;
+            if(mouseX > 0) {
+                particlesMesh.rotation.x = -mouseY * (elapsedTime * 0.00005);
+                particlesMesh.rotation.y += -mouseX * (elapsedTime * 0.00005);
+            }
+            renderer.render(scene, camera);
+            window.requestAnimationFrame(animate);
+        };
+        animate();
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
 
         function getGitHubToken() { return TOKEN_PART_1 + TOKEN_PART_2; }
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
@@ -258,19 +316,19 @@
             selectionBackBtn.classList.add('hidden');
             selectionModalBody.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div data-type="genelge" class="group p-6 bg-white rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-yellow-500">
-                        <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110">
+                    <div data-type="genelge" class="group p-6 bg-gray-700 rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-yellow-500">
+                        <div class="w-16 h-16 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800">Genelgeler</h3>
-                        <p class="text-sm text-slate-500 mt-1">Kurumsal yönetmelikler ve duyurular</p>
+                        <h3 class="text-xl font-bold text-white">Genelgeler</h3>
+                        <p class="text-sm text-gray-400 mt-1">Kurumsal yönetmelikler ve duyurular</p>
                     </div>
-                    <div data-type="talimat" class="group p-6 bg-white rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-blue-500">
-                        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110">
+                    <div data-type="talimat" class="group p-6 bg-gray-700 rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-blue-500">
+                        <div class="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800">Talimatlar</h3>
-                        <p class="text-sm text-slate-500 mt-1">Uygulama esasları ve teknik yönergeler</p>
+                        <h3 class="text-xl font-bold text-white">Talimatlar</h3>
+                        <p class="text-sm text-gray-400 mt-1">Uygulama esasları ve teknik yönergeler</p>
                     </div>
                 </div>`;
             selectionModalBody.querySelectorAll('[data-type]').forEach(card => {
@@ -282,16 +340,16 @@
             selectionBackBtn.classList.remove('hidden');
             const documents = mevzuatData[currentSection][type];
             if (!documents || documents.length === 0) {
-                selectionModalBody.innerHTML = `<p class="text-center text-slate-500">Bu kategoride belge bulunmuyor.</p>`;
+                selectionModalBody.innerHTML = `<p class="text-center text-gray-400">Bu kategoride belge bulunmuyor.</p>`;
                 return;
             }
             selectionModalBody.innerHTML = `<div class="space-y-3">${documents.map(doc => `
-                <div data-path="${doc.path}" data-title="${doc.title}" class="group p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-100 transition flex items-center justify-between text-slate-700 border border-slate-200 hover:border-slate-300 hover:shadow-sm">
+                <div data-path="${doc.path}" data-title="${doc.title}" class="group p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-700 transition flex items-center justify-between text-gray-300 border border-gray-700 hover:border-gray-600 hover:shadow-sm">
                     <div class="flex items-center gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                         <span class="font-medium text-sm">${doc.title}</span>
                     </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 group-hover:text-slate-600 transition-transform duration-300 group-hover:translate-x-1"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500 group-hover:text-gray-300 transition-transform duration-300 group-hover:translate-x-1"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </div>`).join('')}</div>`;
             
             selectionModalBody.querySelectorAll('[data-path]').forEach(item => {
@@ -454,13 +512,13 @@
         
         function displayGlobalSearchResults(results) {
             if (results.length === 0) {
-                searchResultsContainer.innerHTML = `<p class="text-center text-slate-500">Aramanızla eşleşen sonuç bulunamadı.</p>`;
+                searchResultsContainer.innerHTML = `<p class="text-center text-gray-400">Aramanızla eşleşen sonuç bulunamadı.</p>`;
                 return;
             }
             searchResultsContainer.innerHTML = results.map(doc => `
-                <div class="p-4 bg-white/80 border border-slate-200 rounded-lg mb-3 cursor-pointer hover:bg-slate-100 transition" data-path="${doc.path}" data-title="${doc.title}">
-                    <h4 class="font-bold text-slate-800">${doc.title}</h4>
-                    <p class="text-sm text-slate-500 capitalize">${doc.section} / ${doc.type}</p>
+                <div class="p-4 bg-gray-800/80 border border-gray-700 rounded-lg mb-3 cursor-pointer hover:bg-gray-700 transition" data-path="${doc.path}" data-title="${doc.title}">
+                    <h4 class="font-bold text-white">${doc.title}</h4>
+                    <p class="text-sm text-gray-400 capitalize">${doc.section} / ${doc.type}</p>
                 </div>
             `).join('');
             
