@@ -78,18 +78,14 @@
         #pdf-modal-content { max-width: 1200px; }
         #pdf-render-area { 
             flex-grow: 1; 
-            overflow: hidden; /* Important: No scrollbars on the container */
+            overflow: auto; /* Use native browser scroll */
             padding: 1rem; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            touch-action: none; /* Disable all default touch actions */
+            touch-action: pan-x pan-y; /* Allow native pan/scroll */
         }
         #pdf-pages-container {
             position: relative;
             width: fit-content;
             margin: auto;
-            transform-origin: center center;
         }
         .page-container {
             position: relative;
