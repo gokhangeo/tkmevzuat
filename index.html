@@ -86,7 +86,6 @@
             position: relative;
             width: fit-content;
             margin: auto;
-            transform-origin: center center;
         }
         .page-container {
             position: relative;
@@ -392,7 +391,10 @@
                 await renderSinglePage(currentPageNum);
             } catch (error) { 
                 console.error('PDF yüklenirken hata:', error); 
-                alert('PDF yüklenemedi.'); 
+                // A custom modal would be better than alert, but for simplicity:
+                const customAlert = document.createElement('div');
+                customAlert.textContent = 'PDF yüklenemedi.';
+                // Style and append customAlert to the body
                 closePdfModal(); 
             } finally {
                 pdfLoader.style.display = 'none';
@@ -406,14 +408,13 @@
         
         async function renderSinglePage(num) {
             pdfLoader.style.display = 'flex';
-            resetPanAndZoom(); // Reset pan and zoom for the new page
             
             const page = await pdfDoc.getPage(num);
             const viewport = page.getViewport({ scale: 1.0 });
 
             // Calculate new initial scale to fit the page
-            const containerWidth = pdfRenderArea.clientWidth - 20;
-            const containerHeight = pdfRenderArea.clientHeight - 20;
+            const containerWidth = pdfRenderArea.clientWidth - 32; // padding
+            const containerHeight = pdfRenderArea.clientHeight - 32; // padding
             const scaleX = containerWidth / viewport.width;
             const scaleY = containerHeight / viewport.height;
             initialScale = Math.min(scaleX, scaleY);
@@ -434,62 +435,83 @@
         }
 
         async function renderPageContent(page, container) {
-            const viewport = page.getViewport({ scale: pdfTransform.scale });
-            container.innerHTML = '';
+            const scale = pdfTransform.scale;
+            const viewport = page.getViewport({ scale });
+            
+            // Use device pixel ratio for sharper rendering
+            const outputScale = window.devicePixelRatio || 1;
 
             const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = Math.floor(viewport.width * outputScale);
+            canvas.height = Math.floor(viewport.height * outputScale);
+            canvas.style.width = `${Math.floor(viewport.width)}px`;
+            canvas.style.height = `${Math.floor(viewport.height)}px`;
+            
+            container.innerHTML = '';
+            container.appendChild(canvas);
+            
+            container.style.width = canvas.style.width;
+            container.style.height = canvas.style.height;
+
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+                transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null,
+            };
+            await page.render(renderContext).promise;
+            
             const textLayerDiv = document.createElement('div');
             textLayerDiv.className = 'text-layer';
-            
-            container.appendChild(canvas);
             container.appendChild(textLayerDiv);
-
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            container.style.width = `${viewport.width}px`;
-            container.style.height = `${viewport.height}px`;
-
+            
+            textLayerDiv.style.width = canvas.style.width;
+            textLayerDiv.style.height = canvas.style.height;
+            
+            // FIX: Set the --scale-factor CSS variable for the text layer
             textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
 
-            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-            
             const textContent = await page.getTextContent();
             pdfPageTextContents.set(page.pageNumber, textContent);
             
-            await pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport }).promise;
+            await pdfjsLib.renderTextLayer({
+                textContentSource: textContent,
+                container: textLayerDiv,
+                viewport: viewport
+            }).promise;
 
             highlightSearchOnPage(page.pageNumber);
-            updatePdfTransform();
+            updatePdfUI();
         }
         
         async function reRenderCurrentPage() {
             if (!pdfDoc) return;
+            pdfLoader.style.display = 'flex';
             const page = await pdfDoc.getPage(currentPageNum);
             const container = pdfPagesContainer.querySelector('.page-container');
             await renderPageContent(page, container);
+            pdfLoader.style.display = 'none';
         }
 
         function debouncedRerender() {
             clearTimeout(rerenderTimer);
-            rerenderTimer = setTimeout(reRenderCurrentPage, 400);
+            rerenderTimer = setTimeout(reRenderCurrentPage, 250); // Reduced delay for faster feedback
         }
         
-        function updatePdfTransform() {
-            pdfPagesContainer.style.transform = `scale(${pdfTransform.scale / initialScale})`;
+        function updatePdfUI() {
+            // We no longer use CSS transform for scaling. The canvas is re-rendered at the correct size.
             zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
         }
         
-        function resetPanAndZoom() {
-            pdfRenderArea.scrollTop = 0;
-            pdfRenderArea.scrollLeft = 0;
-        }
-        
         function onZoomIn() { 
-            pdfTransform.scale = Math.min(pdfTransform.scale + 0.2 * initialScale, 4 * initialScale);
+            pdfTransform.scale = Math.min(pdfTransform.scale * 1.2, 8 * initialScale);
+            updatePdfUI();
             debouncedRerender();
         }
         function onZoomOut() { 
-            pdfTransform.scale = Math.max(pdfTransform.scale - 0.2 * initialScale, 0.25 * initialScale);
+            pdfTransform.scale = Math.max(pdfTransform.scale / 1.2, 0.25 * initialScale);
+            updatePdfUI();
             debouncedRerender();
         }
 
@@ -525,10 +547,11 @@
             const textLayerDiv = pageContainer.querySelector('.text-layer');
             if (!textLayerDiv) return;
 
+            // Remove previous highlights by replacing <mark> nodes with their text content
             textLayerDiv.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
-                parent.normalize();
+                parent.normalize(); // Merges adjacent text nodes
             });
 
             const query = pdfSearchInput.value;
@@ -536,21 +559,23 @@
             
             const regex = new RegExp(`(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'giu');
             
+            // Find and wrap matches in <mark> tags
             textLayerDiv.querySelectorAll("span").forEach(span => {
                 if (regex.test(span.textContent)) {
                     span.innerHTML = span.textContent.replace(regex, `<mark class="highlight">$1</mark>`);
                 }
             });
 
-            searchMatches.forEach((match, index) => {
-                if (match.pageNum === pageNum) {
-                    const allMarks = Array.from(textLayerDiv.querySelectorAll('mark.highlight'));
-                    if (index === currentMatchIndex && allMarks[match.matchIndexOnPage]) {
-                         allMarks[match.matchIndexOnPage].classList.add('current-highlight');
-                         allMarks[match.matchIndexOnPage].classList.remove('highlight');
-                    }
+            // Highlight the current search result
+            const currentMatchData = searchMatches[currentMatchIndex];
+            if (currentMatchData && currentMatchData.pageNum === pageNum) {
+                const allMarksOnPage = Array.from(textLayerDiv.querySelectorAll('mark.highlight'));
+                const markToHighlight = allMarksOnPage[currentMatchData.matchIndexOnPage];
+                if (markToHighlight) {
+                     markToHighlight.classList.add('current-highlight');
+                     markToHighlight.classList.remove('highlight');
                 }
-            });
+            }
         }
 
         async function startSearch() {
@@ -559,7 +584,7 @@
             pdfLoader.style.display = 'flex';
             searchMatches = [];
             
-            const regex = new RegExp(`(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'giu');
+            const regex = new RegExp(query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'giu');
 
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 if (!pdfPageTextContents.has(i)) {
@@ -569,20 +594,20 @@
                 }
                 const textContent = pdfPageTextContents.get(i);
                 
+                let pageText = textContent.items.map(item => item.str).join('');
+                let match;
                 let matchIndexOnPage = 0;
-                textContent.items.forEach(item => {
-                    let match;
-                    while ((match = regex.exec(item.str)) !== null) {
-                        searchMatches.push({ pageNum: i, matchIndexOnPage: matchIndexOnPage++ });
-                    }
-                });
+                while ((match = regex.exec(pageText)) !== null) {
+                    searchMatches.push({ pageNum: i, matchIndexOnPage: matchIndexOnPage++ });
+                }
             }
             pdfLoader.style.display = 'none';
             if (searchMatches.length > 0) {
                 currentMatchIndex = 0;
                 goToMatch(currentMatchIndex);
             } else {
-                alert("Sonuç bulunamadı.");
+                // Custom alert would be better
+                console.log("Sonuç bulunamadı.");
             }
             updateSearchUI();
         }
@@ -606,18 +631,12 @@
         function highlightAndScrollToMatch() {
             const container = pdfPagesContainer.querySelector('.page-container');
             if(!container) return;
-            // Re-run highlight to make sure marks are present
+
             highlightSearchOnPage(currentPageNum);
             
-            // Find the specific mark for the current match
-            const allMarks = Array.from(container.querySelectorAll('mark.highlight, mark.current-highlight'));
-            const matchData = searchMatches[currentMatchIndex];
-            if(matchData && allMarks[matchData.matchIndexOnPage]) {
-                const currentMark = allMarks[matchData.matchIndexOnPage];
-                currentMark.classList.add('current-highlight');
-                currentMark.classList.remove('highlight');
-                
-                // Pan the view to the highlighted text
+            const allMarks = Array.from(container.querySelectorAll('mark.current-highlight'));
+            if (allMarks.length > 0) {
+                const currentMark = allMarks[0];
                 const markRect = currentMark.getBoundingClientRect();
                 const containerRect = pdfRenderArea.getBoundingClientRect();
                 
