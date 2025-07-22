@@ -242,10 +242,7 @@
         let rerenderTimer;
 
         // Pan & Zoom State
-        let pdfTransform = { scale: 1, translateX: 0, translateY: 0 };
-        let isPinching = false, isPanning = false;
-        let pinchStartDist = 0;
-        let panStart = { x: 0, y: 0 };
+        let pdfTransform = { scale: 1 };
 
         // 3D Background
         const canvas = document.getElementById('dynamic-bg');
@@ -386,7 +383,6 @@
             resetSearch();
             
             pdfModalFooter.style.display = 'flex';
-            setupInteractionListeners();
 
             try {
                 const url = githubRawUrl + encodeURI(path);
@@ -406,7 +402,6 @@
         function closePdfModal() { 
             pdfModal.classList.remove('active'); 
             pdfDoc = null; 
-            removeInteractionListeners();
         }
         
         async function renderSinglePage(num) {
@@ -478,99 +473,15 @@
             clearTimeout(rerenderTimer);
             rerenderTimer = setTimeout(reRenderCurrentPage, 400);
         }
-
-        function setupInteractionListeners() {
-            pdfRenderArea.addEventListener('wheel', onWheel, { passive: false });
-            pdfRenderArea.addEventListener('touchstart', onTouchStart);
-            pdfRenderArea.addEventListener('touchmove', onTouchMove, { passive: false });
-            pdfRenderArea.addEventListener('touchend', onTouchEnd);
-            pdfRenderArea.addEventListener('touchcancel', onTouchEnd);
-        }
-        function removeInteractionListeners() {
-            pdfRenderArea.removeEventListener('wheel', onWheel);
-            pdfRenderArea.removeEventListener('touchstart', onTouchStart);
-            pdfRenderArea.removeEventListener('touchmove', onTouchMove);
-            pdfRenderArea.removeEventListener('touchend', onTouchEnd);
-            pdfRenderArea.removeEventListener('touchcancel', onTouchEnd);
-        }
-
-        function onWheel(e) {
-            e.preventDefault();
-            let newY = pdfTransform.translateY - e.deltaY;
-            applyPan(pdfTransform.translateX, newY);
-        }
-
-        function onTouchStart(e) {
-            if (e.touches.length === 1) {
-                isPanning = true;
-                panStart.x = e.touches[0].clientX - pdfTransform.translateX;
-                panStart.y = e.touches[0].clientY - pdfTransform.translateY;
-            } else if (e.touches.length === 2) {
-                isPanning = false;
-                isPinching = true;
-                pinchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            }
-        }
-
-        function onTouchMove(e) {
-            e.preventDefault();
-            if (isPanning && e.touches.length === 1) {
-                let newX = e.touches[0].clientX - panStart.x;
-                let newY = e.touches[0].clientY - panStart.y;
-                applyPan(newX, newY);
-            } else if (isPinching && e.touches.length === 2) {
-                const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                const scale = (newDist / pinchStartDist);
-                pdfTransform.scale = Math.max(0.25 * initialScale, Math.min(pdfTransform.scale * scale, 4 * initialScale));
-                updatePdfTransform();
-                pinchStartDist = newDist;
-            }
-        }
-
-        function onTouchEnd(e) {
-            if (isPinching) {
-                debouncedRerender();
-            }
-            isPanning = false;
-            isPinching = false;
-        }
-
-        function applyPan(newX, newY) {
-            const container = pdfPagesContainer.querySelector('.page-container');
-            if (!container) return;
-
-            const scaledWidth = container.offsetWidth;
-            const scaledHeight = container.offsetHeight;
-            const viewportWidth = pdfRenderArea.clientWidth;
-            const viewportHeight = pdfRenderArea.clientHeight;
-            
-            let finalX = 0;
-            if (scaledWidth > viewportWidth) {
-                const maxOffsetX = (scaledWidth - viewportWidth) / 2;
-                finalX = Math.max(-maxOffsetX, Math.min(newX, maxOffsetX));
-            }
-
-            let finalY = 0;
-            if (scaledHeight > viewportHeight) {
-                const maxOffsetY = (scaledHeight - viewportHeight) / 2;
-                finalY = Math.max(-maxOffsetY, Math.min(newY, maxOffsetY));
-            }
-            
-            pdfTransform.translateX = finalX;
-            pdfTransform.translateY = finalY;
-
-            updatePdfTransform();
-        }
         
         function updatePdfTransform() {
-            pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px)`;
+            pdfPagesContainer.style.transform = `scale(${pdfTransform.scale / initialScale})`;
             zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
         }
         
         function resetPanAndZoom() {
-            pdfTransform.translateX = 0;
-            pdfTransform.translateY = 0;
-            // Scale is reset in renderSinglePage
+            pdfRenderArea.scrollTop = 0;
+            pdfRenderArea.scrollLeft = 0;
         }
         
         function onZoomIn() { 
@@ -710,10 +621,11 @@
                 const markRect = currentMark.getBoundingClientRect();
                 const containerRect = pdfRenderArea.getBoundingClientRect();
                 
-                const targetX = (containerRect.width / 2) - (markRect.left - containerRect.left + markRect.width / 2);
-                const targetY = (containerRect.height / 2) - (markRect.top - containerRect.top + markRect.height / 2);
-                
-                applyPan(targetX, targetY);
+                pdfRenderArea.scrollTo({
+                    top: pdfRenderArea.scrollTop + (markRect.top - containerRect.top) - (containerRect.height / 2) + (markRect.height / 2),
+                    left: pdfRenderArea.scrollLeft + (markRect.left - containerRect.left) - (containerRect.width / 2) + (markRect.width / 2),
+                    behavior: 'smooth'
+                });
             }
         }
         
