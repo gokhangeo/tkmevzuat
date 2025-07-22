@@ -474,6 +474,9 @@
                 textLayerDiv.style.width = `${viewport.width}px`;
                 textLayerDiv.style.height = `${viewport.height}px`;
 
+                // FIX: Set the --scale-factor CSS variable required by renderTextLayer
+                textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
+
                 const renderContext = {
                     canvasContext: canvas.getContext('2d'),
                     viewport: viewport
