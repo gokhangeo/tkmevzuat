@@ -80,7 +80,7 @@
             flex-grow: 1; 
             overflow: auto; /* Use native browser scroll */
             padding: 1rem; 
-            touch-action: pan-x pan-y; /* Allow native pan/scroll */
+            touch-action: none; /* Disable default touch actions to handle pinch-zoom */
         }
         #pdf-pages-container {
             position: relative;
@@ -242,6 +242,9 @@
 
         // Pan & Zoom State
         let pdfTransform = { scale: 1 };
+        let initialPinchDistance = null; // For pinch-to-zoom
+        let isPanning = false; // For one-finger panning
+        let lastPanPoint = { x: 0, y: 0 }; // For one-finger panning
 
         // 3D Background
         const canvas = document.getElementById('dynamic-bg');
@@ -314,6 +317,7 @@
                 genel: { genelge: genelGenelgeler, talimat: genelTalimatlar }
             };
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
+            setupTouchEvents(); // Setup touch events after app is initialized
         }
 
         function openSelectionModal(section) {
@@ -391,10 +395,7 @@
                 await renderSinglePage(currentPageNum);
             } catch (error) { 
                 console.error('PDF yüklenirken hata:', error); 
-                // A custom modal would be better than alert, but for simplicity:
-                const customAlert = document.createElement('div');
-                customAlert.textContent = 'PDF yüklenemedi.';
-                // Style and append customAlert to the body
+                // A custom modal would be better than alert
                 closePdfModal(); 
             } finally {
                 pdfLoader.style.display = 'none';
@@ -412,9 +413,8 @@
             const page = await pdfDoc.getPage(num);
             const viewport = page.getViewport({ scale: 1.0 });
 
-            // Calculate new initial scale to fit the page
-            const containerWidth = pdfRenderArea.clientWidth - 32; // padding
-            const containerHeight = pdfRenderArea.clientHeight - 32; // padding
+            const containerWidth = pdfRenderArea.clientWidth - 32;
+            const containerHeight = pdfRenderArea.clientHeight - 32;
             const scaleX = containerWidth / viewport.width;
             const scaleY = containerHeight / viewport.height;
             initialScale = Math.min(scaleX, scaleY);
@@ -437,8 +437,6 @@
         async function renderPageContent(page, container) {
             const scale = pdfTransform.scale;
             const viewport = page.getViewport({ scale });
-            
-            // Use device pixel ratio for sharper rendering
             const outputScale = window.devicePixelRatio || 1;
 
             const canvas = document.createElement('canvas');
@@ -468,8 +466,6 @@
             
             textLayerDiv.style.width = canvas.style.width;
             textLayerDiv.style.height = canvas.style.height;
-            
-            // FIX: Set the --scale-factor CSS variable for the text layer
             textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
 
             const textContent = await page.getTextContent();
@@ -496,11 +492,10 @@
 
         function debouncedRerender() {
             clearTimeout(rerenderTimer);
-            rerenderTimer = setTimeout(reRenderCurrentPage, 250); // Reduced delay for faster feedback
+            rerenderTimer = setTimeout(reRenderCurrentPage, 250);
         }
         
         function updatePdfUI() {
-            // We no longer use CSS transform for scaling. The canvas is re-rendered at the correct size.
             zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
         }
         
@@ -527,6 +522,63 @@
                 renderSinglePage(currentPageNum);
             }
         }
+        
+        // --- Touch Event Logic for Pinch-to-Zoom and Panning ---
+        function setupTouchEvents() {
+            pdfRenderArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+            pdfRenderArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+            pdfRenderArea.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function getDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function handleTouchStart(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                isPanning = false;
+                initialPinchDistance = getDistance(e.touches);
+            } else if (e.touches.length === 1) {
+                isPanning = true;
+                lastPanPoint = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (e.touches.length === 2 && initialPinchDistance) {
+                e.preventDefault();
+                const newDist = getDistance(e.touches);
+                const scaleFactor = newDist / initialPinchDistance;
+                
+                const newScale = pdfTransform.scale * scaleFactor;
+                // Clamp the scale to prevent extreme zooming
+                pdfTransform.scale = Math.max(0.25 * initialScale, Math.min(newScale, 8 * initialScale));
+                
+                updatePdfUI();
+                debouncedRerender();
+                initialPinchDistance = newDist; // Update for next move
+            } else if (e.touches.length === 1 && isPanning) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - lastPanPoint.x;
+                const dy = e.touches[0].clientY - lastPanPoint.y;
+                pdfRenderArea.scrollTop -= dy;
+                pdfRenderArea.scrollLeft -= dx;
+                lastPanPoint = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            if (e.touches.length < 2) {
+                initialPinchDistance = null;
+            }
+            if (e.touches.length < 1) {
+                isPanning = false;
+            }
+        }
+
 
         // --- Search Logic ---
         function resetSearch() {
@@ -547,11 +599,10 @@
             const textLayerDiv = pageContainer.querySelector('.text-layer');
             if (!textLayerDiv) return;
 
-            // Remove previous highlights by replacing <mark> nodes with their text content
             textLayerDiv.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 parent.replaceChild(document.createTextNode(m.textContent), m);
-                parent.normalize(); // Merges adjacent text nodes
+                parent.normalize();
             });
 
             const query = pdfSearchInput.value;
@@ -559,14 +610,12 @@
             
             const regex = new RegExp(`(${query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'giu');
             
-            // Find and wrap matches in <mark> tags
             textLayerDiv.querySelectorAll("span").forEach(span => {
                 if (regex.test(span.textContent)) {
                     span.innerHTML = span.textContent.replace(regex, `<mark class="highlight">$1</mark>`);
                 }
             });
 
-            // Highlight the current search result
             const currentMatchData = searchMatches[currentMatchIndex];
             if (currentMatchData && currentMatchData.pageNum === pageNum) {
                 const allMarksOnPage = Array.from(textLayerDiv.querySelectorAll('mark.highlight'));
@@ -606,7 +655,6 @@
                 currentMatchIndex = 0;
                 goToMatch(currentMatchIndex);
             } else {
-                // Custom alert would be better
                 console.log("Sonuç bulunamadı.");
             }
             updateSearchUI();
