@@ -356,7 +356,16 @@
         // --- Utility & Core Functions ---
         function getGitHubToken() { return TOKEN_PART_1 + TOKEN_PART_2; }
         function extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? parseInt(match[0], 10) : 0; }
-        function formatTitle(filename) { return filename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+        
+        function formatTitle(filename) {
+            let title = filename.replace(/\.pdf$/i, '').replace(/_/g, ' ');
+            return title.split(' ').map(word => {
+                if (word.length > 0) {
+                    return word.charAt(0).toLocaleUpperCase('tr-TR') + word.slice(1);
+                }
+                return word;
+            }).join(' ');
+        }
         
         async function fetchFilesFromRepo(path) {
             const GITHUB_TOKEN = getGitHubToken();
@@ -364,7 +373,7 @@
                 const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
                 if (response.status === 404) {
                     console.log(`'${path}' yolu bulunamadı, atlanıyor.`);
-                    return []; // Return empty array if path not found, not an error.
+                    return [];
                 }
                 if (!response.ok) { throw new Error(`Network response was not ok for ${path}`); }
                 const files = await response.json();
@@ -374,7 +383,7 @@
                 return mappedFiles;
             } catch (error) { 
                 console.error(`'${path}' yüklenirken kritik hata:`, error); 
-                return []; // Return empty on other critical errors
+                return [];
             }
         }
         
