@@ -30,7 +30,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #111827; /* bg-gray-900 */
-            overflow: hidden;
+            overflow-y: auto; /* Allow vertical scrolling for the whole page */
         }
 
         #dynamic-bg {
@@ -185,6 +185,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Duyurular ve İhaleler Bölümü -->
+            <div id="news-section" class="max-w-6xl mx-auto w-full mt-12 mb-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                <!-- Duyurular -->
+                <a href="https://www.tkgm.gov.tr/tum-duyurular" target="_blank" class="block hover:opacity-80 transition">
+                    <h2 class="text-2xl font-bold text-white border-b-2 border-orange-500 pb-2 mb-4 inline-block">DUYURULAR</h2>
+                </a>
+                <!-- İhaleler -->
+                <a href="https://www.tkgm.gov.tr/ihaleler" target="_blank" class="block hover:opacity-80 transition">
+                    <h2 class="text-2xl font-bold text-white border-b-2 border-blue-500 pb-2 mb-4 inline-block">İHALELER</h2>
+                </a>
+            </div>
+
         </main>
     </div>
 
@@ -459,7 +472,6 @@
         function setupShareEventListeners() {
             shareCloseBtn.addEventListener('click', closeShareModal);
         }
-
 
         // --- UI Rendering ---
         function createDocumentListItemHTML(doc) {
@@ -832,6 +844,10 @@
             searchResultsContainer.innerHTML = `<div class="space-y-3">${results.map(doc => createDocumentListItemHTML({ ...doc })).join('')}</div>`;
             addDocumentListEventListeners(searchResultsContainer);
         }
+        
+        // This function is no longer needed as the content is static HTML
+        function renderNewsAndTenders() {}
+
 
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
