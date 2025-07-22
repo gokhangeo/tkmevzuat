@@ -414,11 +414,12 @@
         
         async function renderSinglePage(num) {
             pdfLoader.style.display = 'flex';
-            resetPanAndZoom();
+            resetPanAndZoom(); // Reset pan and zoom for the new page
             
             const page = await pdfDoc.getPage(num);
             const viewport = page.getViewport({ scale: 1.0 });
 
+            // Calculate new initial scale to fit the page
             const containerWidth = pdfRenderArea.clientWidth - 20;
             const containerHeight = pdfRenderArea.clientHeight - 20;
             const scaleX = containerWidth / viewport.width;
@@ -541,13 +542,12 @@
             const container = pdfPagesContainer.querySelector('.page-container');
             if (!container) return;
 
-            const scaledWidth = container.offsetWidth;
-            const scaledHeight = container.offsetHeight;
-            const viewportWidth = pdfRenderArea.clientWidth;
-            const viewportHeight = pdfRenderArea.clientHeight;
+            // Use getBoundingClientRect for visually-scaled dimensions
+            const scaledRect = container.getBoundingClientRect();
+            const viewportRect = pdfRenderArea.getBoundingClientRect();
             
-            const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
-            const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
+            const maxOffsetX = Math.max(0, (scaledRect.width - viewportRect.width) / 2);
+            const maxOffsetY = Math.max(0, (scaledRect.height - viewportRect.height) / 2);
 
             pdfTransform.translateX = Math.max(-maxOffsetX, Math.min(newX, maxOffsetX));
             pdfTransform.translateY = Math.max(-maxOffsetY, Math.min(newY, maxOffsetY));
@@ -556,12 +556,15 @@
         }
         
         function updatePdfTransform() {
-            pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px) scale(${pdfTransform.scale / initialScale})`;
+            // The scale is now handled by re-rendering the canvas, not a CSS transform on the container
+            pdfPagesContainer.style.transform = `translate(${pdfTransform.translateX}px, ${pdfTransform.translateY}px)`;
             zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`;
         }
         
         function resetPanAndZoom() {
-            pdfTransform = { scale: 1, translateX: 0, translateY: 0 };
+            pdfTransform.translateX = 0;
+            pdfTransform.translateY = 0;
+            // Scale is reset in renderSinglePage
         }
         
         function onZoomIn() { 
