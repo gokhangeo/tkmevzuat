@@ -395,9 +395,8 @@
                 const firstPage = await pdfDoc.getPage(1);
                 const viewport = firstPage.getViewport({ scale: 1.0 });
 
-                // Fit-to-window logic
-                const containerWidth = pdfRenderArea.clientWidth - 20; // some padding
-                const containerHeight = pdfRenderArea.clientHeight - 20; // some padding
+                const containerWidth = pdfRenderArea.clientWidth - 20;
+                const containerHeight = pdfRenderArea.clientHeight - 20;
                 const scaleX = containerWidth / viewport.width;
                 const scaleY = containerHeight / viewport.height;
                 initialScale = Math.min(scaleX, scaleY);
@@ -469,7 +468,7 @@
                 const page = await pdfDoc.getPage(pageNum);
                 const viewport = page.getViewport({ scale: pdfTransform.scale });
                 
-                container.innerHTML = ''; // Clear old content
+                container.innerHTML = '';
 
                 const canvas = document.createElement('canvas');
                 const textLayerDiv = document.createElement('div');
@@ -480,11 +479,9 @@
 
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
+                container.style.width = `${viewport.width}px`;
+                container.style.height = `${viewport.height}px`;
 
-                textLayerDiv.style.width = '100%';
-                textLayerDiv.style.height = '100%';
                 textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
 
                 await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
@@ -503,7 +500,6 @@
             }
         }
         
-        // --- Pan, Zoom, and High-Res Rerender Logic ---
         function reRenderVisiblePages() {
             if (!pdfDoc) return;
             pdfPagesContainer.querySelectorAll('.page-container[data-rendered="true"]').forEach(container => {
@@ -540,6 +536,7 @@
                 panStart.x = e.touches[0].clientX - pdfTransform.translateX;
                 panStart.y = e.touches[0].clientY - pdfTransform.translateY;
             } else if (e.touches.length === 2) {
+                pdfRenderArea.style.overflow = 'hidden'; // Disable scroll during pinch
                 isPanning = false;
                 isPinching = true;
                 pinchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -567,6 +564,7 @@
             }
             isPanning = false;
             isPinching = false;
+            pdfRenderArea.style.overflow = 'auto'; // Re-enable scroll after gesture
         }
         
         function updatePdfTransform() {
