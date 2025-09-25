@@ -86,6 +86,13 @@
         #pdf-modal-content { 
             max-width: 95vw;
             height: 98%;
+            transition: width 0.3s, height 0.3s, max-width 0.3s;
+        }
+        #pdf-modal.fullscreen-active #pdf-modal-content {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+            border-radius: 0;
         }
         #pdf-render-area { 
             flex-grow: 1; 
@@ -704,16 +711,23 @@
         function onNextPage() { if (currentPageNum < pdfDoc.numPages) { currentPageNum++; renderSinglePage(currentPageNum); } }
         
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                pdfModal.requestFullscreen().catch(err => {
-                    console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                    showToast("Tam ekran modu başlatılamadı.", true);
-                });
+            pdfModal.classList.toggle('fullscreen-active');
+            const isFullscreen = pdfModal.classList.contains('fullscreen-active');
+
+            if (isFullscreen) {
+                enterFullscreenIcon.classList.add('hidden');
+                exitFullscreenIcon.classList.remove('hidden');
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                enterFullscreenIcon.classList.remove('hidden');
+                exitFullscreenIcon.classList.add('hidden');
             }
+            
+            // A small delay helps ensure the browser has resized everything before we re-render
+            setTimeout(() => {
+                if (pdfDoc) { // Only rerender if a PDF is actually open
+                    reRenderCurrentPage();
+                }
+            }, 150);
         }
 
         // --- Touch Logic ---
@@ -921,22 +935,6 @@
         prevPageBtn.addEventListener('click', onPrevPage);
         nextPageBtn.addEventListener('click', onNextPage);
         window.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); closeSelectionModal(); closeFavoritesModal(); closeShareModal(); } });
-
-        document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                enterFullscreenIcon.classList.add('hidden');
-                exitFullscreenIcon.classList.remove('hidden');
-            } else {
-                enterFullscreenIcon.classList.remove('hidden');
-                exitFullscreenIcon.classList.add('hidden');
-            }
-            // A small delay helps ensure the browser has resized everything before we re-render
-            setTimeout(() => {
-                if (pdfDoc) { // Only rerender if a PDF is actually open
-                    reRenderCurrentPage();
-                }
-            }, 150);
-        });
 
         initializeApp();
     </script>
