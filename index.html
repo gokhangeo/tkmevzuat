@@ -123,6 +123,10 @@
             position: relative;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             background-color: #374151;
+            margin-bottom: 1rem;
+        }
+        .page-container:last-child {
+            margin-bottom: 0;
         }
         .page-container canvas { display: block; }
         .text-layer { position: absolute; top: 0; left: 0; line-height: 1.0; pointer-events: auto; }
@@ -368,6 +372,7 @@
         let isPanning = false;
         let lastPanPoint = { x: 0, y: 0 };
         let currentDocToShare = null;
+        let pageIntersectionObserver = null;
 
         // --- 3D Background ---
         const bgCanvas = document.getElementById('dynamic-bg');
@@ -657,19 +662,86 @@
             pdfModal.classList.remove('active', 'fullscreen-active'); 
             enterFullscreenIcon.classList.remove('hidden');
             exitFullscreenIcon.classList.add('hidden');
+            if (pageIntersectionObserver) {
+                pageIntersectionObserver.disconnect();
+                pageIntersectionObserver = null;
+            }
             pdfDoc = null; 
         }
         
         async function renderSinglePage(num) {
+            if (pageIntersectionObserver) {
+                pageIntersectionObserver.disconnect();
+                pageIntersectionObserver = null;
+            }
             pdfLoader.style.display = 'flex';
-            const page = await pdfDoc.getPage(num);
+            pdfPagesContainer.innerHTML = ''; // Clear for single page view
             
-            await reRenderCurrentPage(true); // Always recalculate scale for the new page
-
-            pageNumDisplay.textContent = `${num} / ${pdfDoc.numPages}`;
-            prevPageBtn.disabled = num <= 1;
-            nextPageBtn.disabled = num >= pdfDoc.numPages;
+            currentPageNum = num;
+            await reRenderCurrentPage(true); // Recalculate scale for single page view
+            
+            pageNumDisplay.textContent = `${currentPageNum} / ${pdfDoc.numPages}`;
+            prevPageBtn.disabled = currentPageNum <= 1;
+            nextPageBtn.disabled = currentPageNum >= pdfDoc.numPages;
             pdfLoader.style.display = 'none';
+        }
+
+        async function renderAllPages(recalculateBaseScale = false) {
+            if (!pdfDoc) return;
+            pdfLoader.style.display = 'flex';
+            pdfPagesContainer.innerHTML = '';
+            if (pageIntersectionObserver) pageIntersectionObserver.disconnect();
+
+            if (recalculateBaseScale) {
+                const pageForViewport = await pdfDoc.getPage(1);
+                const viewport = pageForViewport.getViewport({ scale: 1.0 });
+                const containerWidth = pdfRenderArea.clientWidth - 32;
+                initialScale = containerWidth / viewport.width;
+                pdfTransform.scale = initialScale;
+                updatePdfUI();
+            }
+
+            const renderPromises = [];
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'page-container';
+                pageContainer.dataset.pageNum = pageNum;
+                pdfPagesContainer.appendChild(pageContainer);
+
+                const renderPromise = pdfDoc.getPage(pageNum).then(page => {
+                    return renderPageContent(page, pageContainer);
+                });
+                renderPromises.push(renderPromise);
+            }
+            await Promise.all(renderPromises);
+            pdfLoader.style.display = 'none';
+            setupIntersectionObserver();
+            // Scroll to the current page
+            const targetPage = pdfPagesContainer.querySelector(`.page-container[data-page-num="${currentPageNum}"]`);
+            if (targetPage) {
+                targetPage.scrollIntoView({ behavior: 'auto', block: 'start' });
+            }
+        }
+
+        function setupIntersectionObserver() {
+            if (pageIntersectionObserver) pageIntersectionObserver.disconnect();
+
+            const options = {
+                root: pdfRenderArea,
+                rootMargin: '0px',
+                threshold: 0.25,
+            };
+
+            pageIntersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const visiblePageNum = parseInt(entry.target.dataset.pageNum, 10);
+                        currentPageNum = visiblePageNum;
+                    }
+                });
+            }, options);
+
+            pdfPagesContainer.querySelectorAll('.page-container').forEach(p => pageIntersectionObserver.observe(p));
         }
 
         async function renderPageContent(page, container) {
@@ -681,7 +753,7 @@
             canvas.height = Math.floor(viewport.height * outputScale);
             canvas.style.width = `${Math.floor(viewport.width)}px`;
             canvas.style.height = `${Math.floor(viewport.height)}px`;
-            container.innerHTML = '';
+            container.innerHTML = ''; // Clear previous canvas if any
             container.appendChild(canvas);
             container.style.width = canvas.style.width;
             container.style.height = canvas.style.height;
@@ -697,8 +769,11 @@
             textLayerDiv.style.width = canvas.style.width;
             textLayerDiv.style.height = canvas.style.height;
             textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
-            const textContent = await page.getTextContent();
-            pdfPageTextContents.set(page.pageNumber, textContent);
+            if (!pdfPageTextContents.has(page.pageNumber)) {
+                const textContent = await page.getTextContent();
+                pdfPageTextContents.set(page.pageNumber, textContent);
+            }
+            const textContent = pdfPageTextContents.get(page.pageNumber);
             await pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport: viewport }).promise;
             highlightSearchOnPage(page.pageNumber);
             updatePdfUI();
@@ -723,19 +798,36 @@
                 container = document.createElement('div');
                 container.className = 'page-container';
                 container.dataset.pageNum = currentPageNum;
-                pdfPagesContainer.innerHTML = '';
                 pdfPagesContainer.appendChild(container);
             }
             await renderPageContent(page, container);
             pdfLoader.style.display = 'none';
         }
 
-        function debouncedRerender() { clearTimeout(rerenderTimer); rerenderTimer = setTimeout(() => reRenderCurrentPage(true), 250); }
         function updatePdfUI() { zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`; }
-        function onZoomIn() { pdfTransform.scale = Math.min(pdfTransform.scale * 1.2, 8 * initialScale); updatePdfUI(); reRenderCurrentPage(); }
-        function onZoomOut() { pdfTransform.scale = Math.max(pdfTransform.scale / 1.2, 0.25 * initialScale); updatePdfUI(); reRenderCurrentPage(); }
-        function onPrevPage() { if (currentPageNum > 1) { currentPageNum--; renderSinglePage(currentPageNum); } }
-        function onNextPage() { if (currentPageNum < pdfDoc.numPages) { currentPageNum++; renderSinglePage(currentPageNum); } }
+        
+        function onZoomIn() { 
+            pdfTransform.scale = Math.min(pdfTransform.scale * 1.2, 8 * initialScale); 
+            updatePdfUI(); 
+            if (pdfModal.classList.contains('fullscreen-active')) {
+                renderAllPages(false);
+            } else {
+                reRenderCurrentPage();
+            }
+        }
+        
+        function onZoomOut() { 
+            pdfTransform.scale = Math.max(pdfTransform.scale / 1.2, 0.25 * initialScale); 
+            updatePdfUI(); 
+            if (pdfModal.classList.contains('fullscreen-active')) {
+                renderAllPages(false);
+            } else {
+                reRenderCurrentPage();
+            }
+        }
+        
+        function onPrevPage() { if (currentPageNum > 1) { renderSinglePage(currentPageNum - 1); } }
+        function onNextPage() { if (currentPageNum < pdfDoc.numPages) { renderSinglePage(currentPageNum + 1); } }
         
         function toggleFullscreen() {
             pdfModal.classList.toggle('fullscreen-active');
@@ -744,16 +836,12 @@
             if (isFullscreen) {
                 enterFullscreenIcon.classList.add('hidden');
                 exitFullscreenIcon.classList.remove('hidden');
+                renderAllPages(true);
             } else {
                 enterFullscreenIcon.classList.remove('hidden');
                 exitFullscreenIcon.classList.add('hidden');
+                renderSinglePage(currentPageNum); 
             }
-            
-            setTimeout(() => {
-                if (pdfDoc) {
-                    reRenderCurrentPage(true);
-                }
-            }, 400);
         }
 
         // --- Touch Logic ---
@@ -774,7 +862,11 @@
                 const newScale = pdfTransform.scale * (newDist / initialPinchDistance);
                 pdfTransform.scale = Math.max(0.25 * initialScale, Math.min(newScale, 8 * initialScale));
                 updatePdfUI();
-                reRenderCurrentPage();
+                if (pdfModal.classList.contains('fullscreen-active')) {
+                    renderAllPages(false);
+                } else {
+                    reRenderCurrentPage();
+                }
                 initialPinchDistance = newDist;
             } else if (e.touches.length === 1 && isPanning) {
                 e.preventDefault();
@@ -870,24 +962,28 @@
             updateSearchUI();
         }
 
-        function goToMatch(index) {
+        async function goToMatch(index) {
             if (index < 0 || index >= searchMatches.length) return;
             currentMatchIndex = index;
             const { pageNum } = searchMatches[index];
             
-            if (currentPageNum !== pageNum) {
-                currentPageNum = pageNum;
-                renderSinglePage(pageNum).then(() => {
+            if (pdfModal.classList.contains('fullscreen-active')) {
+                const targetPage = pdfPagesContainer.querySelector(`.page-container[data-page-num="${pageNum}"]`);
+                if (targetPage) {
+                    targetPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     highlightAndScrollToMatch();
-                });
+                }
             } else {
+                if (currentPageNum !== pageNum) {
+                    await renderSinglePage(pageNum);
+                }
                 highlightAndScrollToMatch();
             }
             updateSearchUI();
         }
 
         function highlightAndScrollToMatch() {
-            const container = pdfPagesContainer.querySelector('.page-container');
+            const container = pdfPagesContainer.querySelector(`.page-container[data-page-num="${currentPageNum}"]`);
             if(!container) return;
 
             highlightSearchOnPage(currentPageNum);
