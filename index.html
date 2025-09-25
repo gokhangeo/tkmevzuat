@@ -71,6 +71,7 @@
             padding: 1rem;
             border-bottom: 1px solid #374151; /* border-gray-700 */
             flex-shrink: 0;
+            transition: all 0.3s ease-in-out;
         }
         
         /* Modal Specifics */
@@ -86,13 +87,26 @@
         #pdf-modal-content { 
             max-width: 95vw;
             height: 98%;
-            transition: width 0.3s, height 0.3s, max-width 0.3s;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
         #pdf-modal.fullscreen-active #pdf-modal-content {
             width: 100vw;
             height: 100vh;
             max-width: 100%;
             border-radius: 0;
+            background-color: #111827; /* Match body bg for seamless feel */
+        }
+        #pdf-modal.fullscreen-active .modal-header,
+        #pdf-modal.fullscreen-active #pdf-modal-footer {
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            padding: 0;
+            border: none;
+            overflow: hidden;
+        }
+        #pdf-modal-footer {
+            transition: all 0.3s ease-in-out;
         }
         #pdf-render-area { 
             flex-grow: 1; 
@@ -639,23 +653,19 @@
                 pdfLoader.style.display = 'none';
             }
         }
-        function closePdfModal() { pdfModal.classList.remove('active'); pdfDoc = null; }
+        function closePdfModal() { 
+            pdfModal.classList.remove('active', 'fullscreen-active'); 
+            enterFullscreenIcon.classList.remove('hidden');
+            exitFullscreenIcon.classList.add('hidden');
+            pdfDoc = null; 
+        }
         
         async function renderSinglePage(num) {
             pdfLoader.style.display = 'flex';
             const page = await pdfDoc.getPage(num);
-            const viewport = page.getViewport({ scale: 1.0 });
             
-            const containerWidth = pdfRenderArea.clientWidth - 32;
-            initialScale = containerWidth / viewport.width;
-            pdfTransform.scale = initialScale;
+            await reRenderCurrentPage(true); // Always recalculate scale for the new page
 
-            pdfPagesContainer.innerHTML = '';
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'page-container';
-            pageContainer.dataset.pageNum = num;
-            pdfPagesContainer.appendChild(pageContainer);
-            await renderPageContent(page, pageContainer);
             pageNumDisplay.textContent = `${num} / ${pdfDoc.numPages}`;
             prevPageBtn.disabled = num <= 1;
             nextPageBtn.disabled = num >= pdfDoc.numPages;
@@ -694,19 +704,36 @@
             updatePdfUI();
         }
         
-        async function reRenderCurrentPage() {
+        async function reRenderCurrentPage(recalculateScale = false) {
             if (!pdfDoc) return;
             pdfLoader.style.display = 'flex';
+
+            if (recalculateScale) {
+                const pageForViewport = await pdfDoc.getPage(currentPageNum);
+                const viewport = pageForViewport.getViewport({ scale: 1.0 });
+                const containerWidth = pdfRenderArea.clientWidth - 32;
+                initialScale = containerWidth / viewport.width;
+                pdfTransform.scale = initialScale;
+                updatePdfUI();
+            }
+
             const page = await pdfDoc.getPage(currentPageNum);
-            const container = pdfPagesContainer.querySelector('.page-container');
+            let container = pdfPagesContainer.querySelector('.page-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'page-container';
+                container.dataset.pageNum = currentPageNum;
+                pdfPagesContainer.innerHTML = '';
+                pdfPagesContainer.appendChild(container);
+            }
             await renderPageContent(page, container);
             pdfLoader.style.display = 'none';
         }
 
-        function debouncedRerender() { clearTimeout(rerenderTimer); rerenderTimer = setTimeout(reRenderCurrentPage, 250); }
+        function debouncedRerender() { clearTimeout(rerenderTimer); rerenderTimer = setTimeout(() => reRenderCurrentPage(true), 250); }
         function updatePdfUI() { zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale / initialScale) * 100)}%`; }
-        function onZoomIn() { pdfTransform.scale = Math.min(pdfTransform.scale * 1.2, 8 * initialScale); updatePdfUI(); debouncedRerender(); }
-        function onZoomOut() { pdfTransform.scale = Math.max(pdfTransform.scale / 1.2, 0.25 * initialScale); updatePdfUI(); debouncedRerender(); }
+        function onZoomIn() { pdfTransform.scale = Math.min(pdfTransform.scale * 1.2, 8 * initialScale); updatePdfUI(); reRenderCurrentPage(); }
+        function onZoomOut() { pdfTransform.scale = Math.max(pdfTransform.scale / 1.2, 0.25 * initialScale); updatePdfUI(); reRenderCurrentPage(); }
         function onPrevPage() { if (currentPageNum > 1) { currentPageNum--; renderSinglePage(currentPageNum); } }
         function onNextPage() { if (currentPageNum < pdfDoc.numPages) { currentPageNum++; renderSinglePage(currentPageNum); } }
         
@@ -722,12 +749,11 @@
                 exitFullscreenIcon.classList.add('hidden');
             }
             
-            // A small delay helps ensure the browser has resized everything before we re-render
             setTimeout(() => {
-                if (pdfDoc) { // Only rerender if a PDF is actually open
-                    reRenderCurrentPage();
+                if (pdfDoc) {
+                    reRenderCurrentPage(true);
                 }
-            }, 150);
+            }, 400);
         }
 
         // --- Touch Logic ---
@@ -748,7 +774,7 @@
                 const newScale = pdfTransform.scale * (newDist / initialPinchDistance);
                 pdfTransform.scale = Math.max(0.25 * initialScale, Math.min(newScale, 8 * initialScale));
                 updatePdfUI();
-                debouncedRerender();
+                reRenderCurrentPage();
                 initialPinchDistance = newDist;
             } else if (e.touches.length === 1 && isPanning) {
                 e.preventDefault();
@@ -934,7 +960,18 @@
         fullscreenBtn.addEventListener('click', toggleFullscreen);
         prevPageBtn.addEventListener('click', onPrevPage);
         nextPageBtn.addEventListener('click', onNextPage);
-        window.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); closeSelectionModal(); closeFavoritesModal(); closeShareModal(); } });
+        window.addEventListener('keydown', e => { 
+            if (e.key === 'Escape') { 
+                if (pdfModal.classList.contains('fullscreen-active')) {
+                    toggleFullscreen();
+                } else {
+                    closePdfModal(); 
+                    closeSelectionModal(); 
+                    closeFavoritesModal(); 
+                    closeShareModal(); 
+                }
+            } 
+        });
 
         initializeApp();
     </script>
