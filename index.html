@@ -84,6 +84,7 @@
         #selection-modal-body, #favorites-modal-body { padding: 1rem; md:padding: 2rem; overflow-y: auto; }
 
         /* PDF Modal Specifics */
+        #pdf-modal { z-index: 1100; /* Ensure PDF modal is above other modals */ }
         #pdf-modal-content { 
             max-width: 95vw;
             height: 98%;
@@ -141,6 +142,10 @@
         .highlight { background-color: rgba(255, 255, 0, 0.4); }
         .current-highlight { background-color: rgba(255, 165, 0, 0.6); }
         .favorite-btn.favorited svg { fill: #facc15; color: #facc15; } /* yellow-400 */
+        
+        /* Voice Search Pulse Animation */
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .voice-active { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
 
         /* Toast Notification */
         #toast {
@@ -154,7 +159,7 @@
             border-radius: 0.5rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             transition: bottom 0.5s ease-in-out;
-            z-index: 9999;
+            z-index: 10000;
         }
         #toast.show {
             bottom: 30px;
@@ -192,12 +197,17 @@
                     <p class="text-gray-400 mt-2">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
                 </header>
                 <div class="mb-8 max-w-2xl w-full mx-auto">
-                    <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
-                        <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-10 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
-                        <button id="clear-search-btn" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
+                    <div class="relative flex items-center">
+                        <span class="absolute left-4 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                        <input type="text" id="search-input" placeholder="Mevzuat içinde ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-20 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
+                        <div class="absolute right-3 flex items-center gap-2">
+                             <button id="voice-search-btn" class="text-gray-400 hover:text-white transition p-2 rounded-full" title="Sesli Arama">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                            </button>
+                            <button id="clear-search-btn" class="text-gray-500 hover:text-white transition hidden p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -243,7 +253,13 @@
                     <button id="selection-back-btn" class="p-2 rounded-full hover:bg-gray-700 transition hidden text-gray-300"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
                     <h2 id="selection-modal-title" class="text-2xl font-bold text-white">Seçim yapınız</h2>
                 </div>
-                <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                <div class="flex items-center gap-3">
+                    <button id="sort-btn" class="hidden flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-xs sm:text-sm text-white" title="Sıralama Değiştir">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10M11 9h10M11 13h10M11 17h10M5 5l3 3-3 3M8 15l-3 3 3 3"/></svg>
+                        <span id="sort-label">Yeniden Eskiye</span>
+                    </button>
+                    <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                </div>
             </header>
             <div id="selection-modal-body"></div>
         </div>
@@ -335,12 +351,14 @@
         const mainLoader = document.getElementById('main-loader-container'), appContainer = document.getElementById('app-container');
         const searchInput = document.getElementById('search-input'), searchResultsContainer = document.getElementById('search-results');
         const clearSearchBtn = document.getElementById('clear-search-btn');
+        const voiceSearchBtn = document.getElementById('voice-search-btn');
         const mainCategoriesContainer = document.getElementById('main-categories');
         const favoritesMainBtn = document.getElementById('favorites-main-btn');
         
         const selectionModal = document.getElementById('selection-modal'), selectionModalTitle = document.getElementById('selection-modal-title');
         const selectionModalBody = document.getElementById('selection-modal-body'), selectionBackBtn = document.getElementById('selection-back-btn');
         const selectionCloseBtn = document.getElementById('selection-close-btn');
+        const sortBtn = document.getElementById('sort-btn'), sortLabel = document.getElementById('sort-label');
 
         const favoritesModal = document.getElementById('favorites-modal'), favoritesModalBody = document.getElementById('favorites-modal-body');
         const favoritesCloseBtn = document.getElementById('favorites-close-btn');
@@ -373,6 +391,8 @@
         let lastPanPoint = { x: 0, y: 0 };
         let currentDocToShare = null;
         let pageIntersectionObserver = null;
+        let currentDocType = null; // 'genelge' or 'talimat'
+        let isSortAscending = false; // default: newest first (descending)
 
         // --- 3D Background ---
         const bgCanvas = document.getElementById('dynamic-bg');
@@ -435,6 +455,7 @@
                 const files = await response.json();
                 if (!Array.isArray(files)) return [];
                 const mappedFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf')).map(f => ({ title: formatTitle(f.name), path: f.path }));
+                // Initial sort: Newest first
                 mappedFiles.sort((a, b) => extractYear(b.title) - extractYear(a.title));
                 return mappedFiles;
             } catch (error) { 
@@ -457,6 +478,49 @@
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
             setupTouchEvents();
             setupShareEventListeners();
+            setupVoiceSearch();
+        }
+
+        // --- Voice Search Logic ---
+        function setupVoiceSearch() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                voiceSearchBtn.style.display = 'none';
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'tr-TR';
+            
+            voiceSearchBtn.addEventListener('click', () => {
+                if (voiceSearchBtn.classList.contains('voice-active')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+            
+            recognition.onstart = () => {
+                voiceSearchBtn.classList.add('voice-active');
+                showToast("Dinliyorum...");
+            };
+            
+            recognition.onend = () => {
+                voiceSearchBtn.classList.remove('voice-active');
+            };
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript;
+                searchInput.dispatchEvent(new Event('input'));
+                showToast(`Aranan: "${transcript}"`);
+            };
+            
+            recognition.onerror = (event) => {
+                console.error("Ses algılama hatası:", event.error);
+                showToast("Ses anlaşılamadı.", true);
+                voiceSearchBtn.classList.remove('voice-active');
+            };
         }
 
         // --- Favorites Logic ---
@@ -558,6 +622,7 @@
         function showCategoryChoice() {
             selectionModalTitle.textContent = `${currentSection.charAt(0).toUpperCase() + currentSection.slice(1)} Mevzuatları`;
             selectionBackBtn.classList.add('hidden');
+            sortBtn.classList.add('hidden'); // Hide sort on main category choice
             selectionModalBody.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div data-type="genelge" class="group p-6 bg-gray-800/50 backdrop-blur-sm rounded-lg text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-yellow-500">
@@ -572,10 +637,29 @@
             });
         }
         
+        function toggleSort() {
+            isSortAscending = !isSortAscending;
+            sortLabel.textContent = isSortAscending ? 'Eskiden Yeniye' : 'Yeniden Eskiye';
+            if (currentDocType) {
+                showDocumentList(currentDocType);
+            }
+        }
+
         function showDocumentList(type) {
+            currentDocType = type;
             selectionModalTitle.textContent = type.charAt(0).toUpperCase() + type.slice(1);
             selectionBackBtn.classList.remove('hidden');
-            const documents = mevzuatData[currentSection][type];
+            sortBtn.classList.remove('hidden'); // Show sort button
+            
+            let documents = [...mevzuatData[currentSection][type]];
+            
+            // Sort logic
+            documents.sort((a, b) => {
+                const yearA = extractYear(a.title);
+                const yearB = extractYear(b.title);
+                return isSortAscending ? yearA - yearB : yearB - yearA;
+            });
+
             if (!documents || documents.length === 0) {
                 selectionModalBody.innerHTML = `<p class="text-center text-gray-400">Bu kategoride belge bulunmuyor.</p>`;
                 return;
@@ -603,8 +687,9 @@
             container.querySelectorAll('.document-title-container').forEach(item => {
                 item.addEventListener('click', e => {
                     const { path, title } = e.currentTarget.dataset;
-                    closeSelectionModal();
-                    closeFavoritesModal();
+                    // Important: We do NOT close the selection modal here anymore.
+                    // closeSelectionModal(); 
+                    // closeFavoritesModal();
                     openPdfModal(path, title);
                 });
             });
@@ -1050,6 +1135,7 @@
         mainCategoriesContainer.querySelectorAll('[data-section]').forEach(card => card.addEventListener('click', (e) => openSelectionModal(e.currentTarget.dataset.section)));
         selectionCloseBtn.addEventListener('click', closeSelectionModal);
         selectionBackBtn.addEventListener('click', showCategoryChoice);
+        sortBtn.addEventListener('click', toggleSort);
         closeModalBtn.addEventListener('click', closePdfModal);
         zoomInBtn.addEventListener('click', onZoomIn);
         zoomOutBtn.addEventListener('click', onZoomOut);
@@ -1073,4 +1159,3 @@
     </script>
 </body>
 </html>
-
