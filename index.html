@@ -147,6 +147,10 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .voice-active { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
 
+        /* Pill Info Card Animation */
+        @keyframes glow-border { 0% { border-color: rgba(139, 92, 246, 0.5); } 50% { border-color: rgba(139, 92, 246, 1); } 100% { border-color: rgba(139, 92, 246, 0.5); } }
+        .pill-card { animation: glow-border 3s infinite; }
+
         /* Toast Notification */
         #toast {
             position: fixed;
@@ -212,8 +216,9 @@
                 </div>
             </div>
             
-            <div class="flex-grow flex flex-col justify-center">
+            <div class="flex-grow flex flex-col justify-center gap-8">
                 <div id="search-results" class="max-w-4xl w-full mx-auto overflow-y-auto"></div>
+                
                 <div id="main-categories" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
                     <div data-section="tapu" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                         <h2 class="text-2xl font-bold text-yellow-400 mb-2">TAPU</h2>
@@ -226,6 +231,26 @@
                     <div data-section="genel" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                         <h2 class="text-2xl font-bold text-green-400 mb-2">GENEL</h2>
                         <p class="text-gray-400">Tüm birimleri ilgilendiren ortak belgeler.</p>
+                    </div>
+                </div>
+
+                <!-- HAP BİLGİ KARTI -->
+                <div id="pill-info-container" class="max-w-4xl mx-auto w-full px-4 md:px-0 hidden">
+                    <div class="pill-card bg-gradient-to-r from-purple-900/40 to-indigo-900/40 backdrop-blur-md rounded-xl p-6 border-2 border-indigo-500/30 shadow-lg relative overflow-hidden group cursor-pointer transition-all hover:scale-[1.01]">
+                        <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        </div>
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <h3 class="text-xl font-bold text-indigo-300 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                GÜNLÜK HAP BİLGİ
+                            </h3>
+                            <button id="refresh-pill-btn" class="p-1.5 rounded-full hover:bg-white/10 text-indigo-300 hover:text-white transition" title="Yeni Bilgi Getir">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            </button>
+                        </div>
+                        <p id="pill-content" class="text-lg text-gray-200 font-medium mb-3 relative z-10 italic">Yükleniyor...</p>
+                        <p class="text-xs text-indigo-400 relative z-10">Belgeyi incelemek için tıklayınız.</p>
                     </div>
                 </div>
             </div>
@@ -355,6 +380,11 @@
         const mainCategoriesContainer = document.getElementById('main-categories');
         const favoritesMainBtn = document.getElementById('favorites-main-btn');
         
+        const pillInfoContainer = document.getElementById('pill-info-container');
+        const pillContent = document.getElementById('pill-content');
+        const refreshPillBtn = document.getElementById('refresh-pill-btn');
+        const pillCard = document.querySelector('.pill-card');
+
         const selectionModal = document.getElementById('selection-modal'), selectionModalTitle = document.getElementById('selection-modal-title');
         const selectionModalBody = document.getElementById('selection-modal-body'), selectionBackBtn = document.getElementById('selection-back-btn');
         const selectionCloseBtn = document.getElementById('selection-close-btn');
@@ -393,6 +423,7 @@
         let pageIntersectionObserver = null;
         let currentDocType = null; // 'genelge' or 'talimat'
         let isSortAscending = false; // default: newest first (descending)
+        let currentPillDoc = null; // To store the currently displayed random doc
 
         // --- 3D Background (Connected Network/Nerve Effect) ---
         const bgCanvas = document.getElementById('dynamic-bg');
@@ -558,6 +589,172 @@
             setupTouchEvents();
             setupShareEventListeners();
             setupVoiceSearch();
+            setupDailyPill();
+        }
+
+        // --- Hap Bilgi (Daily Pill) Logic ---
+        function setupDailyPill() {
+            pillInfoContainer.classList.remove('hidden');
+            updateDailyPill();
+            
+            refreshPillBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateDailyPill();
+            });
+
+            pillCard.addEventListener('click', () => {
+                if (currentPillDoc) {
+                    openPdfModal(currentPillDoc.path, currentPillDoc.title);
+                }
+            });
+        }
+
+        async function updateDailyPill() {
+            const allDocs = [];
+            for (const section in mevzuatData) {
+                for (const type in mevzuatData[section]) {
+                    allDocs.push(...mevzuatData[section][type]);
+                }
+            }
+
+            if (allDocs.length === 0) {
+                pillContent.textContent = "Şu anda görüntülenecek bilgi yok.";
+                return;
+            }
+
+            pillContent.style.opacity = '0';
+            
+            // Show loading state
+            setTimeout(() => {
+                pillContent.textContent = "Mevzuat taranıyor, hap bilgi hazırlanıyor...";
+                pillContent.style.opacity = '1';
+                pillContent.classList.add('animate-pulse');
+            }, 200);
+
+            try {
+                // Retry logic if extraction fails (try up to 3 different docs)
+                for (let i = 0; i < 3; i++) {
+                    const randomIndex = Math.floor(Math.random() * allDocs.length);
+                    const doc = allDocs[randomIndex];
+                    const summary = await extractSummaryFromPdf(doc.path);
+                    
+                    if (summary) {
+                        currentPillDoc = doc;
+                        pillContent.classList.remove('animate-pulse');
+                        pillContent.style.opacity = '0';
+                        setTimeout(() => {
+                            pillContent.innerHTML = `<span class="font-bold text-yellow-400 block mb-1">${doc.title}:</span> ${summary}`;
+                            pillContent.style.opacity = '1';
+                        }, 200);
+                        return;
+                    }
+                }
+                // Fallback if extraction fails after 3 tries
+                throw new Error("Özet çıkarılamadı");
+            } catch (e) {
+                console.warn("Hap bilgi oluşturulamadı, başlık gösteriliyor:", e);
+                const randomIndex = Math.floor(Math.random() * allDocs.length);
+                currentPillDoc = allDocs[randomIndex];
+                pillContent.classList.remove('animate-pulse');
+                pillContent.style.opacity = '0';
+                setTimeout(() => {
+                    pillContent.textContent = `"${currentPillDoc.title}" belgesini incelediniz mi?`;
+                    pillContent.style.opacity = '1';
+                }, 200);
+            }
+        }
+
+        async function extractSummaryFromPdf(path) {
+            try {
+                const url = githubRawUrl + encodeURI(path);
+                const loadingTask = pdfjsLib.getDocument(url);
+                const pdf = await loadingTask.promise;
+                // Check first two pages as content might spill over or start late
+                let fullText = "";
+                const page1 = await pdf.getPage(1);
+                const textContent1 = await page1.getTextContent();
+                fullText += textContent1.items.map(item => item.str).join(' ');
+                
+                if (pdf.numPages > 1) {
+                    const page2 = await pdf.getPage(2);
+                    const textContent2 = await page2.getTextContent();
+                    fullText += " " + textContent2.items.map(item => item.str).join(' ');
+                }
+                
+                // Clean up extra spaces and normalize
+                fullText = fullText.replace(/\s+/g, ' ').trim();
+
+                // 1. Priority: Semantic "Summary" Keywords
+                // These usually precede the main point of the circular
+                const importanceIndicators = [
+                    "Bu itibarla", 
+                    "Bu çerçevede", 
+                    "Buna göre", 
+                    "Sonuç olarak",
+                    "Netice itibarıyla",
+                    "Özetle"
+                ];
+
+                for (const indicator of importanceIndicators) {
+                    // Find sentence starting with indicator
+                    const regex = new RegExp(`(${indicator}[^.?!]*[.?!])`, 'i');
+                    const match = fullText.match(regex);
+                    if (match && match[1].length > 40) { // Ensure it's not too short
+                        return match[1];
+                    }
+                }
+
+                // 2. Secondary Priority: Imperative/Instruction Verbs
+                // Find sentences that end with specific directive verbs
+                const instructionRegex = /([^.?!]*(?:gerekmektedir|yapılmalıdır|edilmelidir|zorunludur|arz ederim|rica ederim)[^.?!]*[.?!])/gi;
+                const instructions = fullText.match(instructionRegex);
+                
+                if (instructions && instructions.length > 0) {
+                    // Filter out short/junk sentences and pick the longest/most descriptive one
+                    const meaningfulInstructions = instructions.filter(s => s.length > 60 && !s.includes("......") && !s.match(/Adres:|Tel:|Faks:/i));
+                    if (meaningfulInstructions.length > 0) {
+                        // Return the one with maximum length (usually contains the full rule)
+                        return meaningfulInstructions.reduce((a, b) => a.length > b.length ? a : b);
+                    }
+                }
+
+                // 3. Fallback: Clean Body Text Paragraph
+                // Aggressively clean header info to find the first real paragraph
+                let cleanText = fullText
+                    .replace(/T\.C\..*?Genel Müdürlüğü/i, '')
+                    .replace(/Sayı\s*:.*?(?:Konu|İlgi)/i, '')
+                    .replace(/Konu\s*:.*?(?:İlgi|Sayı)/i, '')
+                    .replace(/İlgi\s*:.*?(?:Sayı|Konu|Bakanlık)/i, '')
+                    .replace(/Dağıtım\s*:/i, '')
+                    .replace(/Bilgi\s*:/i, '');
+                
+                // Split by punctuation to get sentences
+                const sentences = cleanText.split(/(?:\.|\?|\!)\s+/);
+                
+                // Find the first sentence that looks like valid content
+                const goodSentence = sentences.find(s => 
+                    s.length > 80 && // Must be substantial length
+                    s.length < 500 && // Don't take whole page
+                    !s.includes("......") && // Skip placeholders
+                    !s.match(/Adres:|Telefon:|Faks:|E-Posta:|Kep:|Mersis:/i) && // Skip footer info
+                    !s.match(/Daire Başkanı|Genel Müdür/i) // Skip signatures
+                );
+                
+                if (goodSentence) {
+                    return goodSentence + ".";
+                }
+
+                // 4. Last Resort: Subject Line
+                const konuMatch = fullText.match(/(?:Konu|KONU)\s*[:]\s*(.*?)(?=\s*(?:İlgi|İLGİ|Sayı|SAYI|T\.C\.|Davacı)|$)/i);
+                if (konuMatch && konuMatch[1] && konuMatch[1].length > 10) {
+                     return "Konu: " + konuMatch[1].trim();
+                }
+
+                return null;
+            } catch (error) {
+                console.error("PDF extract error", error);
+                return null;
+            }
         }
 
         // --- Voice Search Logic ---
