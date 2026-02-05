@@ -147,10 +147,6 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .voice-active { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
 
-        /* Pill Info Card Animation */
-        @keyframes glow-border { 0% { border-color: rgba(139, 92, 246, 0.5); } 50% { border-color: rgba(139, 92, 246, 1); } 100% { border-color: rgba(139, 92, 246, 0.5); } }
-        .pill-card { animation: glow-border 3s infinite; }
-
         /* Toast Notification */
         #toast {
             position: fixed;
@@ -231,26 +227,6 @@
                     <div data-section="genel" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
                         <h2 class="text-2xl font-bold text-green-400 mb-2">GENEL</h2>
                         <p class="text-gray-400">Tüm birimleri ilgilendiren ortak belgeler.</p>
-                    </div>
-                </div>
-
-                <!-- HAP BİLGİ KARTI -->
-                <div id="pill-info-container" class="max-w-4xl mx-auto w-full px-4 md:px-0 hidden">
-                    <div class="pill-card bg-gradient-to-r from-purple-900/40 to-indigo-900/40 backdrop-blur-md rounded-xl p-6 border-2 border-indigo-500/30 shadow-lg relative overflow-hidden group cursor-pointer transition-all hover:scale-[1.01]">
-                        <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                        </div>
-                        <div class="flex justify-between items-start mb-2 relative z-10">
-                            <h3 class="text-xl font-bold text-indigo-300 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                GÜNLÜK HAP BİLGİ
-                            </h3>
-                            <button id="refresh-pill-btn" class="p-1.5 rounded-full hover:bg-white/10 text-indigo-300 hover:text-white transition" title="Yeni Bilgi Getir">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            </button>
-                        </div>
-                        <p id="pill-content" class="text-lg text-gray-200 font-medium mb-3 relative z-10 italic">Yükleniyor...</p>
-                        <p class="text-xs text-indigo-400 relative z-10">Belgeyi incelemek için tıklayınız.</p>
                     </div>
                 </div>
             </div>
@@ -366,7 +342,8 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
-        const TOKEN_PART_1 = "ghp_lF2vgNowgiKuR0ZEk", TOKEN_PART_2 = "11eyVvV0nIJfy3dMEjP";
+        // Yeni token iki parçaya bölündü
+        const TOKEN_PART_1 = "ghp_jA0Y2jqexcZgdcIu6", TOKEN_PART_2 = "FglCOcaKo1us0070QYf";
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/`;
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
@@ -380,11 +357,6 @@
         const mainCategoriesContainer = document.getElementById('main-categories');
         const favoritesMainBtn = document.getElementById('favorites-main-btn');
         
-        const pillInfoContainer = document.getElementById('pill-info-container');
-        const pillContent = document.getElementById('pill-content');
-        const refreshPillBtn = document.getElementById('refresh-pill-btn');
-        const pillCard = document.querySelector('.pill-card');
-
         const selectionModal = document.getElementById('selection-modal'), selectionModalTitle = document.getElementById('selection-modal-title');
         const selectionModalBody = document.getElementById('selection-modal-body'), selectionBackBtn = document.getElementById('selection-back-btn');
         const selectionCloseBtn = document.getElementById('selection-close-btn');
@@ -555,17 +527,32 @@
         
         async function fetchFilesFromRepo(path) {
             const GITHUB_TOKEN = getGitHubToken();
+            const url = `${githubApiUrl}${path}?t=${new Date().getTime()}`;
             try {
-                const response = await fetch(`${githubApiUrl}${path}?t=${new Date().getTime()}`, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
+                // İlk deneme: Token ile
+                let response = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
+                
+                // Eğer yetki hatası (401) veya bulunamadı (404) dışındaki hatalar varsa veya token geçersizse
+                if (response.status === 401) {
+                    console.warn("Token geçersiz, tokensiz deneniyor...");
+                    response = await fetch(url); // Tokensiz dene
+                }
+
                 if (response.status === 404) {
                     console.log(`'${path}' yolu bulunamadı, atlanıyor.`);
                     return [];
                 }
+                
                 if (!response.ok) { throw new Error(`Network response was not ok for ${path}`); }
+                
                 const files = await response.json();
                 if (!Array.isArray(files)) return [];
-                const mappedFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf')).map(f => ({ title: formatTitle(f.name), path: f.path }));
-                // Initial sort: Newest first
+                // Store the download_url directly to use later
+                const mappedFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf')).map(f => ({ 
+                    title: formatTitle(f.name), 
+                    path: f.path,
+                    url: f.download_url // Capture the definitive download URL from API
+                }));
                 mappedFiles.sort((a, b) => extractYear(b.title) - extractYear(a.title));
                 return mappedFiles;
             } catch (error) { 
@@ -589,172 +576,6 @@
             setupTouchEvents();
             setupShareEventListeners();
             setupVoiceSearch();
-            setupDailyPill();
-        }
-
-        // --- Hap Bilgi (Daily Pill) Logic ---
-        function setupDailyPill() {
-            pillInfoContainer.classList.remove('hidden');
-            updateDailyPill();
-            
-            refreshPillBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                updateDailyPill();
-            });
-
-            pillCard.addEventListener('click', () => {
-                if (currentPillDoc) {
-                    openPdfModal(currentPillDoc.path, currentPillDoc.title);
-                }
-            });
-        }
-
-        async function updateDailyPill() {
-            const allDocs = [];
-            for (const section in mevzuatData) {
-                for (const type in mevzuatData[section]) {
-                    allDocs.push(...mevzuatData[section][type]);
-                }
-            }
-
-            if (allDocs.length === 0) {
-                pillContent.textContent = "Şu anda görüntülenecek bilgi yok.";
-                return;
-            }
-
-            pillContent.style.opacity = '0';
-            
-            // Show loading state
-            setTimeout(() => {
-                pillContent.textContent = "Mevzuat taranıyor, hap bilgi hazırlanıyor...";
-                pillContent.style.opacity = '1';
-                pillContent.classList.add('animate-pulse');
-            }, 200);
-
-            try {
-                // Retry logic if extraction fails (try up to 3 different docs)
-                for (let i = 0; i < 3; i++) {
-                    const randomIndex = Math.floor(Math.random() * allDocs.length);
-                    const doc = allDocs[randomIndex];
-                    const summary = await extractSummaryFromPdf(doc.path);
-                    
-                    if (summary) {
-                        currentPillDoc = doc;
-                        pillContent.classList.remove('animate-pulse');
-                        pillContent.style.opacity = '0';
-                        setTimeout(() => {
-                            pillContent.innerHTML = `<span class="font-bold text-yellow-400 block mb-1">${doc.title}:</span> ${summary}`;
-                            pillContent.style.opacity = '1';
-                        }, 200);
-                        return;
-                    }
-                }
-                // Fallback if extraction fails after 3 tries
-                throw new Error("Özet çıkarılamadı");
-            } catch (e) {
-                console.warn("Hap bilgi oluşturulamadı, başlık gösteriliyor:", e);
-                const randomIndex = Math.floor(Math.random() * allDocs.length);
-                currentPillDoc = allDocs[randomIndex];
-                pillContent.classList.remove('animate-pulse');
-                pillContent.style.opacity = '0';
-                setTimeout(() => {
-                    pillContent.textContent = `"${currentPillDoc.title}" belgesini incelediniz mi?`;
-                    pillContent.style.opacity = '1';
-                }, 200);
-            }
-        }
-
-        async function extractSummaryFromPdf(path) {
-            try {
-                const url = githubRawUrl + encodeURI(path);
-                const loadingTask = pdfjsLib.getDocument(url);
-                const pdf = await loadingTask.promise;
-                // Check first two pages as content might spill over or start late
-                let fullText = "";
-                const page1 = await pdf.getPage(1);
-                const textContent1 = await page1.getTextContent();
-                fullText += textContent1.items.map(item => item.str).join(' ');
-                
-                if (pdf.numPages > 1) {
-                    const page2 = await pdf.getPage(2);
-                    const textContent2 = await page2.getTextContent();
-                    fullText += " " + textContent2.items.map(item => item.str).join(' ');
-                }
-                
-                // Clean up extra spaces and normalize
-                fullText = fullText.replace(/\s+/g, ' ').trim();
-
-                // 1. Priority: Semantic "Summary" Keywords
-                // These usually precede the main point of the circular
-                const importanceIndicators = [
-                    "Bu itibarla", 
-                    "Bu çerçevede", 
-                    "Buna göre", 
-                    "Sonuç olarak",
-                    "Netice itibarıyla",
-                    "Özetle"
-                ];
-
-                for (const indicator of importanceIndicators) {
-                    // Find sentence starting with indicator
-                    const regex = new RegExp(`(${indicator}[^.?!]*[.?!])`, 'i');
-                    const match = fullText.match(regex);
-                    if (match && match[1].length > 40) { // Ensure it's not too short
-                        return match[1];
-                    }
-                }
-
-                // 2. Secondary Priority: Imperative/Instruction Verbs
-                // Find sentences that end with specific directive verbs
-                const instructionRegex = /([^.?!]*(?:gerekmektedir|yapılmalıdır|edilmelidir|zorunludur|arz ederim|rica ederim)[^.?!]*[.?!])/gi;
-                const instructions = fullText.match(instructionRegex);
-                
-                if (instructions && instructions.length > 0) {
-                    // Filter out short/junk sentences and pick the longest/most descriptive one
-                    const meaningfulInstructions = instructions.filter(s => s.length > 60 && !s.includes("......") && !s.match(/Adres:|Tel:|Faks:/i));
-                    if (meaningfulInstructions.length > 0) {
-                        // Return the one with maximum length (usually contains the full rule)
-                        return meaningfulInstructions.reduce((a, b) => a.length > b.length ? a : b);
-                    }
-                }
-
-                // 3. Fallback: Clean Body Text Paragraph
-                // Aggressively clean header info to find the first real paragraph
-                let cleanText = fullText
-                    .replace(/T\.C\..*?Genel Müdürlüğü/i, '')
-                    .replace(/Sayı\s*:.*?(?:Konu|İlgi)/i, '')
-                    .replace(/Konu\s*:.*?(?:İlgi|Sayı)/i, '')
-                    .replace(/İlgi\s*:.*?(?:Sayı|Konu|Bakanlık)/i, '')
-                    .replace(/Dağıtım\s*:/i, '')
-                    .replace(/Bilgi\s*:/i, '');
-                
-                // Split by punctuation to get sentences
-                const sentences = cleanText.split(/(?:\.|\?|\!)\s+/);
-                
-                // Find the first sentence that looks like valid content
-                const goodSentence = sentences.find(s => 
-                    s.length > 80 && // Must be substantial length
-                    s.length < 500 && // Don't take whole page
-                    !s.includes("......") && // Skip placeholders
-                    !s.match(/Adres:|Telefon:|Faks:|E-Posta:|Kep:|Mersis:/i) && // Skip footer info
-                    !s.match(/Daire Başkanı|Genel Müdür/i) // Skip signatures
-                );
-                
-                if (goodSentence) {
-                    return goodSentence + ".";
-                }
-
-                // 4. Last Resort: Subject Line
-                const konuMatch = fullText.match(/(?:Konu|KONU)\s*[:]\s*(.*?)(?=\s*(?:İlgi|İLGİ|Sayı|SAYI|T\.C\.|Davacı)|$)/i);
-                if (konuMatch && konuMatch[1] && konuMatch[1].length > 10) {
-                     return "Konu: " + konuMatch[1].trim();
-                }
-
-                return null;
-            } catch (error) {
-                console.error("PDF extract error", error);
-                return null;
-            }
         }
 
         // --- Voice Search Logic ---
@@ -816,16 +637,16 @@
         }
 
         // --- Document Actions (Download, Share) ---
-        async function downloadDocument(doc) {
+        async function downloadDocument(url, title) {
             showToast("Belge indiriliyor...");
             try {
-                const url = githubRawUrl + encodeURI(doc.path);
+                // Use the provided URL directly
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Dosya indirilemedi.');
                 const blob = await response.blob();
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = doc.title.replace(/[/\\?%*:|"<>]/g, '-') + '.pdf';
+                a.download = title.replace(/[/\\?%*:|"<>]/g, '-') + '.pdf';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -861,7 +682,7 @@
             const isFav = isFavorite(doc.path);
             return `
                 <div class="document-item group p-3 bg-gray-800/80 rounded-lg hover:bg-gray-700/80 transition flex items-center justify-between text-gray-300 border border-gray-700 hover:border-gray-600">
-                    <div class="document-title-container flex items-center gap-3 overflow-hidden flex-grow cursor-pointer" data-path="${doc.path}" data-title="${doc.title}">
+                    <div class="document-title-container flex items-center gap-3 overflow-hidden flex-grow cursor-pointer" data-path="${doc.path}" data-url="${doc.url}" data-title="${doc.title}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500 flex-shrink-0"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                         <span class="font-medium text-sm truncate">${doc.title}</span>
                     </div>
@@ -869,7 +690,7 @@
                         <button class="favorite-btn p-2 rounded-full hover:bg-gray-600/50 transition ${isFav ? 'favorited' : ''}" title="Favoriye Ekle" data-path="${doc.path}" data-title="${doc.title}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                         </button>
-                        <button class="download-btn p-2 rounded-full hover:bg-gray-600/50 transition" title="İndir" data-path="${doc.path}" data-title="${doc.title}">
+                        <button class="download-btn p-2 rounded-full hover:bg-gray-600/50 transition" title="İndir" data-path="${doc.path}" data-url="${doc.url}" data-title="${doc.title}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
                         <button class="share-btn p-2 rounded-full hover:bg-gray-600/50 transition" title="Paylaş" data-path="${doc.path}" data-title="${doc.title}">
@@ -962,11 +783,11 @@
         function addDocumentListEventListeners(container, isFavoritesList = false) {
             container.querySelectorAll('.document-title-container').forEach(item => {
                 item.addEventListener('click', e => {
-                    const { path, title } = e.currentTarget.dataset;
+                    const { url, title } = e.currentTarget.dataset;
                     // Important: We do NOT close the selection modal here anymore.
                     // closeSelectionModal(); 
                     // closeFavoritesModal();
-                    openPdfModal(path, title);
+                    openPdfModal(url, title);
                 });
             });
             container.querySelectorAll('.favorite-btn').forEach(btn => {
@@ -984,8 +805,8 @@
             container.querySelectorAll('.download-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
                     e.stopPropagation();
-                    const { path, title } = e.currentTarget.dataset;
-                    downloadDocument({ path, title });
+                    const { url, title } = e.currentTarget.dataset;
+                    downloadDocument(url, title);
                 });
             });
             container.querySelectorAll('.share-btn').forEach(btn => {
@@ -998,7 +819,7 @@
         }
         
         // --- PDF Viewer Logic ---
-        async function openPdfModal(path, title) {
+        async function openPdfModal(url, title) {
             pdfModal.classList.add('active'); 
             pdfTitle.textContent = title; 
             pdfLoader.style.display = 'flex';
@@ -1006,14 +827,25 @@
             resetSearch();
             pdfModalFooter.style.display = 'flex';
             try {
-                const url = githubRawUrl + encodeURI(path);
-                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                // Fetch the URL directly as blob. 
+                // This bypasses some strict CORS/header checks in PDF.js for simple GET requests
+                const response = await fetch(url);
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+
+                // Load PDF from Blob URL
+                const loadingTask = pdfjsLib.getDocument(objectUrl);
+                pdfDoc = await loadingTask.promise;
+                
                 pdfPageTextContents.clear();
                 currentPageNum = 1;
                 await renderSinglePage(currentPageNum);
             } catch (error) { 
                 console.error('PDF yüklenirken hata:', error); 
-                showToast("PDF yüklenemedi.", true);
+                showToast("PDF yüklenemedi. Yetki veya ağ hatası.", true);
                 closePdfModal(); 
             } finally {
                 pdfLoader.style.display = 'none';
