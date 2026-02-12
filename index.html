@@ -5,22 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>TKGM Mevzuat Sistemi</title>
     
-    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%234f46e5'/%3E%3Cpath d='M25 75 L25 25 L75 25 L75 75 Z M25 50 L75 50 M50 25 L50 75' stroke='%23ffffff' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" type="image/svg+xml">
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- PDF.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
-    
-    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
@@ -29,93 +16,32 @@
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #111827;
-            overflow-y: auto;
-        }
-
-        #dynamic-bg {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -1;
-        }
-
+        body { font-family: 'Inter', sans-serif; background-color: #111827; overflow-y: auto; }
+        #dynamic-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
         .content-wrapper { position: relative; z-index: 1; }
         
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
-            display: none; justify-content: center; align-items: center;
-            z-index: 1000; animation: fadeIn 0.3s;
-        }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal.active { display: flex; }
         
-        .modal-content {
-            background-color: #1f2937;
-            width: 95%; height: 95%;
-            border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            display: flex; flex-direction: column; overflow: hidden;
-            border: 1px solid #374151;
-        }
+        .modal-content { background-color: #1f2937; width: 95%; height: 95%; border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #374151; }
+        .modal-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #374151; flex-shrink: 0; }
         
-        .modal-header {
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
-            padding: 1rem; border-bottom: 1px solid #374151;
-            flex-shrink: 0; transition: all 0.3s ease-in-out;
-        }
-        
-        #selection-modal-content, #favorites-modal-content { 
-            max-width: 800px; max-height: 90%; 
-            background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(10px);
-        }
+        #selection-modal-content, #favorites-modal-content { max-width: 800px; max-height: 90%; background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(10px); }
         #selection-modal-body, #favorites-modal-body { padding: 1rem; overflow-y: auto; }
 
         #pdf-modal { z-index: 1100; }
-        #pdf-modal-content { 
-            max-width: 95vw; height: 98%;
-            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        #pdf-modal.fullscreen-active #pdf-modal-content {
-            width: 100vw; height: 100vh; max-width: 100%; border-radius: 0;
-            background-color: #111827;
-        }
-        #pdf-modal.fullscreen-active .modal-header,
-        #pdf-modal.fullscreen-active #pdf-modal-footer {
-            opacity: 0; pointer-events: none; height: 0; padding: 0; border: none; overflow: hidden;
-        }
-        
-        #pdf-render-area { flex-grow: 1; overflow: auto; padding: 1rem; touch-action: none; }
-        #pdf-pages-container { position: relative; width: fit-content; margin: auto; }
-        
-        .page-container {
-            position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            background-color: #374151; margin-bottom: 1rem;
-        }
-        .page-container:last-child { margin-bottom: 0; }
-        .page-container canvas { display: block; }
-        .text-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; line-height: 1.0; pointer-events: auto; }
-        .text-layer > span { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+        #pdf-modal-content { width: 100vw; height: 100vh; max-width: 100%; border-radius: 0; background-color: #f3f4f6; }
         
         .loader { border: 4px solid #374151; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         #main-loader-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .highlight { background-color: rgba(255, 255, 0, 0.4); }
-        .current-highlight { background-color: rgba(255, 165, 0, 0.6); }
         .favorite-btn.favorited svg { fill: #facc15; color: #facc15; }
-        
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .voice-active { animation: pulse-red 1.5s infinite; color: #ef4444 !important; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        #toast {
-            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
-            background-color: #4f46e5; color: white; padding: 1rem 2rem;
-            border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            transition: bottom 0.5s ease-in-out; z-index: 10000;
-        }
+        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: #4f46e5; color: white; padding: 1rem 2rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transition: bottom 0.5s ease-in-out; z-index: 10000; }
         #toast.show { bottom: 30px; }
     </style>
 </head>
@@ -124,11 +50,15 @@
 
     <div id="main-loader-container">
         <div class="loader"></div>
-        <p class="text-white font-bold text-lg text-center px-4">Mevzuat verileri güvenli şekilde yükleniyor...</p>
+        <p class="text-white font-bold text-lg text-center px-4">Mevzuat verileri yükleniyor...</p>
     </div>
 
     <div id="app-container" class="content-wrapper h-full flex flex-col" style="display: none;">
-        <div class="absolute top-4 right-4 z-10">
+        <div class="absolute top-4 right-4 z-10 flex gap-2">
+            <!-- Yeni Yenileme Butonu -->
+            <button id="refresh-data-btn" class="p-3 rounded-full bg-gray-800/50 hover:bg-gray-700/70 transition text-green-400" title="Listeyi Güncelle (Yeni PDF Yüklediyseniz Basın)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
+            </button>
             <button id="favorites-main-btn" class="p-3 rounded-full bg-gray-800/50 hover:bg-gray-700/70 transition text-yellow-400" title="Favoriler">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
             </button>
@@ -232,47 +162,31 @@
         </div>
     </div>
 
+    <!-- PDF Görüntüleyici Modal (Google Docs) -->
     <div id="pdf-modal" class="modal">
-        <div id="pdf-modal-content" class="modal-content">
-            <header class="modal-header flex flex-wrap items-center justify-between gap-y-2 !p-2">
-                <h3 id="pdf-title" class="text-base font-bold text-white truncate w-full sm:w-auto sm:flex-1 order-1"></h3>
-                <div class="flex items-center gap-2 order-2 justify-end">
-                    <div class="flex items-center gap-1 text-white bg-gray-800 rounded-lg p-1">
-                        <button id="zoom-out-btn" class="p-1.5 hover:bg-gray-600 rounded-md"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
-                        <span id="zoom-level" class="text-xs w-9 text-center">100%</span>
-                        <button id="zoom-in-btn" class="p-1.5 hover:bg-gray-600 rounded-md"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
-                    </div>
-                    <button id="fullscreen-btn" class="p-2 hover:bg-gray-700 rounded-lg text-white" title="Tam Ekran">
-                        <svg id="enter-fullscreen-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                        <svg id="exit-fullscreen-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        <div id="pdf-modal-content" class="modal-content !bg-white">
+            <header class="modal-header flex items-center justify-between !bg-gray-800 !border-b-0">
+                <h3 id="pdf-title" class="text-base font-bold text-white truncate w-3/4"></h3>
+                <div class="flex items-center gap-2">
+                    <button id="direct-open-btn" class="p-2 hover:bg-gray-700 rounded-lg text-white text-sm bg-indigo-600 hover:bg-indigo-500 transition px-4 hidden sm:block">
+                        Tarayıcıda Aç
                     </button>
                     <button id="close-modal-btn" class="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
-                <div class="flex items-center gap-2 w-full order-3 mt-1">
-                     <input type="text" id="pdf-search-input" placeholder="PDF'de ara..." class="bg-gray-700 border border-gray-600 rounded-md py-1.5 px-3 text-sm w-full text-white">
-                     <button id="pdf-search-prev" class="p-1.5 bg-gray-600 rounded-md text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"/></svg></button>
-                     <span id="pdf-search-results-count" class="text-xs text-gray-400 w-16 text-center">0 / 0</span>
-                     <button id="pdf-search-next" class="p-1.5 bg-gray-600 rounded-md text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg></button>
-                </div>
             </header>
-            <div id="pdf-render-area">
-                 <div id="pdf-loader" class="absolute inset-0 flex items-center justify-center bg-gray-900/50" style="display: none;"><div class="loader"></div></div>
-                 <div id="pdf-pages-container"></div>
+            <div id="pdf-render-area" class="w-full h-full relative bg-gray-200">
+                 <div id="pdf-loader" class="absolute inset-0 flex items-center justify-center bg-gray-200 z-10">
+                     <div class="loader !border-gray-400 !border-top-indigo-600"></div>
+                 </div>
+                 <iframe id="pdf-iframe" class="w-full h-full border-0" allowfullscreen></iframe>
             </div>
-            <footer id="pdf-modal-footer" class="flex justify-center items-center p-3 border-t border-gray-700 bg-gray-800">
-                <button id="prev-page-btn" class="px-5 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-sm">Önceki</button>
-                <div id="page-num" class="text-sm font-medium mx-6"></div>
-                <button id="next-page-btn" class="px-5 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-sm">Sonraki</button>
-            </footer>
         </div>
     </div>
 
     <div id="toast"></div>
 
-    <script type="module">
-        const pdfjsLib = window['pdfjs-dist/build/pdf'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-
+    <script>
+        // DOM Elemanları
         const mainLoader = document.getElementById('main-loader-container');
         const appContainer = document.getElementById('app-container');
         const bgCanvas = document.getElementById('dynamic-bg');
@@ -295,35 +209,25 @@
         const pdfModal = document.getElementById('pdf-modal');
         const pdfTitle = document.getElementById('pdf-title');
         const pdfLoader = document.getElementById('pdf-loader');
-        const pdfRenderArea = document.getElementById('pdf-render-area');
-        const pdfPagesContainer = document.getElementById('pdf-pages-container');
-        const pdfModalFooter = document.getElementById('pdf-modal-footer');
-        const zoomInBtn = document.getElementById('zoom-in-btn');
-        const zoomOutBtn = document.getElementById('zoom-out-btn');
-        const zoomLevelDisplay = document.getElementById('zoom-level');
+        const pdfIframe = document.getElementById('pdf-iframe');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        const enterFullscreenIcon = document.getElementById('enter-fullscreen-icon');
-        const exitFullscreenIcon = document.getElementById('exit-fullscreen-icon');
-        const prevPageBtn = document.getElementById('prev-page-btn');
-        const nextPageBtn = document.getElementById('next-page-btn');
-        const pageNumDisplay = document.getElementById('page-num');
-        const pdfSearchInput = document.getElementById('pdf-search-input');
-        const pdfSearchPrevBtn = document.getElementById('pdf-search-prev');
-        const pdfSearchNextBtn = document.getElementById('pdf-search-next');
-        const pdfSearchResultsCount = document.getElementById('pdf-search-results-count');
+        const directOpenBtn = document.getElementById('direct-open-btn');
         const toast = document.getElementById('toast');
         const shareModal = document.getElementById('share-modal');
         const shareCloseBtn = document.getElementById('share-close-btn');
+        const refreshDataBtn = document.getElementById('refresh-data-btn');
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
+        const cdnUrlBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
         
-        const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
-        
+        const CACHE_KEY_DATA = 'tkgm_mevzuat_data_cache';
+        const CACHE_TIME = 1000 * 60 * 60 * 24; // 24 Saat
+
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
         const FAVORITES_KEY = 'tkgm_mevzuat_favorites';
+        let currentDocType = null, currentSection = null, isSortAscending = false;
 
         const initBg = () => {
             const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, alpha: true, antialias: true });
@@ -372,31 +276,47 @@
             window.addEventListener('resize', () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
         };
 
-        // Veri listesi çekilirken GitHub API (JSON) kullanılır
+        // --- GITHUB API TARAMASI ---
         async function fetchRepoList(path) {
             const token = getGitHubToken();
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
-            let files = [];
-
+            
             try {
                 let response = await fetch(apiUrl, { headers: { 'Authorization': `token ${token}` }, mode: 'cors' });
                 if (!response.ok) response = await fetch(apiUrl, { mode: 'cors' });
-                if (response.ok) files = await response.json();
-
+                if (!response.ok) return [];
+                
+                let files = await response.json();
                 if (!Array.isArray(files)) return [];
 
-                // f.download_url bilgisini doğrudan url değişkenine aktarıyoruz.
-                // İndirme ve görüntüleme işlemleri sadece bu orijinal linkle yapılacak.
                 return files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf'))
-                            .map(f => ({ title: formatTitle(f.name), path: f.path, url: f.download_url }));
+                            .map(f => ({ title: formatTitle(f.name), path: f.path }));
             } catch (e) {
-                console.warn(`Liste alınamadı (${path}):`, e);
+                console.warn(`Liste alınamadı (${path})`);
                 return []; 
             }
         }
 
-        async function initializeApp() {
-            initBg();
+        // --- AKILLI ÖNBELLEK EKLENDİ ---
+        async function initializeApp(forceRefresh = false) {
+            if(!forceRefresh) initBg();
+
+            // Önbellek (Cache) kontrolü
+            if (!forceRefresh) {
+                const cachedDataStr = localStorage.getItem(CACHE_KEY_DATA);
+                if (cachedDataStr) {
+                    const cached = JSON.parse(cachedDataStr);
+                    if (Date.now() - cached.timestamp < CACHE_TIME) {
+                        mevzuatData = cached.data;
+                        mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
+                        if(!window.eventsSetup) setupEventListeners();
+                        return;
+                    }
+                }
+            }
+
+            mainLoader.style.display = 'flex';
+            
             const paths = [
                 ['tapu/genelgeler', 'tapu', 'genelge'], ['tapu/talimatlar', 'tapu', 'talimat'],
                 ['kadastro/genelgeler', 'kadastro', 'genelge'], ['kadastro/talimatlar', 'kadastro', 'talimat'],
@@ -409,12 +329,20 @@
                     if (!mevzuatData[p[1]]) mevzuatData[p[1]] = {};
                     mevzuatData[p[1]][p[2]] = results[i] || []; 
                 });
+
+                // Taranan veriyi tarayıcıya kaydet (Hızı inanılmaz artırır)
+                localStorage.setItem(CACHE_KEY_DATA, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: mevzuatData
+                }));
+
+                if(forceRefresh) showToast("Mevzuat listesi güncellendi!");
             } catch (e) {
-                showToast("Veri listesi yüklenirken sorun oluştu.", true);
+                showToast("Liste yüklenirken bir sorun oluştu.", true);
             }
             
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
-            setupEventListeners();
+            if(!window.eventsSetup) setupEventListeners();
         }
 
         const formatTitle = (n) => n.replace(/\.pdf$/i, '').replace(/_/g, ' ').split(' ').map(w => w.length ? w[0].toLocaleUpperCase('tr-TR') + w.slice(1) : w).join(' ');
@@ -430,15 +358,10 @@
             saveFavorites(f);
         }
 
-        // --- Dosya adına TAKILMAYAN İndirme Fonksiyonu ---
-        function downloadFile(urlOrPath, title) {
-            let finalUrl = urlOrPath;
-            if (!finalUrl || !finalUrl.startsWith('http')) {
-                finalUrl = `${githubRawUrl}${urlOrPath.split('/').map(encodeURIComponent).join('/')}`;
-            }
-
+        function downloadFile(path, title) {
+            const safeUrl = `${cdnUrlBase}${path.split('/').map(encodeURIComponent).join('/')}`;
             const a = document.createElement('a');
-            a.href = finalUrl;
+            a.href = safeUrl;
             a.download = title.replace(/[/\\?%*:|"<>]/g, '-') + '.pdf';
             a.target = "_blank";
             document.body.appendChild(a);
@@ -447,100 +370,37 @@
             showToast("İndirme başlatıldı...");
         }
 
-        let pdfDoc = null, currentPageNum = 1, pdfTransform = { scale: 1 }, initialScale = 1.0;
-        let searchMatches = [], currentMatchIndex = -1, pdfPageTextContents = new Map();
-        let pageIntersectionObserver = null, isSortAscending = false, currentDocType = null, currentSection = null;
-
-        // --- Dosya adına TAKILMAYAN PDF Açma Fonksiyonu ---
-        async function openPdfModal(urlOrPath, title) {
-            pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
-            pdfPagesContainer.innerHTML = ''; pdfModalFooter.style.display = 'flex';
+        // --- GOOGLE DOCS VIEWER (KUSURSUZ GÖRÜNTÜLEYİCİ) ---
+        function openPdfModal(path, title) {
+            pdfModal.classList.add('active'); 
+            pdfTitle.textContent = title; 
+            pdfLoader.style.display = 'flex'; 
             
-            // Eğer doğrudan github api 'download_url' gönderdiyse ona güven ve kodlama (encode) yapma.
-            let finalUrl = urlOrPath;
-            if (!finalUrl || !finalUrl.startsWith('http')) {
-                 // Sadece fallback olarak manuel URL üretiriz.
-                 finalUrl = `${githubRawUrl}${urlOrPath.split('/').map(encodeURIComponent).join('/')}`;
-            }
+            const safeUrl = `${cdnUrlBase}${path.split('/').map(encodeURIComponent).join('/')}`;
+            directOpenBtn.onclick = () => window.open(safeUrl, '_blank');
+            
+            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(safeUrl)}&embedded=true`;
+            pdfIframe.src = viewerUrl;
 
-            try {
-                // PDF.js ile direkt URL üzerinden çekiyoruz
-                const response = await fetch(finalUrl);
-                if(!response.ok) throw new Error("Dosya bulunamadı");
-                
-                const arrayBuffer = await response.arrayBuffer();
-                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, enableWebGL: true }).promise;
-                
-                pdfPageTextContents.clear(); currentPageNum = 1; await renderSinglePage(1);
-            } catch (e) { 
-                console.error("PDF Açma Hatası:", e);
-                showToast("Açılamadı. Bağlantı veya dosya hatası.", true); 
-                closePdfModal(); 
-            }
-            finally { pdfLoader.style.display = 'none'; }
+            pdfIframe.onload = () => { pdfLoader.style.display = 'none'; };
+            setTimeout(() => { pdfLoader.style.display = 'none'; }, 5000);
         }
 
         function closePdfModal() { 
-            pdfModal.classList.remove('active', 'fullscreen-active'); 
-            enterFullscreenIcon.classList.remove('hidden'); exitFullscreenIcon.classList.add('hidden');
-            if (pageIntersectionObserver) pageIntersectionObserver.disconnect(); pdfDoc = null; 
-        }
-
-        async function renderSinglePage(num) {
-            if (pageIntersectionObserver) pageIntersectionObserver.disconnect();
-            pdfPagesContainer.innerHTML = ''; currentPageNum = num; await reRenderCurrentPage(true);
-            pageNumDisplay.textContent = `${num} / ${pdfDoc.numPages}`;
-            prevPageBtn.disabled = num <= 1; nextPageBtn.disabled = num >= pdfDoc.numPages;
-        }
-
-        async function renderPageContent(page, container) {
-            const viewport = page.getViewport({ scale: pdfTransform.scale });
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            canvas.width = Math.floor(viewport.width * window.devicePixelRatio);
-            canvas.height = Math.floor(viewport.height * window.devicePixelRatio);
-            canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`;
-            container.innerHTML = ''; container.appendChild(canvas);
-            await page.render({ canvasContext: ctx, viewport, transform: window.devicePixelRatio !== 1 ? [window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0] : null }).promise;
-            
-            const textLayer = document.createElement('div'); textLayer.className = 'text-layer'; 
-            textLayer.style.setProperty('--scale-factor', viewport.scale);
-            container.appendChild(textLayer);
-            textLayer.style.width = canvas.style.width; textLayer.style.height = canvas.style.height;
-            if (!pdfPageTextContents.has(page.pageNumber)) pdfPageTextContents.set(page.pageNumber, await page.getTextContent());
-            await pdfjsLib.renderTextLayer({ textContentSource: pdfPageTextContents.get(page.pageNumber), container: textLayer, viewport }).promise;
-            highlightSearch(page.pageNumber);
-        }
-
-        async function reRenderCurrentPage(calcScale = false) {
-            if (!pdfDoc) return;
-            if (calcScale) {
-                const vp = (await pdfDoc.getPage(currentPageNum)).getViewport({ scale: 1.0 });
-                initialScale = (pdfRenderArea.clientWidth - 32) / vp.width; pdfTransform.scale = initialScale;
-                zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale/initialScale)*100)}%`;
-            }
-            let c = pdfPagesContainer.querySelector('.page-container');
-            if (!c) { c = document.createElement('div'); c.className = 'page-container'; c.dataset.pageNum = currentPageNum; pdfPagesContainer.appendChild(c); }
-            await renderPageContent(await pdfDoc.getPage(currentPageNum), c);
-        }
-
-        function highlightSearch(num) {
-            const c = pdfPagesContainer.querySelector(`.page-container[data-page-num="${num}"]`); if(!c) return;
-            const tl = c.querySelector('.text-layer'); if(!tl) return;
-            const q = pdfSearchInput.value; if(q.length < 2) return;
-            const reg = new RegExp(`(${q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'giu');
-            tl.querySelectorAll("span").forEach(s => { if(reg.test(s.textContent)) s.innerHTML = s.textContent.replace(reg, `<mark class="highlight">$1</mark>`); });
+            pdfModal.classList.remove('active'); 
+            pdfIframe.src = 'about:blank'; 
         }
 
         function createItemHtml(d) {
             const isFav = isFavorite(d.path);
             return `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between">
-                <div class="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer item-open-btn" data-path="${d.path}" data-url="${d.url}" data-title="${d.title}">
+                <div class="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer item-open-btn" data-path="${d.path}" data-title="${d.title}">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400 flex-shrink-0"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                     <span class="text-sm font-medium truncate">${d.title}</span>
                 </div>
                 <div class="flex gap-1 ml-2">
-                    <button class="p-2 hover:bg-gray-600 rounded-full fav-btn ${isFav ? 'favorited' : ''}" data-path="${d.path}" data-url="${d.url}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-                    <button class="p-2 hover:bg-gray-600 rounded-full dl-btn" data-path="${d.path}" data-url="${d.url}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                    <button class="p-2 hover:bg-gray-600 rounded-full fav-btn ${isFav ? 'favorited' : ''}" data-path="${d.path}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+                    <button class="p-2 hover:bg-gray-600 rounded-full dl-btn" data-path="${d.path}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                 </div>
             </div>`;
         }
@@ -555,18 +415,9 @@
         }
 
         function attachItemEvents(container) {
-            container.querySelectorAll('.item-open-btn').forEach(b => b.onclick = () => {
-                const target = (b.dataset.url && b.dataset.url !== 'undefined') ? b.dataset.url : b.dataset.path;
-                openPdfModal(target, b.dataset.title);
-            });
-            container.querySelectorAll('.fav-btn').forEach(b => b.onclick = (e) => { 
-                e.stopPropagation(); toggleFavorite({path: b.dataset.path, url: b.dataset.url, title: b.dataset.title}); b.classList.toggle('favorited'); 
-            });
-            container.querySelectorAll('.dl-btn').forEach(b => b.onclick = (e) => { 
-                e.stopPropagation(); 
-                const target = (b.dataset.url && b.dataset.url !== 'undefined') ? b.dataset.url : b.dataset.path;
-                downloadFile(target, b.dataset.title); 
-            });
+            container.querySelectorAll('.item-open-btn').forEach(b => b.onclick = () => openPdfModal(b.dataset.path, b.dataset.title));
+            container.querySelectorAll('.fav-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); toggleFavorite({path: b.dataset.path, title: b.dataset.title}); b.classList.toggle('favorited'); });
+            container.querySelectorAll('.dl-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); downloadFile(b.dataset.path, b.dataset.title); });
         }
 
         function openSelectionModal(section) {
@@ -575,10 +426,7 @@
             showCategoryChoice();
         }
 
-        function closeSelectionModal() {
-            selectionModal.classList.remove('active');
-        }
-
+        function closeSelectionModal() { selectionModal.classList.remove('active'); }
         function openFavoritesModal() { favoritesModal.classList.add('active'); renderFavoritesList(); }
         function closeFavoritesModal() { favoritesModal.classList.remove('active'); }
         
@@ -589,6 +437,7 @@
         }
 
         function setupEventListeners() {
+            window.eventsSetup = true;
             mainCategoriesContainer.querySelectorAll('[data-section]').forEach(c => c.onclick = () => openSelectionModal(c.dataset.section));
             selectionCloseBtn.onclick = closeSelectionModal;
             selectionBackBtn.onclick = showCategoryChoice;
@@ -597,11 +446,7 @@
             favoritesMainBtn.onclick = openFavoritesModal;
             favoritesCloseBtn.onclick = closeFavoritesModal;
             shareCloseBtn.onclick = () => shareModal.classList.remove('active');
-            
-            zoomInBtn.onclick = () => { pdfTransform.scale = Math.min(pdfTransform.scale*1.2, 8*initialScale); reRenderCurrentPage(); };
-            zoomOutBtn.onclick = () => { pdfTransform.scale = Math.max(pdfTransform.scale/1.2, 0.25*initialScale); reRenderCurrentPage(); };
-            prevPageBtn.onclick = () => { if(currentPageNum > 1) renderSinglePage(currentPageNum - 1); };
-            nextPageBtn.onclick = () => { if(currentPageNum < pdfDoc.numPages) renderSinglePage(currentPageNum + 1); };
+            refreshDataBtn.onclick = () => initializeApp(true); // Yenileme butonu
 
             searchInput.oninput = (e) => {
                 const q = e.target.value.toLowerCase().trim();
@@ -622,8 +467,6 @@
                 rec.onresult = (e) => { searchInput.value = e.results[0][0].transcript; searchInput.oninput({target: searchInput}); };
                 rec.onend = () => voiceSearchBtn.classList.remove('voice-active');
             }
-
-            fullscreenBtn.onclick = toggleFullscreen;
         }
 
         function showCategoryChoice() {
@@ -635,69 +478,9 @@
 
         const showToast = (m, e = false) => { toast.textContent = m; toast.className = `show ${e ? 'bg-red-600' : 'bg-indigo-600'}`; setTimeout(() => toast.className='', 3000); };
         
-        async function renderAllPages(recalcBase = false) {
-            if (!pdfDoc) return; pdfLoader.style.display = 'flex'; pdfPagesContainer.innerHTML = '';
-            if (recalcBase) {
-                const vp = (await pdfDoc.getPage(1)).getViewport({ scale: 1.0 });
-                initialScale = (pdfRenderArea.clientWidth - 32) / vp.width; pdfTransform.scale = initialScale;
-                zoomLevelDisplay.textContent = `${Math.round((pdfTransform.scale/initialScale)*100)}%`;
-            }
-            const ps = [];
-            for (let i = 1; i <= pdfDoc.numPages; i++) {
-                const c = document.createElement('div'); c.className = 'page-container'; c.dataset.pageNum = i; pdfPagesContainer.appendChild(c);
-                ps.push(pdfDoc.getPage(i).then(p => renderPageContent(p, c)));
-            }
-            await Promise.all(ps); pdfLoader.style.display = 'none';
-            setupIntersectionObserver();
-            const target = pdfPagesContainer.querySelector(`.page-container[data-page-num="${currentPageNum}"]`);
-            if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
-        }
-
-        function toggleFullscreen() {
-            pdfModal.classList.toggle('fullscreen-active');
-            if (pdfModal.classList.contains('fullscreen-active')) {
-                enterFullscreenIcon.classList.add('hidden'); exitFullscreenIcon.classList.remove('hidden');
-                renderAllPages(true);
-            } else {
-                enterFullscreenIcon.classList.remove('hidden'); exitFullscreenIcon.classList.add('hidden');
-                renderSinglePage(currentPageNum);
-            }
-        }
-
-        let isPanningGlobal = false;
-        let lastPanPoint = { x: 0, y: 0 };
-        let initialPinchDistance = null;
-
-        pdfRenderArea.addEventListener('touchstart', (e) => { 
-            if(e.touches.length === 2) initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
-            else { isPanningGlobal=true; lastPanPoint={x:e.touches[0].clientX, y:e.touches[0].clientY}; } 
-        }, {passive: false});
-        
-        pdfRenderArea.addEventListener('touchmove', (e) => { 
-            if(e.touches.length === 2 && initialPinchDistance) { 
-                e.preventDefault(); const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
-                pdfTransform.scale = Math.max(0.25*initialScale, Math.min(pdfTransform.scale*(d/initialPinchDistance), 8*initialScale)); 
-                initialPinchDistance = d;
-                pdfModal.classList.contains('fullscreen-active') ? renderAllPages(false) : reRenderCurrentPage();
-            }
-            else if(isPanningGlobal) { 
-                e.preventDefault(); pdfRenderArea.scrollTop -= (e.touches[0].clientY - lastPanPoint.y); 
-                pdfRenderArea.scrollLeft -= (e.touches[0].clientX - lastPanPoint.x); 
-                lastPanPoint={x:e.touches[0].clientX, y:e.touches[0].clientY}; 
-            }
-        }, {passive: false});
-        
-        pdfRenderArea.addEventListener('touchend', () => { initialPinchDistance = null; isPanningGlobal = false; });
-        
         window.addEventListener('keydown', e => { 
             if (e.key === 'Escape') { 
-                if (pdfModal.classList.contains('fullscreen-active')) {
-                    toggleFullscreen();
-                } else {
-                    closePdfModal(); 
-                    closeSelectionModal(); 
-                    closeFavoritesModal(); 
-                }
+                closePdfModal(); closeSelectionModal(); closeFavoritesModal(); 
             } 
         });
 
