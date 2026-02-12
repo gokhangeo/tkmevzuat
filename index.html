@@ -319,6 +319,7 @@
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
+        
         const githubRawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
@@ -371,46 +372,26 @@
             window.addEventListener('resize', () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
         };
 
-        // --- Dayanıklı Veri Çekme Fonksiyonu ---
-        async function secureFetch(path, isRaw = false) {
+        // Veri listesi çekilirken GitHub API (JSON) kullanılır
+        async function fetchRepoList(path) {
             const token = getGitHubToken();
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
-            
-            // 1. Token ile güvenli erişim dene
+            let files = [];
+
             try {
-                const headers = { 'Authorization': `token ${token}`, 'Accept': isRaw ? 'application/vnd.github.v3.raw' : 'application/json' };
-                const response = await fetch(apiUrl, { headers });
-                if (response.ok) return isRaw ? await response.arrayBuffer() : await response.json();
-            } catch (e) { console.warn("Token ile erişim başarısız:", e); }
+                let response = await fetch(apiUrl, { headers: { 'Authorization': `token ${token}` }, mode: 'cors' });
+                if (!response.ok) response = await fetch(apiUrl, { mode: 'cors' });
+                if (response.ok) files = await response.json();
 
-            // 2. Token başarısızsa Anonim (Public) erişim dene
-            try {
-                const headers = isRaw ? { 'Accept': 'application/vnd.github.v3.raw' } : {};
-                const response = await fetch(apiUrl, { headers });
-                if (response.ok) return isRaw ? await response.arrayBuffer() : await response.json();
-            } catch (e) { console.warn("Anonim erişim başarısız:", e); }
+                if (!Array.isArray(files)) return [];
 
-            // 3. O da olmazsa Raw URL (sadece dosyalar için) dene
-            if (isRaw) {
-                try {
-                    const rawUrl = `${githubRawUrl}${path}`;
-                    const response = await fetch(rawUrl);
-                    if (response.ok) return await response.arrayBuffer();
-                } catch (e) { console.error("Raw URL erişim hatası:", e); }
-            }
-
-            throw new Error("Veri çekilemedi");
-        }
-
-        async function fetchRepoList(path) {
-            try {
-                const data = await secureFetch(path);
-                if (!Array.isArray(data)) return [];
-                return data.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf'))
-                           .map(f => ({ title: formatTitle(f.name), path: f.path, url: f.download_url }));
+                // f.download_url bilgisini doğrudan url değişkenine aktarıyoruz.
+                // İndirme ve görüntüleme işlemleri sadece bu orijinal linkle yapılacak.
+                return files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf'))
+                            .map(f => ({ title: formatTitle(f.name), path: f.path, url: f.download_url }));
             } catch (e) {
                 console.warn(`Liste alınamadı (${path}):`, e);
-                return []; // Fail gracefully
+                return []; 
             }
         }
 
@@ -426,7 +407,7 @@
                 const results = await Promise.all(paths.map(p => fetchRepoList(p[0])));
                 paths.forEach((p, i) => {
                     if (!mevzuatData[p[1]]) mevzuatData[p[1]] = {};
-                    mevzuatData[p[1]][p[2]] = results[i];
+                    mevzuatData[p[1]][p[2]] = results[i] || []; 
                 });
             } catch (e) {
                 showToast("Veri listesi yüklenirken sorun oluştu.", true);
@@ -449,29 +430,53 @@
             saveFavorites(f);
         }
 
-        async function downloadFile(path, title) {
-            showToast("İndiriliyor...");
-            try {
-                const buffer = await secureFetch(path, true);
-                const blob = new Blob([buffer], { type: 'application/pdf' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-                a.download = title.replace(/[/\\?%*:|"<>]/g, '-') + '.pdf';
-                a.click();
-            } catch (e) { showToast("Hata oluştu.", true); }
+        // --- Dosya adına TAKILMAYAN İndirme Fonksiyonu ---
+        function downloadFile(urlOrPath, title) {
+            let finalUrl = urlOrPath;
+            if (!finalUrl || !finalUrl.startsWith('http')) {
+                finalUrl = `${githubRawUrl}${urlOrPath.split('/').map(encodeURIComponent).join('/')}`;
+            }
+
+            const a = document.createElement('a');
+            a.href = finalUrl;
+            a.download = title.replace(/[/\\?%*:|"<>]/g, '-') + '.pdf';
+            a.target = "_blank";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("İndirme başlatıldı...");
         }
 
         let pdfDoc = null, currentPageNum = 1, pdfTransform = { scale: 1 }, initialScale = 1.0;
         let searchMatches = [], currentMatchIndex = -1, pdfPageTextContents = new Map();
         let pageIntersectionObserver = null, isSortAscending = false, currentDocType = null, currentSection = null;
 
-        async function openPdfModal(path, title) {
+        // --- Dosya adına TAKILMAYAN PDF Açma Fonksiyonu ---
+        async function openPdfModal(urlOrPath, title) {
             pdfModal.classList.add('active'); pdfTitle.textContent = title; pdfLoader.style.display = 'flex';
             pdfPagesContainer.innerHTML = ''; pdfModalFooter.style.display = 'flex';
+            
+            // Eğer doğrudan github api 'download_url' gönderdiyse ona güven ve kodlama (encode) yapma.
+            let finalUrl = urlOrPath;
+            if (!finalUrl || !finalUrl.startsWith('http')) {
+                 // Sadece fallback olarak manuel URL üretiriz.
+                 finalUrl = `${githubRawUrl}${urlOrPath.split('/').map(encodeURIComponent).join('/')}`;
+            }
+
             try {
-                const data = await secureFetch(path, true);
-                pdfDoc = await pdfjsLib.getDocument({ data, enableWebGL: true }).promise;
+                // PDF.js ile direkt URL üzerinden çekiyoruz
+                const response = await fetch(finalUrl);
+                if(!response.ok) throw new Error("Dosya bulunamadı");
+                
+                const arrayBuffer = await response.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, enableWebGL: true }).promise;
+                
                 pdfPageTextContents.clear(); currentPageNum = 1; await renderSinglePage(1);
-            } catch (e) { showToast("Açılmadı. Erişim/Ağ hatası.", true); closePdfModal(); }
+            } catch (e) { 
+                console.error("PDF Açma Hatası:", e);
+                showToast("Açılamadı. Bağlantı veya dosya hatası.", true); 
+                closePdfModal(); 
+            }
             finally { pdfLoader.style.display = 'none'; }
         }
 
@@ -496,8 +501,9 @@
             canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`;
             container.innerHTML = ''; container.appendChild(canvas);
             await page.render({ canvasContext: ctx, viewport, transform: window.devicePixelRatio !== 1 ? [window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0] : null }).promise;
+            
             const textLayer = document.createElement('div'); textLayer.className = 'text-layer'; 
-            textLayer.style.setProperty('--scale-factor', viewport.scale); // FIX: Add scale factor variable
+            textLayer.style.setProperty('--scale-factor', viewport.scale);
             container.appendChild(textLayer);
             textLayer.style.width = canvas.style.width; textLayer.style.height = canvas.style.height;
             if (!pdfPageTextContents.has(page.pageNumber)) pdfPageTextContents.set(page.pageNumber, await page.getTextContent());
@@ -528,13 +534,13 @@
         function createItemHtml(d) {
             const isFav = isFavorite(d.path);
             return `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between">
-                <div class="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer item-open-btn" data-path="${d.path}" data-title="${d.title}">
+                <div class="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer item-open-btn" data-path="${d.path}" data-url="${d.url}" data-title="${d.title}">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400 flex-shrink-0"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                     <span class="text-sm font-medium truncate">${d.title}</span>
                 </div>
                 <div class="flex gap-1 ml-2">
-                    <button class="p-2 hover:bg-gray-600 rounded-full fav-btn ${isFav ? 'favorited' : ''}" data-path="${d.path}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-                    <button class="p-2 hover:bg-gray-600 rounded-full dl-btn" data-path="${d.path}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                    <button class="p-2 hover:bg-gray-600 rounded-full fav-btn ${isFav ? 'favorited' : ''}" data-path="${d.path}" data-url="${d.url}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+                    <button class="p-2 hover:bg-gray-600 rounded-full dl-btn" data-path="${d.path}" data-url="${d.url}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                 </div>
             </div>`;
         }
@@ -542,16 +548,25 @@
         function showDocumentList(type) {
             currentDocType = type; selectionModalTitle.textContent = type.charAt(0).toUpperCase() + type.slice(1);
             selectionBackBtn.classList.remove('hidden'); sortBtn.classList.remove('hidden');
-            let docs = [...mevzuatData[currentSection][type]];
+            let docs = [...(mevzuatData[currentSection][type] || [])];
             docs.sort((a,b) => isSortAscending ? extractYear(a.title)-extractYear(b.title) : extractYear(b.title)-extractYear(a.title));
             selectionModalBody.innerHTML = docs.length ? `<div class="space-y-2">${docs.map(createItemHtml).join('')}</div>` : `<p class="text-center text-gray-500 py-4">Kayıt bulunamadı.</p>`;
             attachItemEvents(selectionModalBody);
         }
 
         function attachItemEvents(container) {
-            container.querySelectorAll('.item-open-btn').forEach(b => b.onclick = () => openPdfModal(b.dataset.path, b.dataset.title));
-            container.querySelectorAll('.fav-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); toggleFavorite({path: b.dataset.path, title: b.dataset.title}); b.classList.toggle('favorited'); });
-            container.querySelectorAll('.dl-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); downloadFile(b.dataset.path, b.dataset.title); });
+            container.querySelectorAll('.item-open-btn').forEach(b => b.onclick = () => {
+                const target = (b.dataset.url && b.dataset.url !== 'undefined') ? b.dataset.url : b.dataset.path;
+                openPdfModal(target, b.dataset.title);
+            });
+            container.querySelectorAll('.fav-btn').forEach(b => b.onclick = (e) => { 
+                e.stopPropagation(); toggleFavorite({path: b.dataset.path, url: b.dataset.url, title: b.dataset.title}); b.classList.toggle('favorited'); 
+            });
+            container.querySelectorAll('.dl-btn').forEach(b => b.onclick = (e) => { 
+                e.stopPropagation(); 
+                const target = (b.dataset.url && b.dataset.url !== 'undefined') ? b.dataset.url : b.dataset.path;
+                downloadFile(target, b.dataset.title); 
+            });
         }
 
         function openSelectionModal(section) {
@@ -566,23 +581,12 @@
 
         function openFavoritesModal() { favoritesModal.classList.add('active'); renderFavoritesList(); }
         function closeFavoritesModal() { favoritesModal.classList.remove('active'); }
+        
         function renderFavoritesList() {
             const f = getFavorites();
             favoritesModalBody.innerHTML = f.length ? `<div class="space-y-2">${f.map(createItemHtml).join('')}</div>` : `<p class="text-center text-gray-500 py-4">Favori yok.</p>`;
             attachItemEvents(favoritesModalBody);
         }
-
-        function openShareModal(doc) {
-            currentDocToShare = doc;
-            const docUrl = `${window.location.origin}${window.location.pathname}?doc=${encodeURIComponent(doc.path)}`;
-            const text = encodeURIComponent(`TKGM Mevzuat Belgesi: ${doc.title}`);
-            document.getElementById('share-facebook').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(docUrl)}`;
-            document.getElementById('share-twitter').href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(docUrl)}&text=${text}`;
-            document.getElementById('share-whatsapp').href = `https://api.whatsapp.com/send?text=${text}%20${encodeURIComponent(docUrl)}`;
-            shareModal.classList.add('active');
-        }
-
-        function closeShareModal() { shareModal.classList.remove('active'); }
 
         function setupEventListeners() {
             mainCategoriesContainer.querySelectorAll('[data-section]').forEach(c => c.onclick = () => openSelectionModal(c.dataset.section));
@@ -592,7 +596,7 @@
             closeModalBtn.onclick = closePdfModal;
             favoritesMainBtn.onclick = openFavoritesModal;
             favoritesCloseBtn.onclick = closeFavoritesModal;
-            shareCloseBtn.onclick = closeShareModal;
+            shareCloseBtn.onclick = () => shareModal.classList.remove('active');
             
             zoomInBtn.onclick = () => { pdfTransform.scale = Math.min(pdfTransform.scale*1.2, 8*initialScale); reRenderCurrentPage(); };
             zoomOutBtn.onclick = () => { pdfTransform.scale = Math.max(pdfTransform.scale/1.2, 0.25*initialScale); reRenderCurrentPage(); };
@@ -693,7 +697,6 @@
                     closePdfModal(); 
                     closeSelectionModal(); 
                     closeFavoritesModal(); 
-                    closeShareModal(); 
                 }
             } 
         });
