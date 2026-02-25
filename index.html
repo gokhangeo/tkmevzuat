@@ -298,7 +298,7 @@
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
         
-        // HIZLI VE SORUNSUZ ERİŞİM İÇİN JSDELIVR CDN (CORS Hatası Asla Vermez)
+        // HIZLI VE SORUNSUZ ERİŞİM İÇİN JSDELIVR CDN
         const cdnUrlBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
@@ -358,25 +358,30 @@
         };
 
         async function fetchRepoList(path) {
-            const jsonUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/mevzuat_liste.json`;
-            try {
-                const jsonCheck = await fetch(jsonUrl, { cache: "no-store" });
-                if (jsonCheck.ok) {
-                    const allData = await jsonCheck.json();
-                    if (allData[path]) return allData[path];
-                }
-            } catch (e) { }
-
+            const token = getGitHubToken();
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
+            
             try {
-                let response = await fetch(apiUrl);
-                if (!response.ok) return [];
+                // Token ile istek
+                let response = await fetch(apiUrl, { headers: { 'Authorization': `token ${token}` } });
+                
+                // Eğer token patlarsa (401/403 vb) tokensiz dene
+                if (!response.ok) {
+                    response = await fetch(apiUrl); 
+                }
+
+                if (!response.ok) {
+                    console.warn(`API Hatası (${path}): ${response.status}`);
+                    return [];
+                }
+                
                 let files = await response.json();
                 if (!Array.isArray(files)) return [];
+                
                 return files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf'))
                             .map(f => ({ title: formatTitle(f.name), path: f.path }));
             } catch (e) {
-                console.warn(`Liste alınamadı (${path})`);
+                console.warn(`Liste alınamadı (${path})`, e);
                 return []; 
             }
         }
@@ -384,16 +389,24 @@
         async function initializeApp(forceRefresh = false) {
             if(!forceRefresh) initBg();
 
-            if (!forceRefresh) {
+            if (forceRefresh) {
+                localStorage.removeItem(CACHE_KEY_DATA);
+            } else {
                 const cachedDataStr = localStorage.getItem(CACHE_KEY_DATA);
                 if (cachedDataStr) {
                     const cached = JSON.parse(cachedDataStr);
                     if (Date.now() - cached.timestamp < CACHE_TIME) {
-                        mevzuatData = cached.data;
-                        if(mainLoader) mainLoader.style.display = 'none'; 
-                        if(appContainer) appContainer.style.display = 'flex';
-                        if(!window.eventsSetup) setupEventListeners();
-                        return;
+                        // Eğer önbellekteki veri boş liste ise, önbelleği yoksay ve tekrar çek
+                        const hasData = Object.values(cached.data).some(section => 
+                            Object.values(section).some(arr => arr.length > 0)
+                        );
+                        if (hasData) {
+                            mevzuatData = cached.data;
+                            if(mainLoader) mainLoader.style.display = 'none'; 
+                            if(appContainer) appContainer.style.display = 'flex';
+                            if(!window.eventsSetup) setupEventListeners();
+                            return;
+                        }
                     }
                 }
             }
@@ -413,7 +426,15 @@
                     mevzuatData[p[1]][p[2]] = results[i] || []; 
                 });
 
-                localStorage.setItem(CACHE_KEY_DATA, JSON.stringify({ timestamp: Date.now(), data: mevzuatData }));
+                // Sadece veri gerçekten varsa kaydet
+                const hasData = Object.values(mevzuatData).some(section => 
+                    Object.values(section).some(arr => arr.length > 0)
+                );
+                
+                if (hasData) {
+                    localStorage.setItem(CACHE_KEY_DATA, JSON.stringify({ timestamp: Date.now(), data: mevzuatData }));
+                }
+                
                 if(forceRefresh) showToast("Mevzuat listesi güncellendi!");
             } catch (e) {
                 showToast("Liste yüklenirken bir sorun oluştu.", true);
@@ -450,7 +471,7 @@
         }
 
         // ==========================================
-        // PDF.JS KENDİ GÖRÜNTÜLEYİCİMİZ VE ARAMA (GERİ GETİRİLDİ)
+        // PDF.JS KENDİ GÖRÜNTÜLEYİCİMİZ VE ARAMA
         // ==========================================
         let pdfDoc = null, currentPageNum = 1, pdfTransform = { scale: 1 }, initialScale = 1.0;
         let searchMatches = [], currentMatchIndex = -1, pdfPageTextContents = new Map();
@@ -471,7 +492,7 @@
             const cdnUrl = `${cdnUrlBase}${path.split('/').map(encodeURIComponent).join('/')}`;
             
             try {
-                // PDF.js doğrudan CDN'den dosyayı okur (CORS sorunsuzdur)
+                // PDF.js doğrudan CDN'den dosyayı okur
                 pdfDoc = await pdfjsLib.getDocument(cdnUrl).promise;
                 pdfPageTextContents.clear(); 
                 currentPageNum = 1; 
@@ -581,7 +602,7 @@
             
             await pdfjsLib.renderTextLayer({ textContentSource: pdfPageTextContents.get(page.pageNumber), container: textLayer, viewport: viewport }).promise;
             
-            highlightSearchOnPage(page.pageNumber); // Çizildikten sonra hemen aramayı renklendir
+            highlightSearchOnPage(page.pageNumber); 
         }
 
         async function reRenderCurrentPage(calcScale = false) {
@@ -616,7 +637,6 @@
             updateSearchUI();
             
             if(pdfPagesContainer) {
-                // Tüm vurguları temizle
                 pdfPagesContainer.querySelectorAll('mark.highlight, mark.current-highlight').forEach(m => {
                     const parent = m.parentNode;
                     if(parent) {
@@ -641,7 +661,6 @@
             const textLayer = container.querySelector('.text-layer'); 
             if (!textLayer) return;
 
-            // Önceki vurguları sil
             textLayer.querySelectorAll('mark').forEach(m => {
                 const parent = m.parentNode;
                 if(parent) {
@@ -661,7 +680,6 @@
                 }
             });
 
-            // Eğer şu anki odaklandığımız sonuç bu sayfadaysa onu Turuncu yap
             const currentMatchData = searchMatches[currentMatchIndex];
             if (currentMatchData && currentMatchData.pageNum === pageNum) {
                 const allMarksOnPage = Array.from(textLayer.querySelectorAll('mark.highlight'));
@@ -670,7 +688,6 @@
                      markToHighlight.classList.add('current-highlight');
                      markToHighlight.classList.remove('highlight');
                      
-                     // Doğrudan aranan kelimenin üzerine kaydır (Yeni eklenen kısım)
                      setTimeout(() => {
                          markToHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
                      }, 100);
@@ -687,7 +704,6 @@
             searchMatches = []; 
             const regex = new RegExp(query.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'giu');
             
-            // Tüm sayfaları tara
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 if (!pdfPageTextContents.has(i)) {
                     const page = await pdfDoc.getPage(i);
@@ -723,14 +739,14 @@
                     const targetPage = pdfPagesContainer.querySelector(`.page-container[data-page-num="${pageNum}"]`);
                     if (targetPage) {
                         targetPage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        highlightSearchOnPage(pageNum); // Odaklanılanı boya
+                        highlightSearchOnPage(pageNum); 
                     }
                 }
             } else {
                 if (currentPageNum !== pageNum) {
-                    await renderSinglePage(pageNum); // Sayfayı getir
+                    await renderSinglePage(pageNum); 
                 } else {
-                    highlightSearchOnPage(pageNum); // Zaten bu sayfadaysak sadece boya
+                    highlightSearchOnPage(pageNum); 
                 }
             }
             updateSearchUI();
@@ -834,9 +850,9 @@
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
             if(Speech && voiceSearchBtn) {
                 const rec = new Speech(); rec.lang = 'tr-TR';
-                voiceSearchBtn.onclick = () => { rec.start(); voiceSearchBtn.classList.add('voice-active'); };
+                voiceSearchBtn.onclick = () => { rec.start(); if(voiceSearchBtn) voiceSearchBtn.classList.add('voice-active'); };
                 rec.onresult = (e) => { if(searchInput) { searchInput.value = e.results[0][0].transcript; searchInput.oninput({target: searchInput}); } };
-                rec.onend = () => voiceSearchBtn.classList.remove('voice-active');
+                rec.onend = () => { if(voiceSearchBtn) voiceSearchBtn.classList.remove('voice-active'); };
             }
         }
 
