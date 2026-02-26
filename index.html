@@ -42,7 +42,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); 
             background: white; 
             margin-bottom: 10px;
-            --scale-factor: 1.5; /* Fallback scale factor */
+            --scale-factor: 1.5;
         }
         
         .textLayer { 
@@ -250,13 +250,11 @@
         const searchCountDisplay = document.getElementById('search-count');
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
-        const cdnUrlBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
-        const githubRawBase = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
         
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
         
-        const CACHE_KEY_DATA = 'tkgm_mevzuat_data_cache_v3';
+        const CACHE_KEY_DATA = 'tkgm_mevzuat_data_cache_v4';
         const CACHE_TIME = 1000 * 60 * 60 * 24;
 
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
@@ -359,34 +357,38 @@
         async function openPdfModal(path, title) {
             pdfModal.classList.add('active');
             pdfTitle.textContent = title;
-            pdfRenderArea.innerHTML = '<div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/80 z-20"><div class="loader !border-gray-400 !border-top-indigo-600"></div><p class="text-white text-sm mt-4">Döküman yükleniyor...</p></div>';
+            pdfRenderArea.innerHTML = '<div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/80 z-20"><div class="loader !border-gray-400 !border-top-indigo-600"></div><p class="text-white text-sm mt-4">Döküman indiriliyor...</p></div>';
             pdfSearchInput.value = '';
             searchMatches = [];
             currentMatchIndex = -1;
             searchCountDisplay.textContent = '0/0';
 
-            const encodedPath = path.split('/').map(encodeURIComponent).join('/');
-            const primaryUrl = `${cdnUrlBase}${encodedPath}`;
-            const fallbackUrl = `${githubRawBase}${encodedPath}`;
+            // GitHub API endpoint for raw content is safer for browser-side authorized fetches
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
             
-            directOpenBtn.onclick = () => window.open(primaryUrl, '_blank');
+            directOpenBtn.onclick = () => window.open(`https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}/blob/${GITHUB_BRANCH}/${path}`, '_blank');
 
             try {
-                // Fetch proxying/handling: try primary then fallback
+                // Fetch using API with token and media type header to get raw content
+                const response = await fetch(apiUrl, {
+                    headers: { 
+                        'Authorization': `token ${getGitHubToken()}`,
+                        'Accept': 'application/vnd.github.v3.raw'
+                    }
+                });
+
+                if (!response.ok) throw new Error(`HTTP Hata: ${response.status}`);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                // Initialize PDF.js loading
                 const loadingTask = pdfjsLib.getDocument({
-                    url: primaryUrl,
+                    url: blobUrl,
                     disableRange: true,
                     disableStream: true
                 });
 
-                currentPdfDoc = await loadingTask.promise.catch(async () => {
-                    return await pdfjsLib.getDocument({
-                        url: fallbackUrl,
-                        disableRange: true,
-                        disableStream: true
-                    }).promise;
-                });
-
+                currentPdfDoc = await loadingTask.promise;
                 pdfPagesText = [];
                 const pdfLoaderEl = document.getElementById('pdf-loader');
                 if(pdfLoaderEl) pdfLoaderEl.remove();
@@ -402,7 +404,6 @@
                     pageContainer.id = `page-${i}`;
                     pageContainer.style.width = `${viewport.width}px`;
                     pageContainer.style.height = `${viewport.height}px`;
-                    // FIX: Set --scale-factor for text layer positioning
                     pageContainer.style.setProperty('--scale-factor', scale);
                     
                     const canvas = document.createElement('canvas');
@@ -429,11 +430,14 @@
                         textDivs: []
                     });
                 }
+                
+                URL.revokeObjectURL(blobUrl);
+
             } catch (error) {
                 console.error("PDF yükleme hatası:", error);
                 pdfRenderArea.innerHTML = `<div class="text-red-400 p-12 text-center">
                     <p class="font-bold text-lg mb-2">Hata: Döküman Yüklenemedi</p>
-                    <p class="text-sm">Erişim kısıtlaması veya ağ hatası oluştu. Lütfen "Dosyayı Aç" butonunu kullanarak tarayıcıda görüntüleyin.</p>
+                    <p class="text-sm">Erişim yetkisi hatası veya ağ sorunu. Lütfen GitHub token ayarlarınızı kontrol edin.</p>
                 </div>`;
             }
         }
