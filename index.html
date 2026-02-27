@@ -105,7 +105,7 @@
                 </header>
                 <div class="mb-8 max-w-2xl w-full mx-auto">
                     <div class="relative flex items-center">
-                        <span class="absolute left-4 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                        <span class="absolute left-4 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" cy="21" x2="16.65" y2="16.65"></line></svg></span>
                         <input type="text" id="search-input" placeholder="Mevzuat dökümanı ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-20 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
                         <div class="absolute right-3 flex items-center gap-2">
                             <button id="clear-search-btn" class="text-gray-500 hover:text-white transition hidden p-1">
@@ -159,7 +159,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10M11 9h10M11 13h10M11 17h10M5 5l3 3-3 3M8 15l-3 3 3 3"/></svg>
                         <span id="sort-label">Yeni</span>
                     </button>
-                    <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 </div>
             </header>
             <div id="selection-modal-body"></div>
@@ -194,7 +194,7 @@
                         </button>
                     </div>
 
-                    <button id="close-modal-btn" class="sm:hidden p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    <button id="close-modal-btn" class="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
                 
                 <!-- PDF İçi Arama -->
@@ -209,7 +209,6 @@
                 </div>
 
                 <div class="hidden sm:flex items-center gap-2 ml-auto">
-                    <button id="direct-open-btn" class="p-2 hover:bg-indigo-500 rounded-lg text-white text-xs bg-indigo-600 transition px-4">Dosyayı Aç</button>
                     <button id="close-modal-btn-desktop" class="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
             </header>
@@ -250,7 +249,6 @@
         const pdfLoader = document.getElementById('pdf-loader');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const closeModalBtnDesktop = document.getElementById('close-modal-btn-desktop');
-        const directOpenBtn = document.getElementById('direct-open-btn');
         const toast = document.getElementById('toast');
         const refreshDataBtn = document.getElementById('refresh-data-btn');
         
@@ -263,7 +261,7 @@
         const zoomPercentLabel = document.getElementById('zoom-percent');
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
-        const githubRawBase = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/`;
+        
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
         
@@ -275,13 +273,12 @@
         let currentDocType = null, currentSection = null, isSortAscending = false;
 
         let currentPdfDoc = null;
-        let currentPdfData = null; // Buffer to allow zoom/re-render
+        let currentPdfData = null; 
         let pdfPagesText = [];
         let searchMatches = [];
         let currentMatchIndex = -1;
         let currentScale = 1.2;
         
-        // Touch state for pinch-to-zoom
         let touchDistStart = 0;
         let initialScaleAtTouch = 1.0;
 
@@ -385,8 +382,6 @@
             updateZoomLabel();
 
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
-            
-            directOpenBtn.onclick = () => window.open(`https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}/blob/${GITHUB_BRANCH}/${path}`, '_blank');
 
             try {
                 const response = await fetch(apiUrl, {
@@ -398,7 +393,6 @@
 
                 if (!response.ok) throw new Error(`HTTP Hata: ${response.status}`);
                 
-                // Get data as arrayBuffer to avoid URL lifecycle issues
                 const arrayBuffer = await response.arrayBuffer();
                 currentPdfData = new Uint8Array(arrayBuffer);
 
@@ -440,7 +434,6 @@
                 pageContainer.id = `page-${i}`;
                 pageContainer.style.width = `${viewport.width}px`;
                 pageContainer.style.height = `${viewport.height}px`;
-                // Crucial for textLayer accuracy
                 pageContainer.style.setProperty('--scale-factor', currentScale);
                 
                 const canvas = document.createElement('canvas');
@@ -462,7 +455,6 @@
                     pdfPagesText.push(textContent.items.map(item => item.str).join(' '));
                 }
 
-                // Re-fetch text content for text layer rendering on zoom
                 const textContent = await page.getTextContent();
                 pdfjsLib.renderTextLayer({
                     textContent: textContent,
@@ -488,7 +480,6 @@
             }
         }
 
-        // --- Pinch to Zoom ---
         pdfRenderArea.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 touchDistStart = Math.hypot(
@@ -498,18 +489,6 @@
                 initialScaleAtTouch = currentScale;
             }
         }, { passive: true });
-
-        pdfRenderArea.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && touchDistStart > 0) {
-                // We track it, but render on end to avoid extreme CPU usage
-            }
-        }, { passive: true });
-
-        pdfRenderArea.addEventListener('touchend', (e) => {
-            if (touchDistStart > 0 && e.touches.length < 2) {
-                touchDistStart = 0;
-            }
-        });
 
         pdfRenderArea.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
