@@ -35,7 +35,20 @@
         #pdf-modal { z-index: 1100; }
         #pdf-modal-content { width: 100vw; height: 100vh; max-width: 100%; border-radius: 0; background-color: #1f2937; }
         
-        #pdf-render-area { overflow-y: auto; flex-grow: 1; background-color: #374151; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 0; scroll-behavior: smooth; touch-action: pinch-zoom; }
+        #pdf-render-area { 
+            overflow-y: auto; 
+            flex-grow: 1; 
+            background-color: #374151; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 20px; 
+            padding: 20px 0; 
+            scroll-behavior: smooth; 
+            /* Mobil kaydırma için kritik düzeltme: pan-y dikey kaydırmaya izin verir */
+            touch-action: pan-y pinch-zoom; 
+            -webkit-overflow-scrolling: touch;
+        }
         
         .pdf-page-container { 
             position: relative; 
@@ -261,7 +274,6 @@
         const zoomPercentLabel = document.getElementById('zoom-percent');
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
-        // Cloudflare destekli jsDelivr altyapısı - İş yeri engelleri için daha uygundur
         const cloudflareProxyBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
         
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
@@ -281,9 +293,7 @@
         let currentMatchIndex = -1;
         let currentScale = 1.0;
         
-        // Parmakla yakınlaştırma için durum yönetimi
         let touchDistStart = 0;
-        let initialScaleAtTouch = 1.0;
 
         const initBg = () => {
             const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, alpha: true, antialias: true });
@@ -384,11 +394,9 @@
             currentScale = window.innerWidth < 768 ? 0.8 : 1.2;
             updateZoomLabel();
 
-            // Cloudflare (jsDelivr) üzerinden çekiyoruz - CORS ve Firewall engellerini aşar
             const docUrl = `${cloudflareProxyBase}${path}`;
 
             try {
-                // Fetch ile dökümanı indiriyoruz
                 const response = await fetch(docUrl);
                 if (!response.ok) throw new Error(`Yükleme hatası: ${response.status}`);
                 
@@ -410,7 +418,7 @@
                 console.error("PDF yükleme hatası:", error);
                 pdfRenderArea.innerHTML = `<div class="text-red-400 p-12 text-center">
                     <p class="font-bold text-lg mb-2">Hata: Döküman Yüklenemedi</p>
-                    <p class="text-sm">İş yeri ağı GitHub içeriklerini engelliyor olabilir. Cloudflare Proxy denendi ancak erişim sağlanamadı.</p>
+                    <p class="text-sm">Bağlantı sorunu oluştu. Lütfen tekrar deneyin.</p>
                 </div>`;
             }
         }
@@ -479,14 +487,14 @@
             }
         }
 
-        // --- Mobil Pinch to Zoom MANTIĞI ---
+        // --- Mobil Dokunmatik Algılama ---
         pdfRenderArea.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
+                // İki parmak dokunursa zoom başlat
                 touchDistStart = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
-                initialScaleAtTouch = currentScale;
             }
         }, { passive: true });
 
@@ -497,8 +505,8 @@
                     e.changedTouches[0].pageY - (e.touches[0]?.pageY || e.changedTouches[0].pageY)
                 );
                 
-                // Eğer mesafe anlamlı derecede değişmişse zoom yap
-                if (Math.abs(finalDist - touchDistStart) > 50) {
+                // Eğer mesafe çok değiştiyse zoom yap (kaydırma ile çakışmaması için eşik değer 60)
+                if (Math.abs(finalDist - touchDistStart) > 60) {
                    const factor = finalDist > touchDistStart ? 0.2 : -0.2;
                    changeZoom(factor);
                 }
@@ -506,7 +514,7 @@
             }
         });
 
-        // PC için Mouse Wheel + Ctrl
+        // Mouse Wheel + Ctrl (PC)
         pdfRenderArea.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
