@@ -35,7 +35,7 @@
         #pdf-modal { z-index: 1100; }
         #pdf-modal-content { width: 100vw; height: 100vh; max-width: 100%; border-radius: 0; background-color: #1f2937; }
         
-        #pdf-render-area { overflow-y: auto; flex-grow: 1; background-color: #374151; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 0; scroll-behavior: smooth; touch-action: auto; }
+        #pdf-render-area { overflow-y: auto; flex-grow: 1; background-color: #374151; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 0; scroll-behavior: smooth; touch-action: pinch-zoom; }
         
         .pdf-page-container { 
             position: relative; 
@@ -105,7 +105,7 @@
                 </header>
                 <div class="mb-8 max-w-2xl w-full mx-auto">
                     <div class="relative flex items-center">
-                        <span class="absolute left-4 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" cy="21" x2="16.65" y2="16.65"></line></svg></span>
+                        <span class="absolute left-4 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
                         <input type="text" id="search-input" placeholder="Mevzuat dökümanı ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-20 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
                         <div class="absolute right-3 flex items-center gap-2">
                             <button id="clear-search-btn" class="text-gray-500 hover:text-white transition hidden p-1">
@@ -261,11 +261,13 @@
         const zoomPercentLabel = document.getElementById('zoom-percent');
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
+        // Cloudflare destekli jsDelivr altyapısı - İş yeri engelleri için daha uygundur
+        const cloudflareProxyBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
         
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
         
-        const CACHE_KEY_DATA = 'tkgm_mevzuat_data_cache_v4';
+        const CACHE_KEY_DATA = 'tkgm_mevzuat_data_cache_v5';
         const CACHE_TIME = 1000 * 60 * 60 * 24;
 
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
@@ -277,8 +279,9 @@
         let pdfPagesText = [];
         let searchMatches = [];
         let currentMatchIndex = -1;
-        let currentScale = 1.2;
+        let currentScale = 1.0;
         
+        // Parmakla yakınlaştırma için durum yönetimi
         let touchDistStart = 0;
         let initialScaleAtTouch = 1.0;
 
@@ -378,20 +381,16 @@
             searchMatches = [];
             currentMatchIndex = -1;
             searchCountDisplay.textContent = '0/0';
-            currentScale = window.innerWidth < 768 ? 1.0 : 1.2;
+            currentScale = window.innerWidth < 768 ? 0.8 : 1.2;
             updateZoomLabel();
 
-            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
+            // Cloudflare (jsDelivr) üzerinden çekiyoruz - CORS ve Firewall engellerini aşar
+            const docUrl = `${cloudflareProxyBase}${path}`;
 
             try {
-                const response = await fetch(apiUrl, {
-                    headers: { 
-                        'Authorization': `token ${getGitHubToken()}`,
-                        'Accept': 'application/vnd.github.v3.raw'
-                    }
-                });
-
-                if (!response.ok) throw new Error(`HTTP Hata: ${response.status}`);
+                // Fetch ile dökümanı indiriyoruz
+                const response = await fetch(docUrl);
+                if (!response.ok) throw new Error(`Yükleme hatası: ${response.status}`);
                 
                 const arrayBuffer = await response.arrayBuffer();
                 currentPdfData = new Uint8Array(arrayBuffer);
@@ -411,7 +410,7 @@
                 console.error("PDF yükleme hatası:", error);
                 pdfRenderArea.innerHTML = `<div class="text-red-400 p-12 text-center">
                     <p class="font-bold text-lg mb-2">Hata: Döküman Yüklenemedi</p>
-                    <p class="text-sm">Erişim kısıtlaması veya ağ hatası oluştu. Lütfen bağlantınızı kontrol edin.</p>
+                    <p class="text-sm">İş yeri ağı GitHub içeriklerini engelliyor olabilir. Cloudflare Proxy denendi ancak erişim sağlanamadı.</p>
                 </div>`;
             }
         }
@@ -472,7 +471,7 @@
         }
 
         function changeZoom(delta) {
-            const newScale = Math.min(Math.max(currentScale + delta, 0.5), 3.0);
+            const newScale = Math.min(Math.max(currentScale + delta, 0.4), 3.0);
             if (Math.abs(newScale - currentScale) > 0.01) {
                 currentScale = newScale;
                 updateZoomLabel();
@@ -480,6 +479,7 @@
             }
         }
 
+        // --- Mobil Pinch to Zoom MANTIĞI ---
         pdfRenderArea.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 touchDistStart = Math.hypot(
@@ -490,6 +490,23 @@
             }
         }, { passive: true });
 
+        pdfRenderArea.addEventListener('touchend', (e) => {
+            if (touchDistStart > 0 && e.touches.length < 2) {
+                const finalDist = Math.hypot(
+                    e.changedTouches[0].pageX - (e.touches[0]?.pageX || e.changedTouches[0].pageX),
+                    e.changedTouches[0].pageY - (e.touches[0]?.pageY || e.changedTouches[0].pageY)
+                );
+                
+                // Eğer mesafe anlamlı derecede değişmişse zoom yap
+                if (Math.abs(finalDist - touchDistStart) > 50) {
+                   const factor = finalDist > touchDistStart ? 0.2 : -0.2;
+                   changeZoom(factor);
+                }
+                touchDistStart = 0;
+            }
+        });
+
+        // PC için Mouse Wheel + Ctrl
         pdfRenderArea.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
