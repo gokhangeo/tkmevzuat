@@ -8,7 +8,7 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%234f46e5'/%3E%3Cpath d='M25 75 L25 25 L75 25 L75 75 Z M25 50 L75 50 M50 25 L50 75' stroke='%23ffffff' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- PDF.js Library -->
+    <!-- PDF.js Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -35,18 +35,17 @@
         #pdf-modal { z-index: 1100; }
         #pdf-modal-content { width: 100vw; height: 100vh; max-width: 100%; border-radius: 0; background-color: #1f2937; }
         
+        /* PDF Kaydırma ve Sağa-Sola Hareket Düzeltmesi */
         #pdf-render-area { 
-            overflow-y: auto; 
+            overflow: auto; 
             flex-grow: 1; 
             background-color: #374151; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            gap: 20px; 
-            padding: 20px 0; 
-            scroll-behavior: smooth; 
-            /* Mobil kaydırma için kritik düzeltme: pan-y dikey kaydırmaya izin verir */
-            touch-action: pan-y pinch-zoom; 
+            padding: 20px; 
+            scroll-behavior: auto; 
+            touch-action: pan-x pan-y pinch-zoom; /* Sağa sola ve zoom hareketine tam izin */
             -webkit-overflow-scrolling: touch;
         }
         
@@ -54,8 +53,8 @@
             position: relative; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); 
             background: white; 
-            margin-bottom: 10px;
-            --scale-factor: 1.0;
+            margin-bottom: 20px;
+            flex-shrink: 0; /* Sayfaların daralmasını engeller */
         }
         
         .textLayer { 
@@ -95,7 +94,7 @@
 
     <div id="main-loader-container">
         <div class="loader"></div>
-        <p class="text-white font-bold text-lg text-center px-4">Mevzuat verileri yükleniyor...</p>
+        <p class="text-white font-bold text-lg text-center px-4">Veriler yükleniyor...</p>
     </div>
 
     <div id="app-container" class="content-wrapper h-full flex flex-col" style="display: none;">
@@ -147,15 +146,6 @@
                     </div>
                 </div>
             </div>
-
-            <div id="news-section" class="max-w-6xl mx-auto w-full mt-12 mb-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
-                <a href="https://www.tkgm.gov.tr/tum-duyurular" target="_blank" class="block hover:opacity-80 transition">
-                    <h2 class="text-xl font-bold text-white border-b-2 border-orange-500 pb-2 mb-4 inline-block">DUYURULAR</h2>
-                </a>
-                <a href="https://www.tkgm.gov.tr/ihaleler" target="_blank" class="block hover:opacity-80 transition">
-                    <h2 class="text-xl font-bold text-white border-b-2 border-blue-500 pb-2 mb-4 inline-block">İHALELER</h2>
-                </a>
-            </div>
         </main>
     </div>
 
@@ -167,13 +157,7 @@
                     <button id="selection-back-btn" class="p-2 rounded-full hover:bg-gray-700 transition hidden text-gray-300"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
                     <h2 id="selection-modal-title" class="text-2xl font-bold text-white truncate max-w-[200px] sm:max-w-md">Seçim yapınız</h2>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button id="sort-btn" class="hidden flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-xs text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10M11 9h10M11 13h10M11 17h10M5 5l3 3-3 3M8 15l-3 3 3 3"/></svg>
-                        <span id="sort-label">Yeni</span>
-                    </button>
-                    <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-                </div>
+                <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </header>
             <div id="selection-modal-body"></div>
         </div>
@@ -183,53 +167,41 @@
         <div id="favorites-modal-content" class="modal-content">
             <header class="modal-header">
                 <h2 class="text-2xl font-bold text-white">Favoriler</h2>
-                <button id="favorites-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                <button id="favorites-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </header>
             <div id="favorites-modal-body"></div>
         </div>
     </div>
 
-    <!-- PDF Görüntüleyici Modal -->
+    <!-- PDF Modal -->
     <div id="pdf-modal" class="modal">
         <div id="pdf-modal-content" class="modal-content">
             <header class="modal-header flex flex-col sm:flex-row items-center gap-4 bg-gray-800 border-b border-gray-700">
                 <div class="flex items-center justify-between w-full sm:w-auto gap-4">
                     <h3 id="pdf-title" class="text-sm font-bold text-white truncate max-w-[150px] sm:max-w-[200px]"></h3>
-                    
-                    <!-- Zoom Kontrolleri -->
                     <div class="flex items-center gap-1 bg-gray-900 rounded-lg p-1 border border-gray-700">
-                        <button id="pdf-zoom-out" class="p-1.5 hover:bg-gray-700 text-white rounded transition" title="Küçült">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
+                        <button id="pdf-zoom-out" class="p-1.5 hover:bg-gray-700 text-white rounded transition"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
                         <span id="zoom-percent" class="text-xs font-mono text-indigo-400 px-2 min-w-[45px] text-center">100%</span>
-                        <button id="pdf-zoom-in" class="p-1.5 hover:bg-gray-700 text-white rounded transition" title="Büyüt">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
+                        <button id="pdf-zoom-in" class="p-1.5 hover:bg-gray-700 text-white rounded transition"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
                     </div>
-
                     <button id="close-modal-btn" class="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
                 
-                <!-- PDF İçi Arama -->
                 <div class="flex items-center bg-gray-900 rounded-lg px-3 py-1 border border-gray-600 w-full sm:max-w-md">
                     <svg class="text-gray-500 mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="pdf-search-input" placeholder="Kelime ara..." class="bg-transparent border-none focus:ring-0 text-sm text-white w-full">
+                    <input type="text" id="pdf-search-input" placeholder="Döküman içinde ara..." class="bg-transparent border-none focus:ring-0 text-sm text-white w-full">
                     <div id="search-count" class="text-[10px] text-gray-500 whitespace-nowrap px-2">0/0</div>
                     <div class="flex gap-1">
                         <button id="pdf-search-prev" class="p-1 hover:bg-gray-700 text-gray-400 rounded"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
                         <button id="pdf-search-next" class="p-1 hover:bg-gray-700 text-gray-400 rounded"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
                     </div>
                 </div>
-
-                <div class="hidden sm:flex items-center gap-2 ml-auto">
-                    <button id="close-modal-btn-desktop" class="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                </div>
             </header>
 
             <div id="pdf-render-area" class="relative">
-                 <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/80 z-20">
+                 <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/90 z-20">
                      <div class="loader !border-gray-400 !border-top-indigo-600"></div>
-                     <p class="text-white text-sm mt-4">Döküman indiriliyor...</p>
+                     <p class="text-white text-xs mt-4">Döküman indiriliyor...</p>
                  </div>
             </div>
         </div>
@@ -240,6 +212,7 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+        // DOM Elemanları
         const mainLoader = document.getElementById('main-loader-container');
         const appContainer = document.getElementById('app-container');
         const bgCanvas = document.getElementById('dynamic-bg');
@@ -248,71 +221,54 @@
         const mainCategoriesContainer = document.getElementById('main-categories');
         const searchResultsContainer = document.getElementById('search-results');
         const favoritesMainBtn = document.getElementById('favorites-main-btn');
-        const favoritesModal = document.getElementById('favorites-modal');
         const selectionModal = document.getElementById('selection-modal');
-        const selectionModalTitle = document.getElementById('selection-modal-title');
         const selectionModalBody = document.getElementById('selection-modal-body');
         const selectionBackBtn = document.getElementById('selection-back-btn');
-        const selectionCloseBtn = document.getElementById('selection-close-btn');
-        const sortBtn = document.getElementById('sort-btn');
-        const sortLabel = document.getElementById('sort-label');
         const pdfModal = document.getElementById('pdf-modal');
         const pdfTitle = document.getElementById('pdf-title');
         const pdfRenderArea = document.getElementById('pdf-render-area');
         const pdfLoader = document.getElementById('pdf-loader');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        const closeModalBtnDesktop = document.getElementById('close-modal-btn-desktop');
         const toast = document.getElementById('toast');
-        const refreshDataBtn = document.getElementById('refresh-data-btn');
+        const refreshDataBtn = document.getElementById('refresh-data-btn'); // EKSİK TANIM EKLENDİ
         
         const pdfSearchInput = document.getElementById('pdf-search-input');
         const pdfSearchNext = document.getElementById('pdf-search-next');
         const pdfSearchPrev = document.getElementById('pdf-search-prev');
         const searchCountDisplay = document.getElementById('search-count');
-        const zoomInBtn = document.getElementById('pdf-zoom-in');
-        const zoomOutBtn = document.getElementById('pdf-zoom-out');
         const zoomPercentLabel = document.getElementById('zoom-percent');
 
         const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
         const cloudflareProxyBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
-        
         const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
         const getGitHubToken = () => T1 + T2;
         
-        const CACHE_KEY_DATA = 'tkgm_mevzuat_data_cache_v5';
-        const CACHE_TIME = 1000 * 60 * 60 * 24;
-
         let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
-        const FAVORITES_KEY = 'tkgm_mevzuat_favorites';
-        let currentDocType = null, currentSection = null, isSortAscending = false;
-
         let currentPdfDoc = null;
-        let currentPdfData = null; 
         let pdfPagesText = [];
         let searchMatches = [];
         let currentMatchIndex = -1;
         let currentScale = 1.0;
-        
         let touchDistStart = 0;
 
+        // Arka plan animasyonu
         const initBg = () => {
             const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 30;
-            const particleCount = 80;
+            const particleCount = 50;
             const particlePositions = new Float32Array(particleCount * 3);
             const particleVelocities = [];
             for(let i=0; i<particleCount; i++) {
                 particlePositions[i*3] = (Math.random()-0.5)*50;
                 particlePositions[i*3+1] = (Math.random()-0.5)*50;
                 particlePositions[i*3+2] = (Math.random()-0.5)*50;
-                particleVelocities.push({x:(Math.random()-0.5)*0.015, y:(Math.random()-0.5)*0.015, z:(Math.random()-0.5)*0.015});
+                particleVelocities.push({x:(Math.random()-0.5)*0.01, y:(Math.random()-0.5)*0.01});
             }
             const particlesGeom = new THREE.BufferGeometry();
             particlesGeom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            const particlesMat = new THREE.PointsMaterial({ color: 0x6366f1, size: 0.2, transparent: true, opacity: 0.6 });
+            const particlesMat = new THREE.PointsMaterial({ color: 0x6366f1, size: 0.2, transparent: true, opacity: 0.5 });
             const points = new THREE.Points(particlesGeom, particlesMat);
             scene.add(points);
             const animate = () => {
@@ -324,7 +280,6 @@
                     if(Math.abs(pos[i*3+1])>25) particleVelocities[i].y*=-1;
                 }
                 points.geometry.attributes.position.needsUpdate = true;
-                scene.rotation.y += 0.0003;
                 renderer.render(scene, camera);
             };
             animate();
@@ -332,10 +287,9 @@
         };
 
         async function fetchRepoList(path) {
-            const token = getGitHubToken();
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
             try {
-                let response = await fetch(apiUrl, { headers: { 'Authorization': `token ${token}` } });
+                let response = await fetch(apiUrl, { headers: { 'Authorization': `token ${getGitHubToken()}` } });
                 if (!response.ok) return [];
                 let files = await response.json();
                 return files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf'))
@@ -345,66 +299,37 @@
 
         async function initializeApp(forceRefresh = false) {
             if(!forceRefresh) initBg();
-            const cachedDataStr = localStorage.getItem(CACHE_KEY_DATA);
-            if (!forceRefresh && cachedDataStr) {
-                const cached = JSON.parse(cachedDataStr);
-                if (Date.now() - cached.timestamp < CACHE_TIME) {
-                    mevzuatData = cached.data;
-                    mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
-                    if(!window.eventsSetup) setupEventListeners();
-                    return;
-                }
-            }
             mainLoader.style.display = 'flex';
-            const paths = [
-                ['tapu/genelgeler', 'tapu', 'genelge'], ['tapu/talimatlar', 'tapu', 'talimat'],
-                ['kadastro/genelgeler', 'kadastro', 'genelge'], ['kadastro/talimatlar', 'kadastro', 'talimat'],
-                ['genel/genelgeler', 'genel', 'genelge'], ['genel/talimatlar', 'genel', 'talimat']
-            ];
+            const paths = [['tapu/genelgeler', 'tapu', 'genelge'], ['tapu/talimatlar', 'tapu', 'talimat'], ['kadastro/genelgeler', 'kadastro', 'genelge'], ['kadastro/talimatlar', 'kadastro', 'talimat'], ['genel/genelgeler', 'genel', 'genelge'], ['genel/talimatlar', 'genel', 'talimat']];
             const results = await Promise.all(paths.map(p => fetchRepoList(p[0])));
-            paths.forEach((p, i) => {
-                if (!mevzuatData[p[1]]) mevzuatData[p[1]] = {};
-                mevzuatData[p[1]][p[2]] = results[i];
-            });
-            localStorage.setItem(CACHE_KEY_DATA, JSON.stringify({ timestamp: Date.now(), data: mevzuatData }));
+            paths.forEach((p, i) => { if (!mevzuatData[p[1]]) mevzuatData[p[1]] = {}; mevzuatData[p[1]][p[2]] = results[i]; });
             mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
             if(!window.eventsSetup) setupEventListeners();
-            if(forceRefresh) showToast("Veriler başarıyla güncellendi.");
         }
 
         const formatTitle = (n) => n.replace(/\.pdf$/i, '').replace(/_/g, ' ').split(' ').map(w => w.length ? w[0].toLocaleUpperCase('tr-TR') + w.slice(1) : w).join(' ');
-        const extractYear = (t) => { const m = t.match(/\b(19|20)\d{2}\b/); return m ? parseInt(m[0], 10) : 0; };
-        const getFavorites = () => JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
-        const isFavorite = (p) => getFavorites().some(f => f.path === p);
-        const toggleFavorite = (d) => {
-            let f = getFavorites();
-            if (isFavorite(d.path)) { f = f.filter(x => x.path !== d.path); showToast("Favorilerden çıkarıldı."); }
-            else { f.push(d); showToast("Favorilere eklendi."); }
-            localStorage.setItem(FAVORITES_KEY, JSON.stringify(f));
-        }
 
+        // PDF Yükleme ve Hızlı Render Mantığı
         async function openPdfModal(path, title) {
             pdfModal.classList.add('active');
             pdfTitle.textContent = title;
-            pdfRenderArea.innerHTML = '<div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/80 z-20"><div class="loader !border-gray-400 !border-top-indigo-600"></div><p class="text-white text-sm mt-4">Döküman indiriliyor...</p></div>';
+            pdfRenderArea.innerHTML = '<div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/90 z-20"><div class="loader !border-gray-400 !border-top-indigo-600"></div><p class="text-white text-xs mt-4">Döküman indiriliyor...</p></div>';
             pdfSearchInput.value = '';
             searchMatches = [];
             currentMatchIndex = -1;
             searchCountDisplay.textContent = '0/0';
-            currentScale = window.innerWidth < 768 ? 0.8 : 1.2;
-            updateZoomLabel();
+            currentScale = window.innerWidth < 768 ? 0.75 : 1.1;
+            zoomPercentLabel.textContent = Math.round(currentScale * 100) + '%';
 
             const docUrl = `${cloudflareProxyBase}${path}`;
 
             try {
                 const response = await fetch(docUrl);
-                if (!response.ok) throw new Error(`Yükleme hatası: ${response.status}`);
-                
+                if (!response.ok) throw new Error("Yükleme başarısız.");
                 const arrayBuffer = await response.arrayBuffer();
-                currentPdfData = new Uint8Array(arrayBuffer);
-
+                
                 const loadingTask = pdfjsLib.getDocument({
-                    data: currentPdfData,
+                    data: new Uint8Array(arrayBuffer),
                     disableRange: true,
                     disableStream: true
                 });
@@ -412,208 +337,145 @@
                 currentPdfDoc = await loadingTask.promise;
                 pdfPagesText = [];
                 
-                await renderPdfPages();
+                // İlk sayfayı anında çiz ve loader'ı kaldır
+                await renderSinglePage(1, true);
+                const pdfLoaderEl = document.getElementById('pdf-loader');
+                if(pdfLoaderEl) pdfLoaderEl.style.display = 'none';
 
-            } catch (error) {
-                console.error("PDF yükleme hatası:", error);
-                pdfRenderArea.innerHTML = `<div class="text-red-400 p-12 text-center">
-                    <p class="font-bold text-lg mb-2">Hata: Döküman Yüklenemedi</p>
-                    <p class="text-sm">Bağlantı sorunu oluştu. Lütfen tekrar deneyin.</p>
-                </div>`;
-            }
-        }
-
-        async function renderPdfPages() {
-            if (!currentPdfDoc) return;
-            
-            const existingLoader = document.getElementById('pdf-loader');
-            pdfRenderArea.innerHTML = '';
-            if (existingLoader) pdfRenderArea.appendChild(existingLoader);
-
-            const numPages = currentPdfDoc.numPages;
-            
-            for (let i = 1; i <= numPages; i++) {
-                const page = await currentPdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: currentScale });
-                
-                const pageContainer = document.createElement('div');
-                pageContainer.className = 'pdf-page-container';
-                pageContainer.id = `page-${i}`;
-                pageContainer.style.width = `${viewport.width}px`;
-                pageContainer.style.height = `${viewport.height}px`;
-                pageContainer.style.setProperty('--scale-factor', currentScale);
-                
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                pageContainer.appendChild(canvas);
-
-                const textLayerDiv = document.createElement('div');
-                textLayerDiv.className = 'textLayer';
-                pageContainer.appendChild(textLayerDiv);
-                
-                pdfRenderArea.appendChild(pageContainer);
-
-                await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                if (pdfPagesText.length < numPages) {
-                    const textContent = await page.getTextContent();
-                    pdfPagesText.push(textContent.items.map(item => item.str).join(' '));
+                // Geri kalan sayfaları arka planda sessizce yükle
+                for (let i = 2; i <= currentPdfDoc.numPages; i++) {
+                    renderSinglePage(i, false);
                 }
 
-                const textContent = await page.getTextContent();
-                pdfjsLib.renderTextLayer({
-                    textContent: textContent,
-                    container: textLayerDiv,
-                    viewport: viewport,
-                    textDivs: []
-                });
+            } catch (error) {
+                console.error(error);
+                pdfRenderArea.innerHTML = `<div class="text-red-400 p-12 text-center">Hata: Döküman Yüklenemedi.</div>`;
             }
-            
-            if (existingLoader) existingLoader.remove();
         }
 
-        function updateZoomLabel() {
-            zoomPercentLabel.textContent = Math.round(currentScale * 100) + '%';
+        async function renderSinglePage(num, isFirst) {
+            if (!currentPdfDoc) return;
+            const page = await currentPdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: currentScale });
+            
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'pdf-page-container';
+            pageContainer.id = `page-${num}`;
+            pageContainer.style.width = `${viewport.width}px`;
+            pageContainer.style.height = `${viewport.height}px`;
+            pageContainer.style.setProperty('--scale-factor', currentScale);
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            pageContainer.appendChild(canvas);
+
+            const textLayerDiv = document.createElement('div');
+            textLayerDiv.className = 'textLayer';
+            pageContainer.appendChild(textLayerDiv);
+            
+            pdfRenderArea.appendChild(pageContainer);
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+            const textContent = await page.getTextContent();
+            pdfPagesText[num-1] = textContent.items.map(item => item.str).join(' ');
+
+            pdfjsLib.renderTextLayer({
+                textContent: textContent,
+                container: textLayerDiv,
+                viewport: viewport,
+                textDivs: []
+            });
+        }
+
+        async function refreshZoom() {
+            const currentTop = pdfRenderArea.scrollTop;
+            pdfRenderArea.innerHTML = '';
+            for (let i = 1; i <= currentPdfDoc.numPages; i++) {
+                await renderSinglePage(i, false);
+            }
+            pdfRenderArea.scrollTop = currentTop;
         }
 
         function changeZoom(delta) {
-            const newScale = Math.min(Math.max(currentScale + delta, 0.4), 3.0);
+            const newScale = Math.min(Math.max(currentScale + delta, 0.3), 3.0);
             if (Math.abs(newScale - currentScale) > 0.01) {
                 currentScale = newScale;
-                updateZoomLabel();
-                renderPdfPages();
+                zoomPercentLabel.textContent = Math.round(currentScale * 100) + '%';
+                refreshZoom();
             }
         }
 
-        // --- Mobil Dokunmatik Algılama ---
+        // Pinch to Zoom
         pdfRenderArea.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
-                // İki parmak dokunursa zoom başlat
-                touchDistStart = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
+                touchDistStart = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
             }
         }, { passive: true });
 
         pdfRenderArea.addEventListener('touchend', (e) => {
             if (touchDistStart > 0 && e.touches.length < 2) {
-                const finalDist = Math.hypot(
-                    e.changedTouches[0].pageX - (e.touches[0]?.pageX || e.changedTouches[0].pageX),
-                    e.changedTouches[0].pageY - (e.touches[0]?.pageY || e.changedTouches[0].pageY)
-                );
-                
-                // Eğer mesafe çok değiştiyse zoom yap (kaydırma ile çakışmaması için eşik değer 60)
+                const finalDist = Math.hypot(e.changedTouches[0].pageX - (e.touches[0]?.pageX || e.changedTouches[0].pageX), e.changedTouches[0].pageY - (e.touches[0]?.pageY || e.changedTouches[0].pageY));
                 if (Math.abs(finalDist - touchDistStart) > 60) {
-                   const factor = finalDist > touchDistStart ? 0.2 : -0.2;
-                   changeZoom(factor);
+                   changeZoom(finalDist > touchDistStart ? 0.25 : -0.25);
                 }
                 touchDistStart = 0;
             }
         });
 
-        // Mouse Wheel + Ctrl (PC)
-        pdfRenderArea.addEventListener('wheel', (e) => {
-            if (e.ctrlKey) {
-                e.preventDefault();
-                changeZoom(e.deltaY > 0 ? -0.1 : 0.1);
-            }
-        }, { passive: false });
-
         function searchInPdf() {
             const query = pdfSearchInput.value.toLowerCase().trim();
             if (!query || query.length < 2) {
-                clearHighlights();
-                searchMatches = [];
-                currentMatchIndex = -1;
-                searchCountDisplay.textContent = '0/0';
+                document.querySelectorAll('.textLayer span').forEach(s => s.innerHTML = s.textContent);
+                searchMatches = []; currentMatchIndex = -1; searchCountDisplay.textContent = '0/0';
                 return;
             }
-
-            clearHighlights();
             searchMatches = [];
-            
             pdfPagesText.forEach((text, pageIdx) => {
-                const pageNum = pageIdx + 1;
-                const textLayer = document.querySelector(`#page-${pageNum} .textLayer`);
+                const textLayer = document.querySelector(`#page-${pageIdx+1} .textLayer`);
                 if (!textLayer) return;
-
-                const textDivs = textLayer.querySelectorAll('span');
-                textDivs.forEach((div) => {
-                    const content = div.textContent.toLowerCase();
-                    if (content.includes(query)) {
-                        searchMatches.push({ page: pageNum, element: div });
+                textLayer.querySelectorAll('span').forEach((div) => {
+                    if (div.textContent.toLowerCase().includes(query)) {
+                        searchMatches.push({ page: pageIdx + 1, element: div });
                         div.innerHTML = div.textContent.replace(new RegExp(`(${query})`, 'gi'), '<mark class="highlight">$1</mark>');
-                    }
+                    } else { div.innerHTML = div.textContent; }
                 });
             });
-
-            if (searchMatches.length > 0) {
-                currentMatchIndex = 0;
-                navigateToMatch(0);
-            } else {
-                searchCountDisplay.textContent = '0/0';
-            }
+            if (searchMatches.length > 0) navigateToMatch(0);
         }
 
         function navigateToMatch(index) {
             if (searchMatches.length === 0) return;
             document.querySelectorAll('.highlight.selected').forEach(el => el.classList.remove('selected'));
-            
             currentMatchIndex = (index + searchMatches.length) % searchMatches.length;
             const match = searchMatches[currentMatchIndex];
-            
             const marks = match.element.querySelectorAll('mark');
             marks.forEach(m => m.classList.add('selected'));
-            
             match.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             searchCountDisplay.textContent = `${currentMatchIndex + 1}/${searchMatches.length}`;
-        }
-
-        function clearHighlights() {
-            document.querySelectorAll('.textLayer span').forEach(span => {
-                if (span.querySelector('mark')) span.innerHTML = span.textContent;
-            });
-        }
-
-        function closePdfModal() {
-            pdfModal.classList.remove('active');
-            currentPdfDoc = null;
-            currentPdfData = null;
-            pdfRenderArea.innerHTML = '';
-        }
-
-        function createItemHtml(d) {
-            const isFav = isFavorite(d.path);
-            return `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between group">
-                <div class="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer item-open-btn" data-path="${d.path}" data-title="${d.title}">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400 flex-shrink-0"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <span class="text-sm font-medium truncate group-hover:text-white">${d.title}</span>
-                </div>
-                <div class="flex gap-1 ml-2">
-                    <button class="p-2 hover:bg-gray-700 rounded-full fav-btn ${isFav ? 'favorited' : ''}" data-path="${d.path}" data-title="${d.title}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-                </div>
-            </div>`;
         }
 
         function setupEventListeners() {
             window.eventsSetup = true;
             mainCategoriesContainer.querySelectorAll('[data-section]').forEach(c => c.onclick = () => {
-                currentSection = c.dataset.section;
+                const section = c.dataset.section;
                 selectionModal.classList.add('active');
-                showCategoryChoice();
+                document.getElementById('selection-modal-title').textContent = section.toUpperCase();
+                selectionBackBtn.classList.add('hidden');
+                selectionModalBody.innerHTML = `<div class="grid grid-cols-1 gap-4"><button data-type="genelge" class="p-6 bg-gray-800 rounded-xl border border-indigo-500/30 hover:bg-gray-700 transition font-bold text-lg">GENELGELER</button><button data-type="talimat" class="p-6 bg-gray-800 rounded-xl border border-blue-500/30 hover:bg-gray-700 transition font-bold text-lg">TALİMATLAR</button></div>`;
+                selectionModalBody.querySelectorAll('button').forEach(b => b.onclick = () => {
+                    const type = b.dataset.type;
+                    selectionBackBtn.classList.remove('hidden');
+                    let docs = mevzuatData[section][type] || [];
+                    selectionModalBody.innerHTML = docs.length ? `<div class="space-y-2">${docs.map(d => `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between cursor-pointer group" onclick="openPdfModal('${d.path}', '${d.title}')"><div class="flex items-center gap-3 overflow-hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span class="text-sm font-medium truncate group-hover:text-white">${d.title}</span></div></div>`).join('')}</div>` : `<p class="text-center text-gray-500">Kayıt bulunamadı.</p>`;
+                });
             });
-            selectionCloseBtn.onclick = () => selectionModal.classList.remove('active');
-            selectionBackBtn.onclick = showCategoryChoice;
-            sortBtn.onclick = () => { isSortAscending = !isSortAscending; sortLabel.textContent = isSortAscending ? 'Eski' : 'Yeni'; showDocumentList(currentDocType); };
-            closeModalBtn.onclick = closePdfModal;
-            closeModalBtnDesktop.onclick = closePdfModal;
-            favoritesMainBtn.onclick = () => { favoritesModal.classList.add('active'); renderFavoritesList(); };
-            document.getElementById('favorites-close-btn').onclick = () => favoritesModal.classList.remove('active');
-            refreshDataBtn.onclick = () => initializeApp(true);
 
+            document.getElementById('selection-close-btn').onclick = () => selectionModal.classList.remove('active');
+            document.getElementById('close-modal-btn').onclick = () => { pdfModal.classList.remove('active'); currentPdfDoc = null; pdfRenderArea.innerHTML = ''; };
+            
             searchInput.oninput = (e) => {
                 const q = e.target.value.toLowerCase().trim();
                 clearSearchBtn.style.display = q ? 'block' : 'none';
@@ -621,50 +483,20 @@
                 mainCategoriesContainer.style.display = 'none';
                 const res = [];
                 for(let s in mevzuatData) for(let t in mevzuatData[s]) mevzuatData[s][t].forEach(d => { if(d.title.toLowerCase().includes(q)) res.push(d); });
-                searchResultsContainer.innerHTML = res.length ? `<div class="space-y-2 pb-8">${res.map(createItemHtml).join('')}</div>` : `<p class="text-center text-gray-500">Döküman bulunamadı.</p>`;
-                attachItemEvents(searchResultsContainer);
+                searchResultsContainer.innerHTML = res.length ? `<div class="space-y-2">${res.map(d => `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between cursor-pointer" onclick="openPdfModal('${d.path}', '${d.title}')"><div class="flex items-center gap-3 overflow-hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span class="text-sm font-medium truncate">${d.title}</span></div></div>`).join('')}</div>` : `<p class="text-center text-gray-500">Bulunamadı.</p>`;
             };
             clearSearchBtn.onclick = () => { searchInput.value=''; searchInput.oninput({target: searchInput}); };
 
             pdfSearchInput.oninput = searchInPdf;
             pdfSearchNext.onclick = () => navigateToMatch(currentMatchIndex + 1);
             pdfSearchPrev.onclick = () => navigateToMatch(currentMatchIndex - 1);
-            pdfSearchInput.onkeydown = (e) => { if(e.key === 'Enter') navigateToMatch(currentMatchIndex + 1); };
-            
-            zoomInBtn.onclick = () => changeZoom(0.1);
-            zoomOutBtn.onclick = () => changeZoom(-0.1);
-        }
-
-        function showCategoryChoice() {
-            selectionModalTitle.textContent = currentSection.toUpperCase();
-            selectionBackBtn.classList.add('hidden'); sortBtn.classList.add('hidden');
-            selectionModalBody.innerHTML = `<div class="grid grid-cols-1 gap-4"><button data-type="genelge" class="p-6 bg-gray-800 rounded-xl border border-indigo-500/30 hover:bg-gray-700 transition font-bold text-lg">GENELGELER</button><button data-type="talimat" class="p-6 bg-gray-800 rounded-xl border border-blue-500/30 hover:bg-gray-700 transition font-bold text-lg">TALİMATLAR</button></div>`;
-            selectionModalBody.querySelectorAll('[data-type]').forEach(b => b.onclick = () => showDocumentList(b.dataset.type));
-        }
-
-        function showDocumentList(type) {
-            currentDocType = type; selectionModalTitle.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            selectionBackBtn.classList.remove('hidden'); sortBtn.classList.remove('hidden');
-            let docs = [...(mevzuatData[currentSection][type] || [])];
-            docs.sort((a,b) => isSortAscending ? extractYear(a.title)-extractYear(b.title) : extractYear(b.title)-extractYear(a.title));
-            selectionModalBody.innerHTML = docs.length ? `<div class="space-y-2">${docs.map(createItemHtml).join('')}</div>` : `<p class="text-center text-gray-500 py-4">Kayıt bulunamadı.</p>`;
-            attachItemEvents(selectionModalBody);
-        }
-
-        function attachItemEvents(container) {
-            container.querySelectorAll('.item-open-btn').forEach(b => b.onclick = () => openPdfModal(b.dataset.path, b.dataset.title));
-            container.querySelectorAll('.fav-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); toggleFavorite({path: b.dataset.path, title: b.dataset.title}); b.classList.toggle('favorited'); });
-        }
-
-        function renderFavoritesList() {
-            const f = getFavorites();
-            const body = document.getElementById('favorites-modal-body');
-            body.innerHTML = f.length ? `<div class="space-y-2">${f.map(createItemHtml).join('')}</div>` : `<p class="text-center text-gray-500 py-4">Favori bulunmuyor.</p>`;
-            attachItemEvents(body);
+            document.getElementById('pdf-zoom-in').onclick = () => changeZoom(0.2);
+            document.getElementById('pdf-zoom-out').onclick = () => changeZoom(-0.2);
+            refreshDataBtn.onclick = () => initializeApp(true);
         }
 
         const showToast = (m) => { toast.textContent = m; toast.className = 'show'; setTimeout(() => toast.className='', 3000); };
-        window.addEventListener('keydown', e => { if (e.key === 'Escape') { closePdfModal(); selectionModal.classList.remove('active'); favoritesModal.classList.remove('active'); } });
+        window.addEventListener('keydown', e => { if (e.key === 'Escape') { pdfModal.classList.remove('active'); selectionModal.classList.remove('active'); } });
 
         initializeApp();
     </script>
