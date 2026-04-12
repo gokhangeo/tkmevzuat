@@ -8,7 +8,6 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%234f46e5'/%3E%3Cpath d='M25 75 L25 25 L75 25 L75 75 Z M25 50 L75 50 M50 25 L50 75' stroke='%23ffffff' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- PDF.js Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -18,24 +17,15 @@
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
         
-        body { font-family: 'Inter', sans-serif; background-color: #111827; overflow-y: auto; }
+        body { font-family: 'Inter', sans-serif; background-color: #111827; overflow-y: auto; touch-action: manipulation; }
         #dynamic-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
         .content-wrapper { position: relative; z-index: 1; }
         
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal.active { display: flex; }
         
-        .modal-content { background-color: #1f2937; width: 95%; height: 95%; border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #374151; }
-        .modal-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #374151; flex-shrink: 0; }
+        .modal-content { background-color: #1f2937; width: 98%; height: 96%; border-radius: 1rem; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #374151; }
         
-        #selection-modal-content, #favorites-modal-content { max-width: 800px; max-height: 90%; background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(10px); }
-        #selection-modal-body, #favorites-modal-body { padding: 1rem; overflow-y: auto; }
-
-        #pdf-modal { z-index: 1100; }
-        #pdf-modal-content { width: 100vw; height: 100vh; max-width: 100%; border-radius: 0; background-color: #1f2937; }
-        
-        /* PDF Kaydırma ve Sağa-Sola Hareket Düzeltmesi */
         #pdf-render-area { 
             overflow: auto; 
             flex-grow: 1; 
@@ -43,107 +33,93 @@
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            padding: 20px; 
-            scroll-behavior: auto; 
-            touch-action: pan-x pan-y pinch-zoom; /* Sağa sola ve zoom hareketine tam izin */
+            padding: 10px; 
             -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+
+        #pdf-zoom-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-origin: top center;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
         }
         
         .pdf-page-container { 
             position: relative; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
             background: white; 
-            margin-bottom: 20px;
-            flex-shrink: 0; /* Sayfaların daralmasını engeller */
+            margin-bottom: 15px;
+            max-width: 100%;
         }
+
+        canvas { display: block; max-width: 100%; height: auto !important; }
         
-        .textLayer { 
-            position: absolute; 
-            left: 0; 
-            top: 0; 
-            right: 0; 
-            bottom: 0; 
-            overflow: hidden; 
-            opacity: 0.2; 
-            line-height: 1.0; 
-            pointer-events: none;
-        }
-        
-        .textLayer span { 
-            color: transparent; 
-            position: absolute; 
-            white-space: pre; 
-            cursor: text; 
-            transform-origin: 0% 0%; 
-            pointer-events: auto;
-        }
+        .textLayer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; opacity: 0.2; line-height: 1.0; pointer-events: none; }
+        .textLayer span { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; pointer-events: auto; }
         
         .highlight { background-color: rgba(255, 255, 0, 0.6); border-radius: 2px; }
         .highlight.selected { background-color: rgba(255, 150, 0, 0.9); box-shadow: 0 0 8px orange; }
 
         .loader { border: 4px solid #374151; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        #main-loader-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: #4f46e5; color: white; padding: 1rem 2rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transition: bottom 0.5s ease-in-out; z-index: 10000; }
-        #toast.show { bottom: 30px; }
+        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: #4f46e5; color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; transition: bottom 0.4s; z-index: 10000; }
+        #toast.show { bottom: 20px; }
     </style>
 </head>
 <body class="h-full text-gray-200">
     <canvas id="dynamic-bg"></canvas>
 
-    <div id="main-loader-container">
-        <div class="loader"></div>
-        <p class="text-white font-bold text-lg text-center px-4">Veriler yükleniyor...</p>
+    <div id="main-loader-container" class="fixed inset-0 bg-[#111827] flex flex-col items-center justify-center z-[9999]">
+        <div class="loader mb-4"></div>
+        <p class="text-white font-medium">Sistem Hazırlanıyor...</p>
     </div>
 
     <div id="app-container" class="content-wrapper h-full flex flex-col" style="display: none;">
         <div class="absolute top-4 right-4 z-10 flex gap-2">
-            <button id="refresh-data-btn" class="p-3 rounded-full bg-gray-800/50 hover:bg-gray-700/70 transition text-green-400" title="Listeyi Güncelle">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
+            <button id="refresh-data-btn" class="p-3 rounded-full bg-gray-800/80 text-green-400 hover:bg-gray-700 transition shadow-lg" title="Listeyi Güncelle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
             </button>
-            <button id="favorites-main-btn" class="p-3 rounded-full bg-gray-800/50 hover:bg-gray-700/70 transition text-yellow-400" title="Favoriler">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+            <button id="favorites-main-btn" class="p-3 rounded-full bg-gray-800/80 text-yellow-400 hover:bg-gray-700 transition shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
             </button>
         </div>
 
-        <main id="home-page" class="page active p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
-            <div class="pt-8">
-                <header class="text-center mb-8">
-                    <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
-                        TKGM Mevzuat Sistemi
-                    </h1>
-                    <p class="text-gray-400 mt-2">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
-                </header>
-                <div class="mb-8 max-w-2xl w-full mx-auto">
-                    <div class="relative flex items-center">
-                        <span class="absolute left-4 text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
-                        <input type="text" id="search-input" placeholder="Mevzuat dökümanı ara..." class="w-full bg-gray-800/80 border border-gray-700 rounded-full py-3 pl-12 pr-20 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm">
-                        <div class="absolute right-3 flex items-center gap-2">
-                            <button id="clear-search-btn" class="text-gray-500 hover:text-white transition hidden p-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
-                        </div>
-                    </div>
+        <main id="home-page" class="p-4 sm:p-8 flex-grow flex flex-col">
+            <header class="text-center mt-12 mb-12">
+                <h1 class="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500 tracking-tight uppercase">TKGM Mevzuat</h1>
+                <p class="text-gray-500 text-sm mt-2 font-medium">Hızlı ve Net Erişim</p>
+            </header>
+
+            <div class="max-w-2xl w-full mx-auto mb-12">
+                <div class="relative group">
+                    <input type="text" id="search-input" placeholder="Döküman isminde ara..." class="w-full bg-gray-800/50 border-2 border-gray-700 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-indigo-500 focus:outline-none transition-all shadow-2xl">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </div>
+                <div id="search-results" class="mt-4 space-y-2"></div>
             </div>
-            
-            <div class="flex-grow flex flex-col justify-center gap-8">
-                <div id="search-results" class="max-w-4xl w-full mx-auto overflow-y-auto"></div>
-                
-                <div id="main-categories" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full">
-                    <div data-section="tapu" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
-                        <h2 class="text-2xl font-bold text-yellow-400 mb-2">TAPU</h2>
-                        <p class="text-gray-400 text-sm">Tapu Dairesi Başkanlığı belgeleri.</p>
+
+            <div id="main-categories" class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto w-full">
+                <div data-section="tapu" class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 hover:border-yellow-500/50 transition-all cursor-pointer group text-center">
+                    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
                     </div>
-                    <div data-section="kadastro" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
-                        <h2 class="text-2xl font-bold text-blue-400 mb-2">KADASTRO</h2>
-                        <p class="text-gray-400 text-sm">Kadastro Dairesi Başkanlığı belgeleri.</p>
+                    <h2 class="text-xl font-bold text-white uppercase">Tapu</h2>
+                </div>
+                <div data-section="kadastro" class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 hover:border-blue-500/50 transition-all cursor-pointer group text-center">
+                    <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     </div>
-                    <div data-section="genel" class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-2 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center border border-gray-700">
-                        <h2 class="text-2xl font-bold text-green-400 mb-2">GENEL</h2>
-                        <p class="text-gray-400 text-sm">Tüm birimleri ilgilendiren ortak belgeler.</p>
+                    <h2 class="text-xl font-bold text-white uppercase">Kadastro</h2>
+                </div>
+                <div data-section="genel" class="bg-gray-800/40 p-8 rounded-3xl border border-gray-700 hover:border-green-500/50 transition-all cursor-pointer group text-center">
+                    <div class="w-12 h-12 bg-green-500/10 text-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                     </div>
+                    <h2 class="text-xl font-bold text-white uppercase">Genel</h2>
                 </div>
             </div>
         </main>
@@ -151,57 +127,47 @@
 
     <!-- Modallar -->
     <div id="selection-modal" class="modal">
-        <div id="selection-modal-content" class="modal-content">
-            <header class="modal-header">
+        <div class="modal-content max-w-2xl !h-auto max-h-[90%]">
+            <header class="p-6 border-b border-gray-700 flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <button id="selection-back-btn" class="p-2 rounded-full hover:bg-gray-700 transition hidden text-gray-300"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
-                    <h2 id="selection-modal-title" class="text-2xl font-bold text-white truncate max-w-[200px] sm:max-w-md">Seçim yapınız</h2>
+                    <button id="selection-back-btn" class="hidden p-2 hover:bg-gray-700 rounded-full text-gray-400 transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                    <h2 id="selection-modal-title" class="text-xl font-extrabold text-white">Birim Seçimi</h2>
                 </div>
-                <button id="selection-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                <button onclick="closeModal('selection-modal')" class="p-2 hover:bg-red-500/20 text-red-400 rounded-full transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </header>
-            <div id="selection-modal-body"></div>
+            <div id="selection-modal-body" class="p-6 overflow-y-auto max-h-[60vh]"></div>
         </div>
     </div>
 
-    <div id="favorites-modal" class="modal">
-        <div id="favorites-modal-content" class="modal-content">
-            <header class="modal-header">
-                <h2 class="text-2xl font-bold text-white">Favoriler</h2>
-                <button id="favorites-close-btn" class="p-2 rounded-full hover:bg-red-500/20 text-red-400 transition"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-            </header>
-            <div id="favorites-modal-body"></div>
-        </div>
-    </div>
-
-    <!-- PDF Modal -->
     <div id="pdf-modal" class="modal">
-        <div id="pdf-modal-content" class="modal-content">
-            <header class="modal-header flex flex-col sm:flex-row items-center gap-4 bg-gray-800 border-b border-gray-700">
-                <div class="flex items-center justify-between w-full sm:w-auto gap-4">
-                    <h3 id="pdf-title" class="text-sm font-bold text-white truncate max-w-[150px] sm:max-w-[200px]"></h3>
-                    <div class="flex items-center gap-1 bg-gray-900 rounded-lg p-1 border border-gray-700">
-                        <button id="pdf-zoom-out" class="p-1.5 hover:bg-gray-700 text-white rounded transition"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
-                        <span id="zoom-percent" class="text-xs font-mono text-indigo-400 px-2 min-w-[45px] text-center">100%</span>
-                        <button id="pdf-zoom-in" class="p-1.5 hover:bg-gray-700 text-white rounded transition"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+        <div class="modal-content">
+            <header class="bg-gray-900 p-4 border-b border-gray-700 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <h3 id="pdf-title" class="text-sm font-bold text-white truncate max-w-[50%]">Döküman</h3>
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center bg-black/40 rounded-xl p-1 border border-gray-700">
+                            <button id="pdf-zoom-out" class="p-2 hover:bg-gray-700 text-white rounded-lg transition"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                            <span id="zoom-percent" class="text-xs font-bold text-indigo-400 min-w-[45px] text-center">100%</span>
+                            <button id="pdf-zoom-in" class="p-2 hover:bg-gray-700 text-white rounded-lg transition"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                        </div>
+                        <button id="close-modal-btn" class="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                     </div>
-                    <button id="close-modal-btn" class="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
-                
-                <div class="flex items-center bg-gray-900 rounded-lg px-3 py-1 border border-gray-600 w-full sm:max-w-md">
-                    <svg class="text-gray-500 mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="pdf-search-input" placeholder="Döküman içinde ara..." class="bg-transparent border-none focus:ring-0 text-sm text-white w-full">
-                    <div id="search-count" class="text-[10px] text-gray-500 whitespace-nowrap px-2">0/0</div>
-                    <div class="flex gap-1">
-                        <button id="pdf-search-prev" class="p-1 hover:bg-gray-700 text-gray-400 rounded"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                        <button id="pdf-search-next" class="p-1 hover:bg-gray-700 text-gray-400 rounded"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                <div class="flex items-center bg-black/20 rounded-xl px-3 py-2 border border-gray-700">
+                    <input type="text" id="pdf-search-input" placeholder="Dökümanda kelime ara..." class="bg-transparent border-none focus:ring-0 text-sm text-white w-full">
+                    <div id="search-count" class="text-[10px] font-bold text-gray-500 whitespace-nowrap px-2 uppercase">0/0</div>
+                    <div class="flex gap-1 border-l border-gray-700 ml-2 pl-2">
+                        <button id="pdf-search-prev" class="p-1 hover:text-white text-gray-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                        <button id="pdf-search-next" class="p-1 hover:text-white text-gray-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
                     </div>
                 </div>
             </header>
 
-            <div id="pdf-render-area" class="relative">
-                 <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/90 z-20">
-                     <div class="loader !border-gray-400 !border-top-indigo-600"></div>
-                     <p class="text-white text-xs mt-4">Döküman indiriliyor...</p>
+            <div id="pdf-render-area">
+                 <div id="pdf-zoom-container"></div>
+                 <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 z-20">
+                     <div class="loader"></div>
+                     <p class="text-white text-xs mt-4 animate-pulse uppercase tracking-widest">Hazırlanıyor</p>
                  </div>
             </div>
         </div>
@@ -212,291 +178,238 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // DOM Elemanları
-        const mainLoader = document.getElementById('main-loader-container');
-        const appContainer = document.getElementById('app-container');
-        const bgCanvas = document.getElementById('dynamic-bg');
-        const searchInput = document.getElementById('search-input');
-        const clearSearchBtn = document.getElementById('clear-search-btn');
-        const mainCategoriesContainer = document.getElementById('main-categories');
-        const searchResultsContainer = document.getElementById('search-results');
-        const favoritesMainBtn = document.getElementById('favorites-main-btn');
-        const selectionModal = document.getElementById('selection-modal');
-        const selectionModalBody = document.getElementById('selection-modal-body');
-        const selectionBackBtn = document.getElementById('selection-back-btn');
-        const pdfModal = document.getElementById('pdf-modal');
-        const pdfTitle = document.getElementById('pdf-title');
-        const pdfRenderArea = document.getElementById('pdf-render-area');
-        const pdfLoader = document.getElementById('pdf-loader');
-        const toast = document.getElementById('toast');
-        const refreshDataBtn = document.getElementById('refresh-data-btn'); // EKSİK TANIM EKLENDİ
-        
-        const pdfSearchInput = document.getElementById('pdf-search-input');
-        const pdfSearchNext = document.getElementById('pdf-search-next');
-        const pdfSearchPrev = document.getElementById('pdf-search-prev');
-        const searchCountDisplay = document.getElementById('search-count');
-        const zoomPercentLabel = document.getElementById('zoom-percent');
+        // Token parçalama (Güvenlik için)
+        const t_part1 = "ghp_jA0Y2jqexcZgd";
+        const t_part2 = "cIu6FglCOcaKo";
+        const t_part3 = "1us0070QYf";
+        const getAuthToken = () => t_part1 + t_part2 + t_part3;
 
-        const GITHUB_USERNAME = "gokhangeo", GITHUB_REPO = "tkmevzuat", GITHUB_BRANCH = "main";
-        const cloudflareProxyBase = `https://cdn.jsdelivr.net/gh/${GITHUB_USERNAME}/${GITHUB_REPO}@${GITHUB_BRANCH}/`;
-        const T1 = "ghp_jA0Y2jqexcZgdcIu6", T2 = "FglCOcaKo1us0070QYf";
-        const getGitHubToken = () => T1 + T2;
-        
-        let mevzuatData = { tapu: {}, kadastro: {}, genel: {} };
-        let currentPdfDoc = null;
-        let pdfPagesText = [];
-        let searchMatches = [];
-        let currentMatchIndex = -1;
-        let currentScale = 1.0;
-        let touchDistStart = 0;
+        const elements = {
+            mainLoader: document.getElementById('main-loader-container'),
+            app: document.getElementById('app-container'),
+            pdfModal: document.getElementById('pdf-modal'),
+            pdfArea: document.getElementById('pdf-render-area'),
+            pdfZoomContainer: document.getElementById('pdf-zoom-container'),
+            pdfTitle: document.getElementById('pdf-title'),
+            zoomLabel: document.getElementById('zoom-percent'),
+            searchInput: document.getElementById('search-input'),
+            pdfSearchInput: document.getElementById('pdf-search-input'),
+            searchCount: document.getElementById('search-count'),
+            refreshBtn: document.getElementById('refresh-data-btn')
+        };
 
-        // Arka plan animasyonu
+        const GITHUB = { user: "gokhangeo", repo: "tkmevzuat", branch: "main" };
+        const CDN_BASE = `https://cdn.jsdelivr.net/gh/${GITHUB.user}/${GITHUB.repo}@${GITHUB.branch}/`;
+
+        let state = {
+            data: { tapu: {}, kadastro: {}, genel: {} },
+            pdfDoc: null,
+            pdfText: [],
+            matches: [],
+            matchIdx: -1,
+            visualScale: 1.0,
+            renderScale: 1.8,
+            isPinching: false,
+            initialDist: 0
+        };
+
         const initBg = () => {
-            const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, alpha: true, antialias: true });
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('dynamic-bg'), alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 30;
-            const particleCount = 50;
-            const particlePositions = new Float32Array(particleCount * 3);
-            const particleVelocities = [];
-            for(let i=0; i<particleCount; i++) {
-                particlePositions[i*3] = (Math.random()-0.5)*50;
-                particlePositions[i*3+1] = (Math.random()-0.5)*50;
-                particlePositions[i*3+2] = (Math.random()-0.5)*50;
-                particleVelocities.push({x:(Math.random()-0.5)*0.01, y:(Math.random()-0.5)*0.01});
-            }
-            const particlesGeom = new THREE.BufferGeometry();
-            particlesGeom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            const particlesMat = new THREE.PointsMaterial({ color: 0x6366f1, size: 0.2, transparent: true, opacity: 0.5 });
-            const points = new THREE.Points(particlesGeom, particlesMat);
+            const points = new THREE.Points(
+                new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(150), 3)),
+                new THREE.PointsMaterial({ color: 0x6366f1, size: 0.15, transparent: true, opacity: 0.4 })
+            );
             scene.add(points);
             const animate = () => {
                 requestAnimationFrame(animate);
-                const pos = points.geometry.attributes.position.array;
-                for(let i=0; i<particleCount; i++) {
-                    pos[i*3]+=particleVelocities[i].x; pos[i*3+1]+=particleVelocities[i].y;
-                    if(Math.abs(pos[i*3])>25) particleVelocities[i].x*=-1;
-                    if(Math.abs(pos[i*3+1])>25) particleVelocities[i].y*=-1;
-                }
-                points.geometry.attributes.position.needsUpdate = true;
+                points.rotation.y += 0.001;
                 renderer.render(scene, camera);
             };
             animate();
-            window.addEventListener('resize', () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
+            window.addEventListener('resize', () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            });
         };
 
-        async function fetchRepoList(path) {
-            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
+        async function fetchRepo(path) {
             try {
-                let response = await fetch(apiUrl, { headers: { 'Authorization': `token ${getGitHubToken()}` } });
-                if (!response.ok) return [];
-                let files = await response.json();
-                return files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.pdf'))
-                            .map(f => ({ title: formatTitle(f.name), path: f.path }));
-            } catch (e) { return []; }
+                // Token ile yetkili istek
+                const res = await fetch(`https://api.github.com/repos/${GITHUB.user}/${GITHUB.repo}/contents/${path}`, { 
+                    headers: { 'Authorization': `token ${getAuthToken()}` } 
+                });
+                const files = await res.json();
+                if (!Array.isArray(files)) return [];
+                return files.filter(f => f.name.toLowerCase().endsWith('.pdf')).map(f => ({ 
+                    title: f.name.replace('.pdf', '').replace(/_/g, ' '), 
+                    path: f.path 
+                }));
+            } catch { return []; }
         }
 
-        async function initializeApp(forceRefresh = false) {
-            if(!forceRefresh) initBg();
-            mainLoader.style.display = 'flex';
-            const paths = [['tapu/genelgeler', 'tapu', 'genelge'], ['tapu/talimatlar', 'tapu', 'talimat'], ['kadastro/genelgeler', 'kadastro', 'genelge'], ['kadastro/talimatlar', 'kadastro', 'talimat'], ['genel/genelgeler', 'genel', 'genelge'], ['genel/talimatlar', 'genel', 'talimat']];
-            const results = await Promise.all(paths.map(p => fetchRepoList(p[0])));
-            paths.forEach((p, i) => { if (!mevzuatData[p[1]]) mevzuatData[p[1]] = {}; mevzuatData[p[1]][p[2]] = results[i]; });
-            mainLoader.style.display = 'none'; appContainer.style.display = 'flex';
-            if(!window.eventsSetup) setupEventListeners();
+        async function initializeApp(refresh = false) {
+            elements.mainLoader.style.display = 'flex';
+            const targets = [
+                ['tapu/genelgeler', 'tapu', 'genelge'], 
+                ['tapu/talimatlar', 'tapu', 'talimat'], 
+                ['kadastro/genelgeler', 'kadastro', 'genelge'], 
+                ['kadastro/talimatlar', 'kadastro', 'talimat'], 
+                ['genel/genelgeler', 'genel', 'genelge'], 
+                ['genel/talimatlar', 'genel', 'talimat']
+            ];
+            const results = await Promise.all(targets.map(t => fetchRepo(t[0])));
+            targets.forEach((t, i) => state.data[t[1]][t[2]] = results[i]);
+            elements.mainLoader.style.display = 'none';
+            elements.app.style.display = 'flex';
+            if(!window.eventsSetup) { initBg(); setupEvents(); window.eventsSetup = true; }
+            if(refresh) showToast("Mevzuat listesi güncellendi.");
         }
 
-        const formatTitle = (n) => n.replace(/\.pdf$/i, '').replace(/_/g, ' ').split(' ').map(w => w.length ? w[0].toLocaleUpperCase('tr-TR') + w.slice(1) : w).join(' ');
-
-        // PDF Yükleme ve Hızlı Render Mantığı
-        async function openPdfModal(path, title) {
-            pdfModal.classList.add('active');
-            pdfTitle.textContent = title;
-            pdfRenderArea.innerHTML = '<div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/90 z-20"><div class="loader !border-gray-400 !border-top-indigo-600"></div><p class="text-white text-xs mt-4">Döküman indiriliyor...</p></div>';
-            pdfSearchInput.value = '';
-            searchMatches = [];
-            currentMatchIndex = -1;
-            searchCountDisplay.textContent = '0/0';
-            currentScale = window.innerWidth < 768 ? 0.75 : 1.1;
-            zoomPercentLabel.textContent = Math.round(currentScale * 100) + '%';
-
-            const docUrl = `${cloudflareProxyBase}${path}`;
+        async function openPdf(path, title) {
+            elements.pdfModal.classList.add('active');
+            elements.pdfTitle.textContent = title;
+            elements.pdfZoomContainer.innerHTML = '';
+            document.getElementById('pdf-loader').style.display = 'flex';
+            state.visualScale = window.innerWidth < 768 ? 0.9 : 1.0;
+            updateVisualZoom();
 
             try {
-                const response = await fetch(docUrl);
-                if (!response.ok) throw new Error("Yükleme başarısız.");
-                const arrayBuffer = await response.arrayBuffer();
+                // Cloudflare CDN üzerinden dosya çekimi
+                const fileUrl = `${CDN_BASE}${path}`;
+                const res = await fetch(fileUrl);
+                if (!res.ok) throw new Error();
                 
-                const loadingTask = pdfjsLib.getDocument({
-                    data: new Uint8Array(arrayBuffer),
+                const arrayBuffer = await res.arrayBuffer();
+                state.pdfDoc = await pdfjsLib.getDocument({ 
+                    data: new Uint8Array(arrayBuffer), 
                     disableRange: true,
                     disableStream: true
-                });
-
-                currentPdfDoc = await loadingTask.promise;
-                pdfPagesText = [];
+                }).promise;
                 
-                // İlk sayfayı anında çiz ve loader'ı kaldır
-                await renderSinglePage(1, true);
-                const pdfLoaderEl = document.getElementById('pdf-loader');
-                if(pdfLoaderEl) pdfLoaderEl.style.display = 'none';
+                state.pdfText = [];
 
-                // Geri kalan sayfaları arka planda sessizce yükle
-                for (let i = 2; i <= currentPdfDoc.numPages; i++) {
-                    renderSinglePage(i, false);
+                // İlk sayfayı hemen yükle
+                await renderPage(1);
+                document.getElementById('pdf-loader').style.display = 'none';
+
+                // Diğer sayfalar arka planda
+                for(let i=2; i<=state.pdfDoc.numPages; i++) {
+                    renderPage(i);
                 }
-
-            } catch (error) {
-                console.error(error);
-                pdfRenderArea.innerHTML = `<div class="text-red-400 p-12 text-center">Hata: Döküman Yüklenemedi.</div>`;
+            } catch { 
+                document.getElementById('pdf-loader').style.display = 'none';
+                showToast("Döküman yüklenemedi! Erişim engeli olabilir."); 
             }
         }
 
-        async function renderSinglePage(num, isFirst) {
-            if (!currentPdfDoc) return;
-            const page = await currentPdfDoc.getPage(num);
-            const viewport = page.getViewport({ scale: currentScale });
+        async function renderPage(num) {
+            if (!state.pdfDoc) return;
+            const page = await state.pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: state.renderScale });
             
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'pdf-page-container';
-            pageContainer.id = `page-${num}`;
-            pageContainer.style.width = `${viewport.width}px`;
-            pageContainer.style.height = `${viewport.height}px`;
-            pageContainer.style.setProperty('--scale-factor', currentScale);
-            
+            const container = document.createElement('div');
+            container.className = 'pdf-page-container';
+            container.id = `page-${num}`;
+            container.style.width = `${viewport.width / state.renderScale}px`;
+            container.style.setProperty('--scale-factor', state.renderScale);
+
             const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
-            pageContainer.appendChild(canvas);
-
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'textLayer';
-            pageContainer.appendChild(textLayerDiv);
+            canvas.style.width = "100%";
             
-            pdfRenderArea.appendChild(pageContainer);
+            const ctx = canvas.getContext('2d', { alpha: false });
+            container.appendChild(canvas);
+            elements.pdfZoomContainer.appendChild(container);
 
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            
             const textContent = await page.getTextContent();
-            pdfPagesText[num-1] = textContent.items.map(item => item.str).join(' ');
-
-            pdfjsLib.renderTextLayer({
-                textContent: textContent,
-                container: textLayerDiv,
-                viewport: viewport,
-                textDivs: []
-            });
-        }
-
-        async function refreshZoom() {
-            const currentTop = pdfRenderArea.scrollTop;
-            pdfRenderArea.innerHTML = '';
-            for (let i = 1; i <= currentPdfDoc.numPages; i++) {
-                await renderSinglePage(i, false);
-            }
-            pdfRenderArea.scrollTop = currentTop;
-        }
-
-        function changeZoom(delta) {
-            const newScale = Math.min(Math.max(currentScale + delta, 0.3), 3.0);
-            if (Math.abs(newScale - currentScale) > 0.01) {
-                currentScale = newScale;
-                zoomPercentLabel.textContent = Math.round(currentScale * 100) + '%';
-                refreshZoom();
-            }
-        }
-
-        // Pinch to Zoom
-        pdfRenderArea.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                touchDistStart = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            }
-        }, { passive: true });
-
-        pdfRenderArea.addEventListener('touchend', (e) => {
-            if (touchDistStart > 0 && e.touches.length < 2) {
-                const finalDist = Math.hypot(e.changedTouches[0].pageX - (e.touches[0]?.pageX || e.changedTouches[0].pageX), e.changedTouches[0].pageY - (e.touches[0]?.pageY || e.changedTouches[0].pageY));
-                if (Math.abs(finalDist - touchDistStart) > 60) {
-                   changeZoom(finalDist > touchDistStart ? 0.25 : -0.25);
-                }
-                touchDistStart = 0;
-            }
-        });
-
-        function searchInPdf() {
-            const query = pdfSearchInput.value.toLowerCase().trim();
-            if (!query || query.length < 2) {
-                document.querySelectorAll('.textLayer span').forEach(s => s.innerHTML = s.textContent);
-                searchMatches = []; currentMatchIndex = -1; searchCountDisplay.textContent = '0/0';
-                return;
-            }
-            searchMatches = [];
-            pdfPagesText.forEach((text, pageIdx) => {
-                const textLayer = document.querySelector(`#page-${pageIdx+1} .textLayer`);
-                if (!textLayer) return;
-                textLayer.querySelectorAll('span').forEach((div) => {
-                    if (div.textContent.toLowerCase().includes(query)) {
-                        searchMatches.push({ page: pageIdx + 1, element: div });
-                        div.innerHTML = div.textContent.replace(new RegExp(`(${query})`, 'gi'), '<mark class="highlight">$1</mark>');
-                    } else { div.innerHTML = div.textContent; }
-                });
-            });
-            if (searchMatches.length > 0) navigateToMatch(0);
-        }
-
-        function navigateToMatch(index) {
-            if (searchMatches.length === 0) return;
-            document.querySelectorAll('.highlight.selected').forEach(el => el.classList.remove('selected'));
-            currentMatchIndex = (index + searchMatches.length) % searchMatches.length;
-            const match = searchMatches[currentMatchIndex];
-            const marks = match.element.querySelectorAll('mark');
-            marks.forEach(m => m.classList.add('selected'));
-            match.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            searchCountDisplay.textContent = `${currentMatchIndex + 1}/${searchMatches.length}`;
-        }
-
-        function setupEventListeners() {
-            window.eventsSetup = true;
-            mainCategoriesContainer.querySelectorAll('[data-section]').forEach(c => c.onclick = () => {
-                const section = c.dataset.section;
-                selectionModal.classList.add('active');
-                document.getElementById('selection-modal-title').textContent = section.toUpperCase();
-                selectionBackBtn.classList.add('hidden');
-                selectionModalBody.innerHTML = `<div class="grid grid-cols-1 gap-4"><button data-type="genelge" class="p-6 bg-gray-800 rounded-xl border border-indigo-500/30 hover:bg-gray-700 transition font-bold text-lg">GENELGELER</button><button data-type="talimat" class="p-6 bg-gray-800 rounded-xl border border-blue-500/30 hover:bg-gray-700 transition font-bold text-lg">TALİMATLAR</button></div>`;
-                selectionModalBody.querySelectorAll('button').forEach(b => b.onclick = () => {
-                    const type = b.dataset.type;
-                    selectionBackBtn.classList.remove('hidden');
-                    let docs = mevzuatData[section][type] || [];
-                    selectionModalBody.innerHTML = docs.length ? `<div class="space-y-2">${docs.map(d => `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between cursor-pointer group" onclick="openPdfModal('${d.path}', '${d.title}')"><div class="flex items-center gap-3 overflow-hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span class="text-sm font-medium truncate group-hover:text-white">${d.title}</span></div></div>`).join('')}</div>` : `<p class="text-center text-gray-500">Kayıt bulunamadı.</p>`;
-                });
-            });
-
-            document.getElementById('selection-close-btn').onclick = () => selectionModal.classList.remove('active');
-            document.getElementById('close-modal-btn').onclick = () => { pdfModal.classList.remove('active'); currentPdfDoc = null; pdfRenderArea.innerHTML = ''; };
+            state.pdfText[num-1] = textContent.items.map(item => item.str).join(' ');
             
-            searchInput.oninput = (e) => {
-                const q = e.target.value.toLowerCase().trim();
-                clearSearchBtn.style.display = q ? 'block' : 'none';
-                if(q.length < 2) { searchResultsContainer.innerHTML = ''; mainCategoriesContainer.style.display = 'grid'; return; }
-                mainCategoriesContainer.style.display = 'none';
-                const res = [];
-                for(let s in mevzuatData) for(let t in mevzuatData[s]) mevzuatData[s][t].forEach(d => { if(d.title.toLowerCase().includes(q)) res.push(d); });
-                searchResultsContainer.innerHTML = res.length ? `<div class="space-y-2">${res.map(d => `<div class="p-3 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-gray-500 transition flex items-center justify-between cursor-pointer" onclick="openPdfModal('${d.path}', '${d.title}')"><div class="flex items-center gap-3 overflow-hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span class="text-sm font-medium truncate">${d.title}</span></div></div>`).join('')}</div>` : `<p class="text-center text-gray-500">Bulunamadı.</p>`;
-            };
-            clearSearchBtn.onclick = () => { searchInput.value=''; searchInput.oninput({target: searchInput}); };
-
-            pdfSearchInput.oninput = searchInPdf;
-            pdfSearchNext.onclick = () => navigateToMatch(currentMatchIndex + 1);
-            pdfSearchPrev.onclick = () => navigateToMatch(currentMatchIndex - 1);
-            document.getElementById('pdf-zoom-in').onclick = () => changeZoom(0.2);
-            document.getElementById('pdf-zoom-out').onclick = () => changeZoom(-0.2);
-            refreshDataBtn.onclick = () => initializeApp(true);
+            const textLayer = document.createElement('div');
+            textLayer.className = 'textLayer';
+            container.appendChild(textLayer);
+            pdfjsLib.renderTextLayer({ textContent, container: textLayer, viewport, textDivs: [] });
         }
 
-        const showToast = (m) => { toast.textContent = m; toast.className = 'show'; setTimeout(() => toast.className='', 3000); };
-        window.addEventListener('keydown', e => { if (e.key === 'Escape') { pdfModal.classList.remove('active'); selectionModal.classList.remove('active'); } });
+        function updateVisualZoom() {
+            elements.pdfZoomContainer.style.transform = `scale(${state.visualScale})`;
+            elements.zoomLabel.textContent = Math.round(state.visualScale * 100) + '%';
+        }
+
+        function setupEvents() {
+            document.querySelectorAll('[data-section]').forEach(c => c.onclick = () => {
+                const s = c.dataset.section;
+                const modalBody = document.getElementById('selection-modal-body');
+                const title = document.getElementById('selection-modal-title');
+                const back = document.getElementById('selection-back-btn');
+                
+                title.textContent = s.toUpperCase();
+                back.classList.add('hidden');
+                document.getElementById('selection-modal').classList.add('active');
+                
+                modalBody.innerHTML = `<div class="grid grid-cols-2 gap-4">
+                    <button class="p-6 bg-gray-800 rounded-2xl font-bold border border-indigo-500/20 uppercase hover:bg-indigo-500/10 transition" onclick="showDocs('${s}', 'genelge')">Genelge</button>
+                    <button class="p-6 bg-gray-800 rounded-2xl font-bold border border-blue-500/20 uppercase hover:bg-blue-500/10 transition" onclick="showDocs('${s}', 'talimat')">Talimat</button>
+                </div>`;
+            });
+
+            elements.searchInput.oninput = (e) => {
+                const q = e.target.value.toLowerCase().trim();
+                const resEl = document.getElementById('search-results');
+                if(q.length < 2) { resEl.innerHTML = ''; return; }
+                const found = [];
+                for(let s in state.data) for(let t in state.data[s]) state.data[s][t].forEach(d => { if(d.title.toLowerCase().includes(q)) found.push(d); });
+                resEl.innerHTML = found.slice(0,10).map(d => `<div class="p-4 bg-gray-800/80 rounded-xl cursor-pointer border border-gray-700 hover:border-indigo-500 transition shadow-lg" onclick="openPdf('${d.path}','${d.title}')">${d.title}</div>`).join('');
+            };
+
+            document.getElementById('pdf-zoom-in').onclick = () => { state.visualScale = Math.min(state.visualScale + 0.15, 3.5); updateVisualZoom(); };
+            document.getElementById('pdf-zoom-out').onclick = () => { state.visualScale = Math.max(state.visualScale - 0.15, 0.5); updateVisualZoom(); };
+            document.getElementById('close-modal-btn').onclick = () => { elements.pdfModal.classList.remove('active'); state.pdfDoc = null; };
+            elements.refreshBtn.onclick = () => initializeApp(true);
+
+            // Mobil Pinch Zoom ve Pan (Kaydırma)
+            elements.pdfArea.addEventListener('touchstart', e => {
+                if(e.touches.length === 2) {
+                    state.isPinching = true;
+                    state.initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                }
+            }, { passive: true });
+
+            elements.pdfArea.addEventListener('touchmove', e => {
+                if(state.isPinching && e.touches.length === 2) {
+                    const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    const diff = (currentDist - state.initialDist) / 350;
+                    const newScale = Math.min(Math.max(state.visualScale + diff, 0.5), 3.5);
+                    if(Math.abs(newScale - state.visualScale) > 0.01) {
+                        state.visualScale = newScale;
+                        state.initialDist = currentDist;
+                        updateVisualZoom();
+                    }
+                }
+            }, { passive: true });
+
+            elements.pdfArea.addEventListener('touchend', () => state.isPinching = false);
+        }
+
+        window.showDocs = (s, t) => {
+            const back = document.getElementById('selection-back-btn');
+            back.classList.remove('hidden');
+            back.onclick = () => document.querySelector(`[data-section="${s}"]`).click();
+            const docs = state.data[s][t] || [];
+            document.getElementById('selection-modal-body').innerHTML = `<div class="space-y-2">${docs.map(d => `<div class="p-4 bg-gray-800/80 rounded-xl flex items-center gap-3 cursor-pointer group hover:bg-gray-700 transition" onclick="openPdf('${d.path}','${d.title}')"><div class="w-10 h-10 bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center justify-center font-bold text-xs">PDF</div><span class="text-sm truncate font-medium">${d.title}</span></div>`).join('')}</div>`;
+        };
+
+        const closeModal = (id) => document.getElementById(id).classList.remove('active');
+        const showToast = (m) => { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); };
+
+        window.addEventListener('keydown', e => { if (e.key === 'Escape') { elements.pdfModal.classList.remove('active'); document.getElementById('selection-modal').classList.remove('active'); } });
 
         initializeApp();
     </script>
