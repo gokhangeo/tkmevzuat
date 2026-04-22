@@ -114,19 +114,20 @@
 
     <div id="main-loader-container" class="fixed inset-0 bg-[#020617] flex flex-col items-center justify-center z-[9999]">
         <div class="loader mb-4"></div>
-        <p class="text-indigo-400/70 text-[10px] uppercase tracking-[0.4em] font-bold" id="loader-text">Sistem Bağlantısı Kuruluyor</p>
+        <p class="text-indigo-400/70 text-[10px] uppercase tracking-[0.4em] font-bold" id="loader-text">Veriler Senkronize Ediliyor</p>
     </div>
 
     <div id="app-container" class="h-full flex flex-col" style="display: none;">
         <nav class="flex justify-between items-center px-6 py-5 fade-in">
-            <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <!-- Yonetici modu tetikleyicisi -->
+            <div id="secret-admin-trigger" class="flex items-center gap-2.5 cursor-pointer select-none" title="Çift Tıkla: Yönetici Modu">
+                <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 pointer-events-none">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 </div>
-                <span class="text-[11px] font-black tracking-[0.2em] uppercase opacity-60">TKGM BULUT</span>
+                <span class="text-[11px] font-black tracking-[0.2em] uppercase opacity-60 pointer-events-none">TKGM BULUT</span>
             </div>
             <div class="flex gap-2">
-                <button id="upload-btn" class="p-2.5 glass-card rounded-xl text-indigo-400 hover:text-indigo-300 transition-colors" title="Dosya Yükle">
+                <button id="upload-btn" style="display: none;" class="p-2.5 glass-card rounded-xl text-indigo-400 hover:text-indigo-300 transition-colors" title="Dosya Yükle">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
                 <button id="refresh-data-btn" class="p-2.5 glass-card rounded-xl text-slate-400 hover:text-emerald-400 transition-colors" title="Verileri Yenile">
@@ -135,13 +136,13 @@
             </div>
         </nav>
 
-        <main class="flex-grow flex flex-col items-center justify-center px-6 pb-24">
-            <div class="text-center mb-12 fade-in">
+        <main class="flex-grow flex flex-col items-center justify-start px-6 pt-10 pb-24 overflow-y-auto">
+            <div class="text-center mb-10 fade-in">
                 <h1 class="text-3xl sm:text-5xl font-black tracking-tight mb-2 uppercase leading-none">TKGM MEVZUAT</h1>
                 <p class="text-indigo-400/80 text-[9px] sm:text-[10px] font-bold tracking-[0.5em] uppercase">Gökhan ELGÜL tarafından tasarlanmıştır</p>
             </div>
 
-            <div class="w-full max-w-lg mb-14 fade-in" style="animation-delay: 0.1s">
+            <div class="w-full max-w-lg mb-10 fade-in" style="animation-delay: 0.1s">
                 <div class="relative group">
                     <input type="text" id="search-input" placeholder="Mevzuat dökümanlarında ara..." class="w-full bg-slate-900/40 border border-white/5 rounded-2xl py-4 px-6 text-sm text-white focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all shadow-xl placeholder-slate-600">
                     <div id="search-results" class="absolute top-full left-0 w-full mt-2 space-y-1.5 z-30"></div>
@@ -149,36 +150,41 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl fade-in" style="animation-delay: 0.2s">
-                <div data-section="tapu" class="glass-card p-9 rounded-[2rem] text-center group cursor-pointer active:scale-95">
-                    <div class="w-11 h-11 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
+                <div data-section="tapu" class="glass-card p-8 rounded-[2rem] text-center group cursor-pointer active:scale-95">
+                    <div class="w-11 h-11 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                     </div>
                     <h2 class="text-base font-bold text-white uppercase tracking-wider">TAPU</h2>
                 </div>
-                <div data-section="kadastro" class="glass-card p-9 rounded-[2rem] text-center group cursor-pointer active:scale-95">
-                    <div class="w-11 h-11 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
+                <div data-section="kadastro" class="glass-card p-8 rounded-[2rem] text-center group cursor-pointer active:scale-95">
+                    <div class="w-11 h-11 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                     </div>
                     <h2 class="text-base font-bold text-white uppercase tracking-wider">KADASTRO</h2>
                 </div>
-                <div data-section="genel" class="glass-card p-9 rounded-[2rem] text-center group cursor-pointer active:scale-95">
-                    <div class="w-11 h-11 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
+                <div data-section="genel" class="glass-card p-8 rounded-[2rem] text-center group cursor-pointer active:scale-95">
+                    <div class="w-11 h-11 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                     </div>
                     <h2 class="text-base font-bold text-white uppercase tracking-wider">GENEL</h2>
                 </div>
             </div>
+
+            <div class="w-full max-w-4xl mt-12 fade-in" style="animation-delay: 0.3s">
+                <h3 class="text-indigo-400 font-bold text-xs uppercase tracking-[0.2em] mb-4 pl-3 border-l-2 border-indigo-500">Son Yüklenenler</h3>
+                <div id="recent-uploads-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            </div>
         </main>
     </div>
 
-    <!-- Modallar -->
+    <!-- Upload Modal -->
     <div id="upload-modal" class="modal">
         <div class="modal-content max-w-lg !h-auto p-10">
-            <h2 class="text-xl font-black mb-8 tracking-wider uppercase text-white">Döküman Ekle</h2>
+            <h2 class="text-xl font-black mb-8 tracking-wider uppercase text-white">Toplu Döküman Ekle</h2>
             <div class="space-y-5">
                 <div class="space-y-1">
-                    <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest px-2">DOSYA SEÇİMİ</label>
-                    <input type="file" id="file-input" accept=".pdf" class="w-full bg-slate-900/50 border border-white/5 p-3.5 rounded-xl text-xs outline-none focus:border-indigo-500 text-white">
+                    <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest px-2">PDF DOSYALARI (ÇOKLU SEÇİM YAPABİLİRSİNİZ)</label>
+                    <input type="file" id="file-input" accept=".pdf" multiple class="w-full bg-slate-900/50 border border-white/5 p-3.5 rounded-xl text-xs outline-none focus:border-indigo-500 text-white">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
@@ -256,12 +262,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-        // SDK üzerinden ham veri indirmek için getBytes dahil edildi
-        import { getStorage, ref, uploadBytes, getDownloadURL, getBytes } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        // Config
         const k1 = "AIzaSyDxq8AI";
         const k2 = "16Y1jNuJMLES8NNEqKlGg2Ul4JI";
         
@@ -281,7 +285,7 @@
         const storage = getStorage(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'mevzuat-f0699';
 
-        let state = { data: { tapu: {}, kadastro: {}, genel: {} }, pdfDoc: null, matches: [], currentMatch: -1, scale: 1.15 };
+        let state = { data: { tapu: {}, kadastro: {}, genel: {} }, recentUploads: [], pdfDoc: null, matches: [], currentMatch: -1, scale: 1.15, isAdmin: false };
 
         const showToast = (m) => {
             const t = document.getElementById('toast');
@@ -289,68 +293,170 @@
             setTimeout(() => t.classList.remove('show'), 3000);
         };
 
-        const initAuthAndData = async () => {
+        // Silme İşlemi (Global'e aktarıldı)
+        window.deletePdf = async (id, url, event) => {
+            event.stopPropagation();
+            if (!confirm("Bu dökümanı kalıcı olarak silmek istediğinize emin misiniz?")) return;
+            
             try {
-                await signInAnonymously(auth);
-            } catch (err) {
-                console.warn("Auth uyarısı", err);
+                if (!id) return showToast("Sadece yeni sistem dökümanları silinebilir.");
+                
+                await deleteDoc(doc(db, `artifacts/${appId}/public/data/mevzuat`, id));
+                const fileRef = ref(storage, url);
+                await deleteObject(fileRef).catch(e => console.warn("Storage silme hatası (zaten yok olabilir)", e));
+                
+                showToast("Döküman sistemden silindi!");
+                
+                // Hangi liste açıksa onu güncelle
+                loadAppData();
+                const activeSection = document.getElementById('selection-modal').classList.contains('active');
+                if(!activeSection) document.getElementById('selection-modal').classList.remove('active');
+            } catch(e) {
+                showToast("Silinemedi!");
+                console.error(e);
             }
+        };
+
+        window.openPdf = async (url, title) => {
+            document.getElementById('pdf-modal').classList.add('active');
+            document.getElementById('pdf-title').textContent = title;
+            document.getElementById('pdf-container').innerHTML = '';
+            document.getElementById('pdf-loader').classList.remove('hidden');
+            state.matches = []; state.currentMatch = -1;
+            
+            try {
+                const loadingTask = pdfjsLib.getDocument(url);
+                state.pdfDoc = await loadingTask.promise;
+                for (let i = 1; i <= state.pdfDoc.numPages; i++) {
+                    await renderPage(i);
+                    if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
+                }
+            } catch (e) {
+                console.warn("Doğrudan yükleme başarısız, proxy deneniyor...", e);
+                try {
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    const fallbackTask = pdfjsLib.getDocument(proxyUrl);
+                    state.pdfDoc = await fallbackTask.promise;
+                    for (let i = 1; i <= state.pdfDoc.numPages; i++) {
+                        await renderPage(i);
+                        if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
+                    }
+                } catch(err) {
+                    showToast("Güvenlik Duvarı Engeli! Döküman yüklenemedi.");
+                    document.getElementById('pdf-loader').classList.add('hidden');
+                }
+            }
+        };
+
+        const initAuthAndData = async () => {
+            try { await signInAnonymously(auth); } catch (err) { console.warn("Auth uyarısı", err); }
             await loadAppData();
         };
 
         const loadAppData = async () => {
-            const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
+            state.data = { tapu: { genelge: [], talimat: [] }, kadastro: { genelge: [], talimat: [] }, genel: { genelge: [], talimat: [] } };
+            state.recentUploads = [];
+
             try {
+                const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
                 const snapshot = await getDocs(collection(db, collectionPath));
-                state.data = { tapu: { genelge: [], talimat: [] }, kadastro: { genelge: [], talimat: [] }, genel: { genelge: [], talimat: [] } };
+                
                 snapshot.forEach(doc => {
                     const item = doc.data();
+                    const formattedItem = { id: doc.id, ...item };
                     if (state.data[item.section] && state.data[item.section][item.type]) {
-                        state.data[item.section][item.type].push({ id: doc.id, ...item });
+                        state.data[item.section][item.type].push(formattedItem);
                     }
+                    state.recentUploads.push(formattedItem);
                 });
+
+                state.recentUploads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
                 document.getElementById('main-loader-container').style.display = 'none';
                 document.getElementById('app-container').style.display = 'flex';
                 animateBg();
                 setupEvents();
+                renderRecentUploads();
+
+                // Eğer kategori menüsü açıksa onu da güncelle
+                const sectionTitle = document.getElementById('selection-title').textContent.toLowerCase();
+                if(sectionTitle && document.getElementById('selection-modal').classList.contains('active')) {
+                     // Açık olan kısmı yeniden listele
+                     const body = document.getElementById('selection-body');
+                     if(body.innerHTML.includes('GENELGE')) { /* do nothing, waits for click */ }
+                }
+
             } catch (err) {
-                document.getElementById('loader-text').textContent = "BAĞLANTI HATASI";
-                showToast("Veriler yüklenemedi!");
+                document.getElementById('loader-text').textContent = "HATA";
+                showToast("Veriler çekilirken hata oluştu!");
                 console.error(err);
             }
         };
 
+        const getDeleteButton = (id, url) => {
+            if(!state.isAdmin) return '';
+            return `
+            <button onclick="window.deletePdf('${id}', '${url}', event)" class="p-2 text-red-500 hover:bg-red-500/20 rounded-lg ml-auto transition-colors" title="Dökümanı Sil">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>`;
+        };
+
+        const renderRecentUploads = () => {
+            const list = document.getElementById('recent-uploads-list');
+            if (state.recentUploads.length === 0) {
+                list.innerHTML = '<p class="text-slate-500 text-xs italic pl-2">Henüz döküman eklenmedi.</p>';
+                return;
+            }
+            list.innerHTML = state.recentUploads.slice(0, 6).map(d => `
+                <div class="p-4 glass-card rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all shadow-lg" onclick="window.openPdf('${d.url}', '${d.title}')">
+                    <div class="w-10 h-10 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center font-bold text-[9px] shrink-0">PDF</div>
+                    <div class="flex flex-col overflow-hidden w-full">
+                        <span class="truncate text-xs font-bold text-white mb-1">${d.title}</span>
+                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">${d.section} / ${d.type}</span>
+                    </div>
+                    ${getDeleteButton(d.id, d.url)}
+                </div>
+            `).join('');
+        };
+
         const handleUpload = async () => {
             const fileInput = document.getElementById('file-input');
+            const files = fileInput.files;
             const section = document.getElementById('section-select').value;
             const type = document.getElementById('type-select').value;
             const startBtn = document.getElementById('start-upload-btn');
             
-            if (!fileInput.files[0]) return showToast("Döküman seçmelisiniz.");
+            if (files.length === 0) return showToast("Döküman seçmelisiniz.");
             
             startBtn.disabled = true;
             document.getElementById('upload-progress').classList.remove('hidden');
             const bar = document.getElementById('progress-bar');
+            bar.style.width = '0%';
             
             try {
-                const file = fileInput.files[0];
-                const storageRef = ref(storage, `mevzuat/${Date.now()}_${file.name}`);
-                bar.style.width = '30%';
-                await uploadBytes(storageRef, file);
-                bar.style.width = '60%';
-                const downloadUrl = await getDownloadURL(storageRef);
+                let completed = 0;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const storageRef = ref(storage, `mevzuat/${Date.now()}_${file.name}`);
+                    await uploadBytes(storageRef, file);
+                    const downloadUrl = await getDownloadURL(storageRef);
+                    
+                    const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
+                    await addDoc(collection(db, collectionPath), {
+                        title: file.name.replace('.pdf', '').toUpperCase(),
+                        url: downloadUrl,
+                        section, type, createdAt: new Date().toISOString()
+                    });
+                    
+                    completed++;
+                    bar.style.width = `${(completed / files.length) * 100}%`;
+                }
                 
-                const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
-                await addDoc(collection(db, collectionPath), {
-                    title: file.name.replace('.pdf', '').toUpperCase(),
-                    url: downloadUrl,
-                    section, type, createdAt: new Date().toISOString()
-                });
-                bar.style.width = '100%';
-                showToast("Döküman eklendi!");
+                showToast(`${files.length} döküman eklendi!`);
                 setTimeout(() => {
                     document.getElementById('upload-modal').classList.remove('active');
-                    loadAppData();
+                    fileInput.value = ''; // Inputu temizle
+                    loadAppData(); // Listeyi güncelle
                 }, 800);
             } catch (e) {
                 showToast("Yükleme başarısız!");
@@ -382,43 +488,6 @@
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
             const textContent = await page.getTextContent();
             pdfjsLib.renderTextLayer({ textContent, container: textLayer, viewport: page.getViewport({ scale: state.scale }), textDivs: [] });
-        };
-
-        const openPdf = async (url, title) => {
-            document.getElementById('pdf-modal').classList.add('active');
-            document.getElementById('pdf-title').textContent = title;
-            document.getElementById('pdf-container').innerHTML = '';
-            document.getElementById('pdf-loader').classList.remove('hidden');
-            state.matches = []; state.currentMatch = -1;
-            
-            try {
-                // ÇÖZÜM: Proxy kullanmak yerine Firebase SDK üzerinden ham veri (ArrayBuffer) olarak çekiyoruz.
-                // Bu yöntem tarayıcının güvenlik duvarı (CORS) kısıtlamalarına takılmaz.
-                const fileRef = ref(storage, url);
-                const arrayBuffer = await getBytes(fileRef);
-
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                state.pdfDoc = await loadingTask.promise;
-                
-                for (let i = 1; i <= state.pdfDoc.numPages; i++) {
-                    await renderPage(i);
-                    if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
-                }
-            } catch (e) {
-                console.warn("SDK ile çekilemedi, doğrudan deneniyor...", e);
-                try {
-                    // Alternatif: Güvenlik duvarı izin veriyorsa direkt URL'den aç.
-                    const fallbackTask = pdfjsLib.getDocument(url);
-                    state.pdfDoc = await fallbackTask.promise;
-                    for (let i = 1; i <= state.pdfDoc.numPages; i++) {
-                        await renderPage(i);
-                        if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
-                    }
-                } catch(err) {
-                    showToast("Güvenlik Duvarı Engeli! Döküman yüklenemedi.");
-                    document.getElementById('pdf-loader').classList.add('hidden');
-                }
-            }
         };
 
         const performSearch = (query) => {
@@ -455,14 +524,41 @@
             const docs = state.data[s][t] || [];
             const body = document.getElementById('selection-body');
             body.innerHTML = docs.length ? docs.map(d => `
-                <div class="p-4 glass-card rounded-2xl flex items-center gap-4 cursor-pointer pdf-item" data-url="${d.url}" data-title="${d.title}">
-                    <div class="w-9 h-9 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center font-bold text-[8px] tracking-tighter">PDF</div>
-                    <span class="truncate text-xs font-bold uppercase tracking-tight text-white">${d.title}</span>
+                <div class="p-4 glass-card rounded-2xl flex items-center gap-4 cursor-pointer pdf-item" data-url="${d.url}" data-title="${d.title}" onclick="window.openPdf('${d.url}', '${d.title}')">
+                    <div class="w-9 h-9 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center font-bold text-[8px] tracking-tighter shrink-0">PDF</div>
+                    <span class="truncate text-xs font-bold uppercase tracking-tight text-white w-full">${d.title}</span>
+                    ${getDeleteButton(d.id, d.url)}
                 </div>`).join('') : '<p class="text-center py-6 opacity-30 text-[10px] text-white">Kayıt bulunamadı.</p>';
-            body.querySelectorAll('.pdf-item').forEach(el => { el.onclick = () => openPdf(el.dataset.url, el.dataset.title); });
         };
 
         const setupEvents = () => {
+            // Yönetici Modu Tetikleyicisi
+            document.getElementById('secret-admin-trigger').ondblclick = () => {
+                state.isAdmin = !state.isAdmin;
+                showToast(state.isAdmin ? "Yönetici Modu Açık: Ekle/Sil Aktif" : "Yönetici Modu Kapalı");
+                document.getElementById('upload-btn').style.display = state.isAdmin ? 'block' : 'none';
+                renderRecentUploads(); // Listeleri güncelle (silme butonları için)
+                
+                // Kategori modalı açıksa onu da güncelle
+                const sectionTitle = document.getElementById('selection-title').textContent.toLowerCase();
+                if(sectionTitle && document.getElementById('selection-modal').classList.contains('active')) {
+                     const body = document.getElementById('selection-body');
+                     if(!body.innerHTML.includes('GENELGE')) { 
+                         // Eğer alt listedeyse listeyi yeniden çiz
+                         // Ancak hangi tipte olduğunu bulmak zor, o yüzden menüye dön
+                         document.getElementById('selection-body').innerHTML = `
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <button class="p-7 glass-card rounded-3xl font-black text-xs hover:bg-indigo-600 transition-all uppercase tracking-widest text-white" id="btn-genelge">Genelge</button>
+                                <button class="p-7 glass-card rounded-3xl font-black text-xs hover:bg-cyan-600 transition-all uppercase tracking-widest text-white" id="btn-talimat">Talimat</button>
+                            </div>`;
+                        document.getElementById('btn-genelge').onclick = () => renderList(sectionTitle, 'genelge');
+                        document.getElementById('btn-talimat').onclick = () => renderList(sectionTitle, 'talimat');
+                     }
+                }
+            };
+
+            document.getElementById('upload-btn').onclick = () => document.getElementById('upload-modal').classList.add('active');
+
             document.querySelectorAll('[data-section]').forEach(c => c.onclick = () => {
                 const s = c.dataset.section;
                 document.getElementById('selection-title').textContent = s;
@@ -483,11 +579,10 @@
                 const found = [];
                 for (let s in state.data) for (let t in state.data[s]) state.data[s][t].forEach(d => { if (d.title.toLowerCase().includes(q)) found.push(d); });
                 res.innerHTML = found.slice(0, 5).map(d => `
-                    <div class="p-4 glass-card rounded-2xl flex items-center gap-3 cursor-pointer search-item shadow-2xl" data-url="${d.url}" data-title="${d.title}">
-                        <div class="w-8 h-8 bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center justify-center font-bold text-[9px]">PDF</div>
-                        <span class="truncate text-xs font-medium text-white">${d.title}</span>
+                    <div class="p-4 glass-card rounded-2xl flex items-center gap-3 cursor-pointer search-item shadow-2xl" onclick="window.openPdf('${d.url}', '${d.title}')">
+                        <div class="w-8 h-8 bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center justify-center font-bold text-[9px] shrink-0">PDF</div>
+                        <span class="truncate text-xs font-medium text-white w-full">${d.title}</span>
                     </div>`).join('');
-                res.querySelectorAll('.search-item').forEach(el => el.onclick = () => openPdf(el.dataset.url, el.dataset.title));
             };
 
             const psi = document.getElementById('pdf-search-input');
@@ -500,7 +595,6 @@
             document.getElementById('zoom-out').onclick = () => { state.scale = Math.max(0.4, state.scale - 0.2); document.getElementById('zoom-text').textContent = Math.round(state.scale * 100) + '%'; refreshPdfView(); };
             
             document.getElementById('start-upload-btn').onclick = handleUpload;
-            document.getElementById('upload-btn').onclick = () => document.getElementById('upload-modal').classList.add('active');
             document.getElementById('cancel-upload-btn').onclick = () => document.getElementById('upload-modal').classList.remove('active');
             document.getElementById('refresh-data-btn').onclick = loadAppData;
             document.getElementById('close-selection-btn').onclick = () => document.getElementById('selection-modal').classList.remove('active');
