@@ -288,7 +288,6 @@
             setTimeout(() => t.classList.remove('show'), 3000);
         };
 
-        // Oturum açma hatasına karşı koruma eklendi
         const initAuthAndData = async () => {
             try {
                 await signInAnonymously(auth);
@@ -393,8 +392,8 @@
             state.matches = []; state.currentMatch = -1;
             
             try {
-                // CORS Engelini Aşmak İçin Otomatik Proxy Köprüsü
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                // CORS hatasını çözmek için allorigins proxy eklendi
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
                 const loadingTask = pdfjsLib.getDocument(proxyUrl);
                 state.pdfDoc = await loadingTask.promise;
                 for (let i = 1; i <= state.pdfDoc.numPages; i++) {
@@ -402,16 +401,17 @@
                     if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
                 }
             } catch (e) {
-                console.warn("Proxy başarısız oldu, orijinal bağlantı deneniyor...");
+                console.warn("Proxy 1 başarısız oldu, alternatif proxy deneniyor...");
                 try {
-                    const fallbackTask = pdfjsLib.getDocument(url);
+                    const proxy2 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                    const fallbackTask = pdfjsLib.getDocument(proxy2);
                     state.pdfDoc = await fallbackTask.promise;
                     for (let i = 1; i <= state.pdfDoc.numPages; i++) {
                         await renderPage(i);
                         if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
                     }
                 } catch(err) {
-                    showToast("PDF yüklenemedi! Cloud Shell CORS ayarı gereklidir.");
+                    showToast("Güvenlik Duvarı Engeli! Döküman yüklenemedi.");
                     document.getElementById('pdf-loader').classList.add('hidden');
                 }
             }
