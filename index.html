@@ -114,7 +114,7 @@
 
     <div id="main-loader-container" class="fixed inset-0 bg-[#020617] flex flex-col items-center justify-center z-[9999]">
         <div class="loader mb-4"></div>
-        <p class="text-indigo-400/70 text-[10px] uppercase tracking-[0.4em] font-bold" id="loader-text">Ağ Bağlantısı Kuruluyor</p>
+        <p class="text-indigo-400/70 text-[10px] uppercase tracking-[0.4em] font-bold" id="loader-text">Sistem Bağlantısı Kuruluyor</p>
     </div>
 
     <div id="app-container" class="h-full flex flex-col" style="display: none;">
@@ -129,7 +129,7 @@
                 <button id="upload-btn" class="p-2.5 glass-card rounded-xl text-indigo-400 hover:text-indigo-300 transition-colors" title="Dosya Yükle">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
-                <button id="refresh-data-btn" class="p-2.5 glass-card rounded-xl text-slate-400 hover:text-emerald-400 transition-colors">
+                <button id="refresh-data-btn" class="p-2.5 glass-card rounded-xl text-slate-400 hover:text-emerald-400 transition-colors" title="Verileri Yenile">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
                 </button>
             </div>
@@ -171,7 +171,7 @@
         </main>
     </div>
 
-    <!-- Upload Modal -->
+    <!-- Modallar -->
     <div id="upload-modal" class="modal">
         <div class="modal-content max-w-lg !h-auto p-10">
             <h2 class="text-xl font-black mb-8 tracking-wider uppercase text-white">Döküman Ekle</h2>
@@ -244,8 +244,9 @@
             </header>
             <div id="pdf-scroll-area">
                 <div id="pdf-container"></div>
-                <div id="pdf-loader" class="absolute inset-0 flex items-center justify-center bg-[#020617]/95 hidden z-50">
-                    <div class="loader"></div>
+                <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-[#020617]/95 hidden z-50">
+                    <div class="loader mb-4"></div>
+                    <p class="text-indigo-400 text-xs font-bold tracking-widest uppercase">Döküman Çözümleniyor</p>
                 </div>
             </div>
         </div>
@@ -255,11 +256,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        // Config setup
+        // Parçalanmış Config
         const k1 = "AIzaSyDxq8AI";
         const k2 = "16Y1jNuJMLES8NNEqKlGg2Ul4JI";
         
@@ -279,7 +280,7 @@
         const storage = getStorage(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'mevzuat-f0699';
 
-        let state = { user: null, data: { tapu: {}, kadastro: {}, genel: {} }, pdfDoc: null, matches: [], currentMatch: -1, scale: 1.15 };
+        let state = { data: { tapu: {}, kadastro: {}, genel: {} }, pdfDoc: null, matches: [], currentMatch: -1, scale: 1.15 };
 
         const showToast = (m) => {
             const t = document.getElementById('toast');
@@ -287,24 +288,17 @@
             setTimeout(() => t.classList.remove('show'), 3000);
         };
 
+        // Oturum açma hatasına karşı koruma eklendi
         const initAuthAndData = async () => {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                    state.user = auth.currentUser;
-                } else {
-                    const userCredential = await signInAnonymously(auth);
-                    state.user = userCredential.user;
-                }
+                await signInAnonymously(auth);
             } catch (err) {
-                console.warn("Auth uyarısı, salt okunur moda geçildi", err);
-                state.user = { uid: "guest_user" }; 
+                console.warn("Auth uyarısı, anonim giriş kapalı olabilir:", err);
             }
             await loadAppData();
         };
 
         const loadAppData = async () => {
-            if (!state.user) return;
             const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
             try {
                 const snapshot = await getDocs(collection(db, collectionPath));
@@ -320,8 +314,9 @@
                 animateBg();
                 setupEvents();
             } catch (err) {
-                document.getElementById('loader-text').textContent = "BAĞLANTI HATASI";
-                showToast("Veri çekilemedi!");
+                document.getElementById('loader-text').textContent = "FIRESTORE KURALLARINI DÜZELTİN";
+                showToast("Veriler yüklenemedi! Lütfen Firestore Rules kısmını düzeltin.");
+                console.error(err);
             }
         };
 
@@ -332,7 +327,6 @@
             const startBtn = document.getElementById('start-upload-btn');
             
             if (!fileInput.files[0]) return showToast("Döküman seçmelisiniz.");
-            if (state.user && state.user.uid === "guest_user") return showToast("CORS kısıtlaması nedeniyle yükleme yapılamıyor.");
             
             startBtn.disabled = true;
             document.getElementById('upload-progress').classList.remove('hidden');
@@ -359,7 +353,7 @@
                     loadAppData();
                 }, 800);
             } catch (e) {
-                showToast("CORS hatası veya yükleme başarısız!");
+                showToast("Yükleme başarısız! Storage kurallarını kontrol edin.");
                 console.error(e);
             } finally {
                 startBtn.disabled = false;
@@ -399,15 +393,27 @@
             state.matches = []; state.currentMatch = -1;
             
             try {
-                const loadingTask = pdfjsLib.getDocument(url);
+                // CORS Engelini Aşmak İçin Otomatik Proxy Köprüsü
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                const loadingTask = pdfjsLib.getDocument(proxyUrl);
                 state.pdfDoc = await loadingTask.promise;
                 for (let i = 1; i <= state.pdfDoc.numPages; i++) {
                     await renderPage(i);
                     if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
                 }
             } catch (e) {
-                showToast("PDF yüklenemedi!");
-                document.getElementById('pdf-loader').classList.add('hidden');
+                console.warn("Proxy başarısız oldu, orijinal bağlantı deneniyor...");
+                try {
+                    const fallbackTask = pdfjsLib.getDocument(url);
+                    state.pdfDoc = await fallbackTask.promise;
+                    for (let i = 1; i <= state.pdfDoc.numPages; i++) {
+                        await renderPage(i);
+                        if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
+                    }
+                } catch(err) {
+                    showToast("PDF yüklenemedi! Cloud Shell CORS ayarı gereklidir.");
+                    document.getElementById('pdf-loader').classList.add('hidden');
+                }
             }
         };
 
