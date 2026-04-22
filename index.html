@@ -257,10 +257,11 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+        // SDK üzerinden ham veri indirmek için getBytes dahil edildi
+        import { getStorage, ref, uploadBytes, getDownloadURL, getBytes } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        // Parçalanmış Config
+        // Config
         const k1 = "AIzaSyDxq8AI";
         const k2 = "16Y1jNuJMLES8NNEqKlGg2Ul4JI";
         
@@ -292,7 +293,7 @@
             try {
                 await signInAnonymously(auth);
             } catch (err) {
-                console.warn("Auth uyarısı, anonim giriş kapalı olabilir:", err);
+                console.warn("Auth uyarısı", err);
             }
             await loadAppData();
         };
@@ -313,8 +314,8 @@
                 animateBg();
                 setupEvents();
             } catch (err) {
-                document.getElementById('loader-text').textContent = "FIRESTORE KURALLARINI DÜZELTİN";
-                showToast("Veriler yüklenemedi! Lütfen Firestore Rules kısmını düzeltin.");
+                document.getElementById('loader-text').textContent = "BAĞLANTI HATASI";
+                showToast("Veriler yüklenemedi!");
                 console.error(err);
             }
         };
@@ -352,7 +353,7 @@
                     loadAppData();
                 }, 800);
             } catch (e) {
-                showToast("Yükleme başarısız! Storage kurallarını kontrol edin.");
+                showToast("Yükleme başarısız!");
                 console.error(e);
             } finally {
                 startBtn.disabled = false;
@@ -384,27 +385,30 @@
         };
 
         const openPdf = async (url, title) => {
-            const modal = document.getElementById('pdf-modal');
-            modal.classList.add('active');
+            document.getElementById('pdf-modal').classList.add('active');
             document.getElementById('pdf-title').textContent = title;
             document.getElementById('pdf-container').innerHTML = '';
             document.getElementById('pdf-loader').classList.remove('hidden');
             state.matches = []; state.currentMatch = -1;
             
             try {
-                // CORS hatasını çözmek için allorigins proxy eklendi
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                const loadingTask = pdfjsLib.getDocument(proxyUrl);
+                // ÇÖZÜM: Proxy kullanmak yerine Firebase SDK üzerinden ham veri (ArrayBuffer) olarak çekiyoruz.
+                // Bu yöntem tarayıcının güvenlik duvarı (CORS) kısıtlamalarına takılmaz.
+                const fileRef = ref(storage, url);
+                const arrayBuffer = await getBytes(fileRef);
+
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                 state.pdfDoc = await loadingTask.promise;
+                
                 for (let i = 1; i <= state.pdfDoc.numPages; i++) {
                     await renderPage(i);
                     if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
                 }
             } catch (e) {
-                console.warn("Proxy 1 başarısız oldu, alternatif proxy deneniyor...");
+                console.warn("SDK ile çekilemedi, doğrudan deneniyor...", e);
                 try {
-                    const proxy2 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-                    const fallbackTask = pdfjsLib.getDocument(proxy2);
+                    // Alternatif: Güvenlik duvarı izin veriyorsa direkt URL'den aç.
+                    const fallbackTask = pdfjsLib.getDocument(url);
                     state.pdfDoc = await fallbackTask.promise;
                     for (let i = 1; i <= state.pdfDoc.numPages; i++) {
                         await renderPage(i);
