@@ -171,7 +171,7 @@
         </main>
     </div>
 
-    <!-- Modallar -->
+    <!-- Upload Modal -->
     <div id="upload-modal" class="modal">
         <div class="modal-content max-w-lg !h-auto p-10">
             <h2 class="text-xl font-black mb-8 tracking-wider uppercase text-white">Döküman Ekle</h2>
@@ -255,11 +255,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        // Parçalanmış Konfigürasyon
+        // Config setup
         const k1 = "AIzaSyDxq8AI";
         const k2 = "16Y1jNuJMLES8NNEqKlGg2Ul4JI";
         
@@ -273,7 +273,6 @@
             appId: "1:960929396368:web:2faa0cbfc5cf4e3dd34a15"
         };
 
-        // Servisleri Global Modül Kapsamında Başlat
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -290,8 +289,6 @@
 
         const initAuthAndData = async () => {
             try {
-                // Firebase Auth "configuration-not-found" hatasına karşı koruma eklendi
-                // Canvas ortamı token'ı varsa onu kullan, yoksa anonim dene
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                     state.user = auth.currentUser;
@@ -300,10 +297,8 @@
                     state.user = userCredential.user;
                 }
             } catch (err) {
-                console.warn("Auth servisine ulaşılamadı. Lütfen Firebase Console üzerinden Authentication'da 'Anonymous'u açın. Veriler salt-okunur getiriliyor...", err);
-                // Auth hatasına rağmen sistemi çökertmeden "misafir" olarak veri okumayı dener.
+                console.warn("Auth uyarısı, salt okunur moda geçildi", err);
                 state.user = { uid: "guest_user" }; 
-                showToast("Firebase Anonim Girişi Kapalı. Sadece veri çekiliyor...");
             }
             await loadAppData();
         };
@@ -325,8 +320,7 @@
                 animateBg();
                 setupEvents();
             } catch (err) {
-                console.error("Data error:", err);
-                document.getElementById('loader-text').textContent = "VERİTABANI KURALLARINI KONTROL EDİN";
+                document.getElementById('loader-text').textContent = "BAĞLANTI HATASI";
                 showToast("Veri çekilemedi!");
             }
         };
@@ -338,7 +332,7 @@
             const startBtn = document.getElementById('start-upload-btn');
             
             if (!fileInput.files[0]) return showToast("Döküman seçmelisiniz.");
-            if (state.user && state.user.uid === "guest_user") return showToast("Yükleme için yetkiniz yok.");
+            if (state.user && state.user.uid === "guest_user") return showToast("CORS kısıtlaması nedeniyle yükleme yapılamıyor.");
             
             startBtn.disabled = true;
             document.getElementById('upload-progress').classList.remove('hidden');
@@ -359,13 +353,14 @@
                     section, type, createdAt: new Date().toISOString()
                 });
                 bar.style.width = '100%';
-                showToast("Döküman sisteme eklendi!");
+                showToast("Döküman eklendi!");
                 setTimeout(() => {
                     document.getElementById('upload-modal').classList.remove('active');
                     loadAppData();
                 }, 800);
             } catch (e) {
-                showToast("Yükleme başarısız!");
+                showToast("CORS hatası veya yükleme başarısız!");
+                console.error(e);
             } finally {
                 startBtn.disabled = false;
             }
@@ -523,7 +518,6 @@
             window.addEventListener('resize', () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
         };
 
-        // Sistemi Başlat
         initAuthAndData();
     </script>
 </body>
