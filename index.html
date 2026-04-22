@@ -21,11 +21,10 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; color: #0f172a; margin: 0; }
         #dynamic-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
         
-        /* Belirginleştirilmiş Kart Tasarımı */
         .glass-card { 
             background: #ffffff; 
-            border: 1px solid #cbd5e1; /* Daha belirgin kenar çizgisi */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(0,0,0,0.02); /* İçsel ve dışsal gölge */
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(0,0,0,0.02);
             transition: all 0.3s ease;
         }
         .glass-card:hover {
@@ -72,9 +71,6 @@
             border-radius: 4px;
         }
 
-        canvas { display: block; width: 100%; height: auto; }
-        
-        /* PDF Metin Seçimi İçin Düzenlemeler */
         .textLayer { 
             position: absolute; inset: 0; 
             opacity: 1; line-height: 1; overflow: hidden;
@@ -83,11 +79,9 @@
             color: transparent; position: absolute; 
             white-space: pre; cursor: text; 
             transform-origin: 0% 0%; 
-            pointer-events: auto; /* Metin seçimini aktif eder */
+            pointer-events: auto;
         }
-        .textLayer span::selection {
-            background: rgba(99, 102, 241, 0.3); /* Seçim rengi */
-        }
+        .textLayer span::selection { background: rgba(99, 102, 241, 0.3); }
         
         .highlight { background-color: rgba(250, 204, 21, 0.5) !important; border-radius: 2px; }
         .highlight.selected { 
@@ -146,21 +140,17 @@
                 <p class="text-indigo-600/70 text-[9px] sm:text-[11px] font-bold tracking-[0.4em] uppercase">Gökhan ELGÜL tarafından tasarlanmıştır</p>
             </div>
 
-            <!-- Arama Alanı (z-index yüksek ve relative) -->
             <div class="w-full max-w-2xl mb-12 fade-in relative z-[100]" style="animation-delay: 0.1s">
                 <div class="relative flex items-center w-full">
                     <svg class="absolute left-6 text-slate-400 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <!-- Arama Kutusunun Kendisine İç Gölge ve Belirgin Çizgi Eklendi -->
                     <input type="text" id="search-input" placeholder="Mevzuat dökümanlarında ara..." class="w-full bg-white border border-slate-300 shadow-inner rounded-2xl py-4 pl-14 pr-12 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none transition-all placeholder-slate-400 font-medium">
                     <button id="clear-search-btn" class="absolute right-4 p-1 text-slate-400 hover:text-red-500 transition-colors hidden focus:outline-none bg-white" title="Aramayı Temizle">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
-                <!-- Arama Sonuçları Kutusu (Alt kartların üstüne çıkar) -->
                 <div id="search-results" class="absolute top-full left-0 w-full mt-3 bg-white border border-slate-200 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[100] max-h-[300px] overflow-y-auto hidden flex-col divide-y divide-slate-100"></div>
             </div>
 
-            <!-- Kategoriler -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl fade-in relative z-10" style="animation-delay: 0.2s">
                 <div data-section="tapu" class="glass-card p-10 rounded-[2rem] text-center group cursor-pointer active:scale-95">
                     <div class="w-14 h-14 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform shadow-sm">
@@ -228,16 +218,35 @@
         <div class="modal-content max-w-lg !h-auto max-h-[85%] p-10 bg-white">
             <h2 id="selection-title" class="text-3xl font-black uppercase mb-8 tracking-tight text-slate-800">Birim</h2>
             <div id="selection-body" class="space-y-3 pr-2 overflow-y-auto"></div>
-            <button id="close-selection-btn" class="mt-8 w-full p-4 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 text-slate-600 rounded-2xl font-bold uppercase text-[11px] tracking-wider transition-colors">Kapat</button>
+            <button id="close-selection-btn" class="mt-8 w-full p-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold uppercase text-[11px] tracking-wider transition-colors">Kapat</button>
         </div>
     </div>
 
     <!-- PDF Viewer Modal -->
     <div id="pdf-modal" class="modal">
         <div class="modal-content relative bg-[#f8fafc]">
-            <header class="bg-white p-5 border-b border-slate-200 flex flex-col gap-4 shadow-sm z-10">
+            <!-- Header Alanı ve Çizim Araçları -->
+            <header class="bg-white p-4 border-b border-slate-200 flex flex-col gap-3 shadow-sm z-10">
                 <div class="flex items-center justify-between">
-                    <h3 id="pdf-title" class="text-[13px] font-black text-slate-800 uppercase truncate max-w-[60%] tracking-wider">DÖKÜMAN</h3>
+                    <h3 id="pdf-title" class="text-[13px] font-black text-slate-800 uppercase truncate max-w-[40%] tracking-wider">DÖKÜMAN</h3>
+                    
+                    <!-- Çizim ve Not Araç Çubuğu -->
+                    <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-inner">
+                        <button id="tool-cursor" onclick="window.setTool('cursor')" class="tool-btn p-1.5 rounded-lg bg-white shadow-sm text-indigo-600 transition-all" title="Okuma/Seçim Modu">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+                        </button>
+                        <button id="tool-pen" onclick="window.setTool('pen')" class="tool-btn p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 transition-all" title="Kırmızı Kalem">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                        </button>
+                        <button id="tool-highlighter" onclick="window.setTool('highlighter')" class="tool-btn p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 transition-all" title="Sarı Fosforlu">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/><path d="M15 5l4 4"/></svg>
+                        </button>
+                        <div class="w-px h-5 bg-slate-300 mx-1"></div>
+                        <button onclick="window.clearDrawings()" class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 transition-all" title="Çizimleri Temizle">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+
                     <div class="flex gap-3">
                         <div class="flex items-center bg-white border border-slate-200 shadow-sm rounded-xl p-1">
                             <button id="zoom-out" class="p-2 hover:text-indigo-600 text-slate-500 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
@@ -247,7 +256,7 @@
                         <button id="close-pdf-btn" class="p-3 bg-white border border-red-100 text-red-600 shadow-sm rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                     </div>
                 </div>
-                <div class="flex items-center bg-white border border-slate-300 shadow-inner rounded-xl px-5 py-3 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
+                <div class="flex items-center bg-white border border-slate-300 shadow-inner rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
                     <svg class="text-slate-400 mr-3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="pdf-search-input" placeholder="Döküman içinde kelime ara..." class="bg-transparent border-none focus:ring-0 text-slate-800 w-full text-sm font-medium placeholder-slate-400">
                     <div id="pdf-search-info" class="text-[10px] font-bold text-white bg-indigo-500 px-3 py-1.5 rounded-lg ml-3 whitespace-nowrap shadow-sm">0 / 0</div>
@@ -258,10 +267,10 @@
                 </div>
             </header>
             <div id="pdf-scroll-area">
-                <div id="pdf-container"></div>
+                <div id="pdf-container" class="w-full flex flex-col items-center"></div>
                 <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 hidden z-50 backdrop-blur-sm">
                     <div class="loader mb-4"></div>
-                    <p class="text-indigo-600 text-[11px] font-bold tracking-widest uppercase">Döküman Çözümleniyor</p>
+                    <p class="text-indigo-600 text-[11px] font-bold tracking-widest uppercase">Döküman Yükleniyor</p>
                 </div>
             </div>
         </div>
@@ -294,13 +303,107 @@
         const storage = getStorage(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'mevzuat-f0699';
 
-        let state = { data: { tapu: {}, kadastro: {}, genel: {} }, pdfDoc: null, matches: [], currentMatch: -1, scale: 1.15, isAdmin: false };
+        let state = { 
+            data: { tapu: {}, kadastro: {}, genel: {} }, 
+            pdfDoc: null, 
+            matches: [], 
+            currentMatch: -1, 
+            scale: 1.15, 
+            isAdmin: false,
+            tool: 'cursor' // 'cursor', 'pen', 'highlighter'
+        };
 
         const showToast = (m) => {
             const t = document.getElementById('toast');
             t.textContent = m; t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
         };
+
+        // --- ÇİZİM VE NOT ALMA ÖZELLİKLERİ ---
+        window.setTool = (tool) => {
+            state.tool = tool;
+            // Butonları güncelle
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`tool-${tool}`);
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
+
+            // Canvas etkileşimlerini güncelle
+            document.querySelectorAll('.drawing-layer').forEach(c => {
+                c.style.pointerEvents = tool === 'cursor' ? 'none' : 'auto';
+                c.style.cursor = tool === 'cursor' ? 'default' : 'crosshair';
+            });
+        };
+
+        window.clearDrawings = () => {
+            document.querySelectorAll('.drawing-layer').forEach(canvas => {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+            showToast("Çizimler temizlendi.");
+        };
+
+        const getPos = (e, canvas) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        };
+
+        const setupCanvasDrawing = (canvas) => {
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+
+            const start = (e) => {
+                if(state.tool === 'cursor') return;
+                isDrawing = true;
+                const pos = getPos(e, canvas);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                e.preventDefault(); // Sayfa kaymasını engelle
+            };
+
+            const draw = (e) => {
+                if(!isDrawing || state.tool === 'cursor') return;
+                const pos = getPos(e, canvas);
+                ctx.lineTo(pos.x, pos.y);
+                
+                if(state.tool === 'highlighter') {
+                    ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)'; // Sarı fosforlu
+                    ctx.lineWidth = 18;
+                    ctx.lineCap = 'butt';
+                    ctx.lineJoin = 'miter';
+                } else {
+                    ctx.strokeStyle = '#ef4444'; // Kırmızı kalem
+                    ctx.lineWidth = 2.5;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                }
+                ctx.stroke();
+                e.preventDefault();
+            };
+
+            const stop = () => { isDrawing = false; };
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stop);
+            canvas.addEventListener('mouseout', stop);
+            
+            // Mobil cihazlar için dokunmatik destek
+            canvas.addEventListener('touchstart', (e) => start(e), {passive: false});
+            canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
+            canvas.addEventListener('touchend', stop);
+        };
+        // --- ÇİZİM SONU ---
 
         window.deletePdf = async (id, url, event) => {
             event.stopPropagation();
@@ -320,7 +423,6 @@
                 if(!activeSection) document.getElementById('selection-modal').classList.remove('active');
             } catch(e) {
                 showToast("Silinemedi!");
-                console.error(e);
             }
         };
 
@@ -330,16 +432,22 @@
             document.getElementById('pdf-container').innerHTML = '';
             document.getElementById('pdf-loader').classList.remove('hidden');
             state.matches = []; state.currentMatch = -1;
+            window.setTool('cursor'); // Modala girince imleci varsayılan yap
             
             try {
                 const loadingTask = pdfjsLib.getDocument(url);
                 state.pdfDoc = await loadingTask.promise;
+                
+                // HIZLANDIRMA: Sayfaları arka arkaya hızlıca yorarak değil, 
+                // araya es vererek yüklüyoruz. Böylece ekran donmaz.
                 for (let i = 1; i <= state.pdfDoc.numPages; i++) {
                     await renderPage(i);
                     if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
+                    
+                    // Tarayıcının nefes alması için ufak bir bekleme (Donmayı önler)
+                    await new Promise(resolve => setTimeout(resolve, 5));
                 }
             } catch (e) {
-                console.warn("Doğrudan yükleme başarısız, proxy deneniyor...", e);
                 try {
                     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
                     const fallbackTask = pdfjsLib.getDocument(proxyUrl);
@@ -347,16 +455,17 @@
                     for (let i = 1; i <= state.pdfDoc.numPages; i++) {
                         await renderPage(i);
                         if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
+                        await new Promise(resolve => setTimeout(resolve, 5));
                     }
                 } catch(err) {
-                    showToast("Güvenlik Duvarı Engeli! Döküman yüklenemedi.");
+                    showToast("Güvenlik Duvarı Engeli!");
                     document.getElementById('pdf-loader').classList.add('hidden');
                 }
             }
         };
 
         const initAuthAndData = async () => {
-            try { await signInAnonymously(auth); } catch (err) { console.warn("Auth uyarısı", err); }
+            try { await signInAnonymously(auth); } catch (err) {}
             await loadAppData();
         };
 
@@ -389,7 +498,6 @@
             } catch (err) {
                 document.getElementById('loader-text').textContent = "HATA";
                 showToast("Veriler çekilirken hata oluştu!");
-                console.error(err);
             }
         };
 
@@ -442,7 +550,6 @@
                 }, 800);
             } catch (e) {
                 showToast("Yükleme başarısız!");
-                console.error(e);
             } finally {
                 startBtn.disabled = false;
             }
@@ -450,21 +557,35 @@
 
         const renderPage = async (num) => {
             const page = await state.pdfDoc.getPage(num);
-            const renderScale = 2.0; 
+            // HIZLANDIRMA: Canvas kalitesi hafif düşürülerek hız artırıldı.
+            const renderScale = 1.3; 
             const vp = page.getViewport({ scale: renderScale });
-            const container = document.createElement('div');
-            container.className = 'pdf-page-container';
-            container.style.width = `${vp.width * (state.scale / renderScale)}px`;
             
+            const container = document.createElement('div');
+            container.className = 'pdf-page-container relative';
+            // Genişlik ve yükseklik net belirtildi
+            container.style.width = `${vp.width * (state.scale / renderScale)}px`;
+            container.style.height = `${vp.height * (state.scale / renderScale)}px`;
+            
+            // PDF Görüntüsü
             const canvas = document.createElement('canvas');
+            canvas.className = 'absolute inset-0 w-full h-full z-0';
             canvas.width = vp.width; canvas.height = vp.height;
             const ctx = canvas.getContext('2d');
             
+            // Çizim Katmanı
+            const drawCanvas = document.createElement('canvas');
+            drawCanvas.className = 'drawing-layer absolute inset-0 w-full h-full z-20';
+            drawCanvas.width = vp.width; drawCanvas.height = vp.height;
+            drawCanvas.style.pointerEvents = state.tool === 'cursor' ? 'none' : 'auto';
+            setupCanvasDrawing(drawCanvas);
+
+            // Metin Seçim ve Arama Katmanı
             const textLayer = document.createElement('div');
-            textLayer.className = 'textLayer';
+            textLayer.className = 'textLayer z-10';
             textLayer.style.setProperty('--scale-factor', state.scale);
 
-            container.append(canvas, textLayer);
+            container.append(canvas, textLayer, drawCanvas);
             document.getElementById('pdf-container').append(container);
 
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
@@ -611,8 +732,10 @@
         const refreshPdfView = () => {
             document.querySelectorAll('.pdf-page-container').forEach(async (c, i) => {
                 const page = await state.pdfDoc.getPage(i + 1);
-                const vp = page.getViewport({ scale: 2.0 });
-                c.style.width = `${vp.width * (state.scale / 2.0)}px`;
+                const renderScale = 1.3;
+                const vp = page.getViewport({ scale: renderScale });
+                c.style.width = `${vp.width * (state.scale / renderScale)}px`;
+                c.style.height = `${vp.height * (state.scale / renderScale)}px`;
             });
         };
 
