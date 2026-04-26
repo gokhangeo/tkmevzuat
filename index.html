@@ -140,6 +140,7 @@
                     <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     <input type="text" id="pdfInnerSearch" placeholder="PDF'te Bul..." class="w-24 sm:w-36 bg-transparent text-sm py-1.5 px-2 focus:outline-none text-slate-700 placeholder-slate-400">
                     <button id="pdfSearchBtn" class="text-blue-600 font-semibold px-1.5 py-1 hover:text-blue-800 text-sm shrink-0 transition-colors">Bul</button>
+                    <button id="pdfClearSearchBtn" class="hidden text-slate-500 font-semibold px-1.5 py-1 hover:text-red-600 text-sm shrink-0 transition-colors" title="Aramayı temizle">×</button>
                 </div>
 
                 <!-- Admin İşlemleri (Gizli) -->
@@ -238,6 +239,7 @@
             loader: document.getElementById('loader'),
             pdfInnerSearch: document.getElementById('pdfInnerSearch'),
             pdfSearchBtn: document.getElementById('pdfSearchBtn'),
+            pdfClearSearchBtn: document.getElementById('pdfClearSearchBtn'),
             globalLoader: document.getElementById('globalLoader'),
             globalLoaderText: document.getElementById('globalLoaderText')
         };
@@ -451,39 +453,72 @@
             }
         }
 
-        // Geliştirilmiş IFRAME yükleyici (Mobil ve Arama Uyumlu)
-        function loadIframe(url, keyword = '') {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            
-            // Temel URL'yi al (hash kısmını at)
-            let finalUrl = url.split('#')[0];
-            
-            if (isMobile && !keyword) {
-                // Mobilde PDF'in tüm sayfalarını görebilmek için Google Viewer kullanılır.
-                // Not: Google Viewer parametreli arama desteklemez.
-                finalUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(finalUrl)}&embedded=true`;
-            } else if (keyword) {
-                // PC'de veya arama zorlandığında Native görüntüleyiciye arama parametresi ekle
-                finalUrl = `${finalUrl}#search=${encodeURIComponent(keyword)}`;
-            }
+        // Geliştirilmiş IFRAME yükleyici
+        function getPdfUrl(keyword = '') {
+            const baseUrl = currentPdfUrl.split('#')[0];
+            const cleanKeyword = (keyword || '').trim();
 
-            // Sayfayı tamamen bozmadan iframe kaynağını değiştir, böylece daha hızlı arar
-            if(els.pdfIframe.src !== finalUrl) {
-                els.pdfIframe.src = finalUrl;
-            }
+            if (!cleanKeyword) return baseUrl;
+
+            // Chrome / Edge / Firefox PDF görüntüleyicilerinde arama panelini açar.
+            // Her tarayıcı aynı davranmayabilir; bu yüzden tam ekran butonunda da aynı URL kullanılır.
+            return `${baseUrl}#search=${encodeURIComponent(cleanKeyword)}`;
         }
 
-        // PDF İÇİ KELİME ARAMA (Geliştirilmiş)
+        function loadIframe(url, keyword = '') {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const cleanKeyword = (keyword || '').trim();
+            let finalUrl = url.split('#')[0];
+
+            if (cleanKeyword) {
+                finalUrl = `${finalUrl}#search=${encodeURIComponent(cleanKeyword)}`;
+            } else if (isMobile) {
+                // Mobilde gömülü PDF sorun çıkarırsa Google Viewer yedek görüntüleyici olarak kullanılır.
+                // Google Viewer PDF içi aramayı desteklemediği için arama yapılırken kullanılmaz.
+                finalUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(finalUrl)}&embedded=true`;
+            }
+
+            els.pdfIframe.src = 'about:blank';
+            setTimeout(() => {
+                els.pdfIframe.src = finalUrl;
+            }, 80);
+        }
+
+        // PDF İÇİ KELİME ARAMA
         function searchInsidePDF() {
             const keyword = els.pdfInnerSearch.value.trim();
             if (!currentPdfUrl || !selectedDoc) return;
-            
-            // Sadece iframe src'sini güncelleyecek fonksiyonu çağır
+
+            if (!keyword) {
+                alert('Lütfen PDF içinde aranacak kelimeyi yazın.');
+                return;
+            }
+
+            const searchUrl = getPdfUrl(keyword);
+            els.fullScreenBtn.href = searchUrl;
+            els.downloadBtn.href = currentPdfUrl;
+            els.pdfClearSearchBtn.classList.remove('hidden');
             loadIframe(currentPdfUrl, keyword);
+
+            // Bazı kurum ağlarında iframe içinde arama engellenebilir. Bu durumda kullanıcı tam ekran ikonuyla aynı aramalı PDF'i açabilir.
+            setTimeout(() => {
+                try {
+                    els.pdfIframe.contentWindow?.focus();
+                } catch (e) {}
+            }, 300);
+        }
+
+        function clearPdfSearch() {
+            if (!currentPdfUrl) return;
+            els.pdfInnerSearch.value = '';
+            els.fullScreenBtn.href = currentPdfUrl;
+            els.pdfClearSearchBtn.classList.add('hidden');
+            loadIframe(currentPdfUrl);
         }
 
         els.pdfSearchBtn.addEventListener('click', searchInsidePDF);
-        els.pdfInnerSearch.addEventListener('keypress', (e) => {
+        els.pdfClearSearchBtn.addEventListener('click', clearPdfSearch);
+        els.pdfInnerSearch.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') searchInsidePDF();
         });
 
