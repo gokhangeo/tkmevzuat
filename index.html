@@ -178,10 +178,9 @@
                 </div>
             </div>
 
-            <!-- PDF İframe Alanı (Mobil Kaydırma Düzeltmeleri Uygulanmış) -->
-            <div id="iframeContainer" class="flex-1 w-full h-full overflow-auto relative" style="-webkit-overflow-scrolling: touch;">
-                <!-- iOS için kritik css: width/height 1px ve min- ölçüleri -->
-                <iframe id="pdfIframe" class="block border-0 shadow-inner" style="width: 1px; min-width: 100%; height: 1px; min-height: 100%; background-color: #525659;" allowfullscreen></iframe>
+            <!-- PDF İframe Alanı (Gereksiz CSS temizlendi, direkt boyutlandırma verildi) -->
+            <div id="iframeContainer" class="flex-1 w-full h-full overflow-hidden relative">
+                <iframe id="pdfIframe" class="w-full h-full border-0 shadow-inner" style="background-color: #525659;" allowfullscreen></iframe>
             </div>
         </div>
 
@@ -245,7 +244,7 @@
 
         lucide.createIcons();
 
-        // GİZLİ YÖNETİCİ GİRİŞİ (3 TIKLAMA)
+        // GİZLİ YÖNETİCİ GİRİŞİ
         function updateAdminUI() {
             if (isAdmin) {
                 els.adminIndicator.classList.remove('hidden');
@@ -311,13 +310,9 @@
             }
         });
 
-        // GELİŞTİRİLMİŞ İSİM TEMİZLEME (2023-5 gibi sayılara dokunmaz!)
         function cleanTitle(filename) {
             let title = filename.replace(/\.pdf$/i, ''); 
-            
-            // Sadece 10 haneden uzun anlamsız sistem sayılarını (örn: 1776883268077_) siler.
             title = title.replace(/^\d{10,}[_\-\s]*/, '');
-            
             title = title.replace(/_/g, ' ');
             return title.trim() || filename.replace(/\.pdf$/i, '');
         }
@@ -414,7 +409,7 @@
 
             resetDeleteBtn(); 
             updateAdminUI(); 
-            els.pdfInnerSearch.value = ''; // Yeni belge açıldığında aramayı sıfırla
+            els.pdfInnerSearch.value = ''; // Yeni belgede aramayı temizle
             renderList();
             
             els.sidebar.classList.remove('flex');
@@ -438,7 +433,7 @@
                 const fileRef = ref(storage, selectedDoc.fullPath);
                 currentPdfUrl = await getDownloadURL(fileRef);
                 
-                // İframe sıfırdan yükleniyor
+                // Iframe yükleme fonksiyonunu çalıştır
                 loadIframe(currentPdfUrl);
                 
                 els.fullScreenBtn.href = currentPdfUrl;
@@ -452,40 +447,45 @@
             } finally {
                 els.loader.classList.add('hidden');
                 els.loader.classList.remove('flex');
+                els.pdfIframe.classList.remove('hidden');
             }
         }
 
-        // Iframe'i kökten yenileyen yardımcı fonksiyon
-        function loadIframe(url) {
-            const parent = els.pdfIframe.parentNode;
-            const newIframe = document.createElement('iframe');
-            newIframe.id = 'pdfIframe';
-            // Mobil scroll hilesi için aynı stiller
-            newIframe.className = 'block border-0 shadow-inner';
-            newIframe.style.cssText = 'width: 1px; min-width: 100%; height: 1px; min-height: 100%; background-color: #525659;';
-            newIframe.src = url;
+        // Geliştirilmiş IFRAME yükleyici (Mobil ve Arama Uyumlu)
+        function loadIframe(url, keyword = '') {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             
-            parent.replaceChild(newIframe, els.pdfIframe);
-            els.pdfIframe = newIframe; 
+            // Temel URL'yi al (hash kısmını at)
+            let finalUrl = url.split('#')[0];
+            
+            if (isMobile && !keyword) {
+                // Mobilde PDF'in tüm sayfalarını görebilmek için Google Viewer kullanılır.
+                // Not: Google Viewer parametreli arama desteklemez.
+                finalUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(finalUrl)}&embedded=true`;
+            } else if (keyword) {
+                // PC'de veya arama zorlandığında Native görüntüleyiciye arama parametresi ekle
+                finalUrl = `${finalUrl}#search=${encodeURIComponent(keyword)}`;
+            }
+
+            // Sayfayı tamamen bozmadan iframe kaynağını değiştir, böylece daha hızlı arar
+            if(els.pdfIframe.src !== finalUrl) {
+                els.pdfIframe.src = finalUrl;
+            }
         }
 
-        // PDF İÇİ KELİME ARAMA (KESİN ÇÖZÜM: DOM REPLACEMENT)
+        // PDF İÇİ KELİME ARAMA (Geliştirilmiş)
         function searchInsidePDF() {
             const keyword = els.pdfInnerSearch.value.trim();
             if (!currentPdfUrl || !selectedDoc) return;
             
-            let baseSrc = currentPdfUrl.split('#')[0];
-            let targetSrc = baseSrc + (keyword ? '#search=' + encodeURIComponent(keyword) : '');
-            
-            // Tarayıcı eklentisini aramaya zorlamak için iframe'i DOM'dan silip yeniden oluşturuyoruz.
-            loadIframe(targetSrc);
+            // Sadece iframe src'sini güncelleyecek fonksiyonu çağır
+            loadIframe(currentPdfUrl, keyword);
         }
 
         els.pdfSearchBtn.addEventListener('click', searchInsidePDF);
         els.pdfInnerSearch.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') searchInsidePDF();
         });
-
 
         // YENİ EKLE / DEĞİŞTİR / SİL (SADECE ADMİN)
         async function handleUpload(file, oldDocToReplace = null) {
