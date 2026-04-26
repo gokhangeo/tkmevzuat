@@ -1,294 +1,177 @@
 <!DOCTYPE html>
-<html lang="tr" class="h-full">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TKGM Mevzuat Sistemi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mevzuat Kütüphanesi</title>
     
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%234f46e5'/%3E%3Cpath d='M25 75 L25 25 L75 25 L75 75 Z M25 50 L75 50 M50 25 L50 75' stroke='%23ffffff' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" type="image/svg+xml">
-    
+    <!-- Tailwind CSS (Tasarım için) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide İkonları -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        body { font-family: 'Inter', sans-serif; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; color: #0f172a; margin: 0; }
-        #dynamic-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
-        
-        .glass-card { 
-            background: #ffffff; 
-            border: 1px solid #cbd5e1;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(0,0,0,0.02);
-            transition: all 0.3s ease;
-        }
-        .glass-card:hover {
-            transform: translateY(-4px);
-            border-color: #818cf8;
-            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(0,0,0,0.02);
-        }
-        
-        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .modal { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(15, 23, 42, 0.6); 
-            backdrop-filter: blur(8px); 
-            display: none; justify-content: center; align-items: center; z-index: 1000; 
-        }
-        .modal.active { display: flex; animation: scaleIn 0.3s ease-out; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-
-        .modal-content { 
-            background: #ffffff; 
-            width: 96%; height: 94%; 
-            border-radius: 1.5rem; 
-            display: flex; flex-direction: column; 
-            overflow: hidden; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-        
-        #pdf-scroll-area { 
-            overflow: auto; flex-grow: 1; 
-            background-color: #f1f5f9; 
-            display: flex; flex-direction: column; 
-            align-items: center; padding: 25px 10px; 
-            scroll-behavior: smooth;
-        }
-
-        .pdf-page-container { 
-            position: relative; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            background: white; 
-            margin-bottom: 25px;
-            flex-shrink: 0;
-            border-radius: 4px;
-        }
-
-        .textLayer { 
-            position: absolute; inset: 0; 
-            opacity: 1; line-height: 1; overflow: hidden;
-        }
-        .textLayer span { 
-            color: transparent; position: absolute; 
-            white-space: pre; cursor: text; 
-            transform-origin: 0% 0%; 
-            pointer-events: auto;
-        }
-        .textLayer span::selection { background: rgba(99, 102, 241, 0.3); }
-        
-        .highlight { background-color: rgba(250, 204, 21, 0.5) !important; border-radius: 2px; }
-        .highlight.selected { 
-            background-color: rgba(249, 115, 22, 0.8) !important;
-            box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
-            outline: 2px solid #fff;
-            z-index: 100;
-        }
-
-        .loader { 
-            border: 3px solid rgba(79, 70, 229, 0.1); 
-            border-top: 3px solid #4f46e5; 
-            border-radius: 50%; width: 45px; height: 45px; 
-            animation: spin 0.8s linear infinite; 
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        #toast { 
-            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); 
-            background: #1e293b; color: white; padding: 0.8rem 1.6rem; 
-            border-radius: 0.75rem; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10000; 
-            font-size: 0.85rem; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        #toast.show { bottom: 30px; }
+        .resizing { user-select: none; }
     </style>
 </head>
-<body class="h-full">
-    <canvas id="dynamic-bg"></canvas>
+<body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
 
-    <div id="main-loader-container" class="fixed inset-0 bg-[#f8fafc] flex flex-col items-center justify-center z-[9999]">
-        <div class="loader mb-4"></div>
-        <p class="text-indigo-600/70 text-[10px] uppercase tracking-[0.4em] font-bold" id="loader-text">Sistem Bağlantısı Kuruluyor</p>
+    <!-- GLOBAL YÜKLEME EKRANI (Firebase İşlemleri İçin) -->
+    <div id="globalLoader" class="hidden fixed inset-0 bg-slate-900/60 z-50 items-center justify-center backdrop-blur-sm">
+        <div class="bg-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center">
+            <div class="loader mb-4 border-[3px] border-slate-200 border-t-blue-600 w-10 h-10"></div>
+            <p id="globalLoaderText" class="text-slate-700 font-semibold text-center">İşlem yapılıyor...</p>
+            <p class="text-slate-400 text-xs mt-2">Lütfen bekleyin</p>
+        </div>
     </div>
 
-    <div id="app-container" class="h-full flex flex-col" style="display: none;">
-        <nav class="flex justify-between items-center px-6 py-5 fade-in">
-            <div id="secret-admin-trigger" class="flex items-center gap-2.5 cursor-pointer select-none" title="Çift Tıkla: Yönetici Modu">
-                <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/30 pointer-events-none">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <!-- GİZLİ DOSYA GİRİŞLERİ -->
+    <input type="file" id="uploadInput" accept="application/pdf" class="hidden">
+    <input type="file" id="replaceInput" accept="application/pdf" class="hidden">
+
+    <!-- SOL PANEL - LİSTE -->
+    <div id="sidebar" class="w-full md:w-[320px] shrink-0 bg-white flex flex-col relative z-20">
+        <!-- Başlık Alanı -->
+        <div class="p-5 bg-blue-700 text-white shadow-md z-10 shrink-0">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="book-open" class="text-blue-200 w-7 h-7"></i>
+                        <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
+                            Mevzuat
+                            <!-- YÖNETİCİ KİLİT İKONU -->
+                            <i data-lucide="lock" id="adminLockBtn" class="text-blue-300 w-4 h-4 cursor-pointer hover:text-white transition-colors" title="Yönetici Girişi"></i>
+                        </h1>
+                    </div>
+                    <p class="text-[11px] text-blue-200 mt-1.5 font-medium opacity-80">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
                 </div>
-                <span class="text-[12px] font-black tracking-[0.15em] text-slate-800 uppercase pointer-events-none">TKGM MEVZUAT</span>
-            </div>
-            <div class="flex gap-2">
-                <button id="upload-btn" style="display: none;" class="p-2.5 glass-card rounded-xl text-indigo-600 hover:text-indigo-800 transition-colors" title="Dosya Yükle">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <!-- YENİ BELGE EKLE BUTONU (Sadece Admin Görür) -->
+                <button id="addNewBtn" class="hidden p-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors text-white shrink-0 shadow-sm" title="Yeni Belge Yükle">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
-                <button id="refresh-data-btn" class="p-2.5 glass-card rounded-xl text-slate-500 hover:text-emerald-600 transition-colors" title="Verileri Yenile">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 22v-6h6"/></svg>
-                </button>
             </div>
-        </nav>
-
-        <main class="flex-grow flex flex-col items-center justify-center px-6 pb-24">
-            <div class="text-center mb-10 fade-in">
-                <h1 class="text-4xl sm:text-6xl font-black tracking-tight mb-2 uppercase leading-none text-slate-800">TKGM MEVZUAT</h1>
-                <p class="text-indigo-600/70 text-[9px] sm:text-[11px] font-bold tracking-[0.4em] uppercase">Gökhan ELGÜL tarafından tasarlanmıştır</p>
-            </div>
-
-            <div class="w-full max-w-2xl mb-12 fade-in relative z-[100]" style="animation-delay: 0.1s">
-                <div class="relative flex items-center w-full">
-                    <svg class="absolute left-6 text-slate-400 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="search-input" placeholder="Mevzuat dökümanlarında ara..." class="w-full bg-white border border-slate-300 shadow-inner rounded-2xl py-4 pl-14 pr-12 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none transition-all placeholder-slate-400 font-medium">
-                    <button id="clear-search-btn" class="absolute right-4 p-1 text-slate-400 hover:text-red-500 transition-colors hidden focus:outline-none bg-white" title="Aramayı Temizle">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-                <div id="search-results" class="absolute top-full left-0 w-full mt-3 bg-white border border-slate-200 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[100] max-h-[300px] overflow-y-auto hidden flex-col divide-y divide-slate-100"></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl fade-in relative z-10" style="animation-delay: 0.2s">
-                <div data-section="tapu" class="glass-card p-10 rounded-[2rem] text-center group cursor-pointer active:scale-95">
-                    <div class="w-14 h-14 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform shadow-sm">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                    </div>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-widest">TAPU</h2>
-                </div>
-                <div data-section="kadastro" class="glass-card p-10 rounded-[2rem] text-center group cursor-pointer active:scale-95">
-                    <div class="w-14 h-14 bg-cyan-50 border border-cyan-100 text-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform shadow-sm">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    </div>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-widest">KADASTRO</h2>
-                </div>
-                <div data-section="genel" class="glass-card p-10 rounded-[2rem] text-center group cursor-pointer active:scale-95">
-                    <div class="w-14 h-14 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform shadow-sm">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                    </div>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-widest">GENEL</h2>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Upload Modal -->
-    <div id="upload-modal" class="modal">
-        <div class="modal-content max-w-lg !h-auto p-10">
-            <h2 class="text-2xl font-black mb-8 tracking-tight uppercase text-slate-800">Toplu Döküman Ekle</h2>
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">PDF DOSYALARI (Çoklu Seçim)</label>
-                    <input type="file" id="file-input" accept=".pdf" multiple class="w-full bg-slate-50 border border-slate-300 shadow-inner p-4 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">BİRİM</label>
-                        <select id="section-select" class="w-full bg-slate-50 border border-slate-300 shadow-inner p-4 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
-                            <option value="tapu">TAPU</option>
-                            <option value="kadastro">KADASTRO</option>
-                            <option value="genel">GENEL</option>
-                        </select>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">TÜR</label>
-                        <select id="type-select" class="w-full bg-slate-50 border border-slate-300 shadow-inner p-4 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
-                            <option value="genelge">GENELGE</option>
-                            <option value="talimat">TALİMAT</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="upload-progress" class="hidden pt-3">
-                    <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                        <div id="progress-bar" class="h-full bg-indigo-600 w-0 transition-all duration-300"></div>
-                    </div>
-                </div>
-                <div class="flex gap-4 pt-6">
-                    <button id="cancel-upload-btn" class="flex-1 p-4 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 text-slate-600 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-colors">İptal</button>
-                    <button id="start-upload-btn" class="flex-1 p-4 bg-indigo-600 hover:bg-indigo-700 transition-colors rounded-xl font-black uppercase tracking-wider text-[11px] text-white shadow-lg shadow-indigo-500/30">Yükle</button>
-                </div>
+            
+            <!-- Arama Kutusu -->
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="Genelge, kanun veya yıl ara..." class="w-full pl-10 pr-4 py-2.5 bg-blue-800/50 border border-blue-600 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors">
+                <i data-lucide="search" class="absolute left-3 top-3 text-blue-300 w-4 h-4"></i>
             </div>
         </div>
-    </div>
 
-    <!-- Category Selection Modal -->
-    <div id="selection-modal" class="modal">
-        <div class="modal-content max-w-lg !h-auto max-h-[85%] p-10 bg-white">
-            <h2 id="selection-title" class="text-3xl font-black uppercase mb-8 tracking-tight text-slate-800">Birim</h2>
-            <div id="selection-body" class="space-y-3 pr-2 overflow-y-auto"></div>
-            <button id="close-selection-btn" class="mt-8 w-full p-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold uppercase text-[11px] tracking-wider transition-colors">Kapat</button>
+        <!-- Belge Listesi -->
+        <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2">
+            <!-- Dinamik liste buraya gelecek -->
         </div>
-    </div>
-
-    <!-- PDF Viewer Modal -->
-    <div id="pdf-modal" class="modal">
-        <div class="modal-content relative bg-[#f8fafc]">
-            <!-- Header Alanı ve Çizim Araçları -->
-            <header class="bg-white p-4 border-b border-slate-200 flex flex-col gap-3 shadow-sm z-10">
-                <div class="flex items-center justify-between">
-                    <h3 id="pdf-title" class="text-[13px] font-black text-slate-800 uppercase truncate max-w-[40%] tracking-wider">DÖKÜMAN</h3>
-                    
-                    <!-- Çizim ve Not Araç Çubuğu -->
-                    <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-inner">
-                        <button id="tool-cursor" onclick="window.setTool('cursor')" class="tool-btn p-1.5 rounded-lg bg-white shadow-sm text-indigo-600 transition-all" title="Okuma/Seçim Modu">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
-                        </button>
-                        <button id="tool-pen" onclick="window.setTool('pen')" class="tool-btn p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 transition-all" title="Kırmızı Kalem">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-                        </button>
-                        <button id="tool-highlighter" onclick="window.setTool('highlighter')" class="tool-btn p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 transition-all" title="Sarı Fosforlu">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/><path d="M15 5l4 4"/></svg>
-                        </button>
-                        <div class="w-px h-5 bg-slate-300 mx-1"></div>
-                        <button onclick="window.clearDrawings()" class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 transition-all" title="Çizimleri Temizle">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <div class="flex items-center bg-white border border-slate-200 shadow-sm rounded-xl p-1">
-                            <button id="zoom-out" class="p-2 hover:text-indigo-600 text-slate-500 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                            <span id="zoom-text" class="text-[11px] font-bold min-w-[45px] flex items-center justify-center text-slate-700">100%</span>
-                            <button id="zoom-in" class="p-2 hover:text-indigo-600 text-slate-500 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                        </div>
-                        <button id="close-pdf-btn" class="p-3 bg-white border border-red-100 text-red-600 shadow-sm rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                    </div>
-                </div>
-                <div class="flex items-center bg-white border border-slate-300 shadow-inner rounded-xl px-5 py-3 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
-                    <svg class="text-slate-400 mr-3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="pdf-search-input" placeholder="Döküman içinde kelime ara..." class="bg-transparent border-none focus:ring-0 text-slate-800 w-full text-sm font-medium placeholder-slate-400">
-                    <div id="pdf-search-info" class="text-[10px] font-bold text-white bg-indigo-500 px-3 py-1.5 rounded-lg ml-3 whitespace-nowrap shadow-sm">0 / 0</div>
-                    <div class="flex gap-2 ml-4 border-l border-slate-200 pl-4">
-                        <button id="search-prev" class="p-1.5 hover:text-indigo-600 text-slate-400 transition transform active:scale-90 bg-slate-50 rounded-md shadow-sm border border-slate-200"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
-                        <button id="search-next" class="p-1.5 hover:text-indigo-600 text-slate-400 transition transform active:scale-90 bg-slate-50 rounded-md shadow-sm border border-slate-200"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
-                    </div>
-                </div>
-            </header>
-            <div id="pdf-scroll-area">
-                <div id="pdf-container" class="w-full flex flex-col items-center"></div>
-                <div id="pdf-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 hidden z-50 backdrop-blur-sm">
-                    <div class="loader mb-4"></div>
-                    <p class="text-indigo-600 text-[11px] font-bold tracking-widest uppercase">Döküman Yükleniyor</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast"></div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getBytes } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
-        const k1 = "AIzaSyDxq8AI";
-        const k2 = "16Y1jNuJMLES8NNEqKlGg2Ul4JI";
         
+        <div id="listFooter" class="p-3 border-t border-slate-200 bg-slate-50 text-xs text-slate-500 text-center font-medium shrink-0">
+            Yükleniyor...
+        </div>
+    </div>
+
+    <!-- BOYUTLANDIRMA (RESIZER) ÇUBUĞU -->
+    <div id="resizer" class="hidden md:block w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize transition-colors z-30 shrink-0"></div>
+
+    <!-- SAĞ PANEL - GÖRÜNTÜLEYİCİ -->
+    <div id="mainPanel" class="flex-1 hidden md:flex flex-col bg-slate-100 relative min-w-0">
+        
+        <!-- Boş Ekran (Başlangıç) -->
+        <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
+            <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center mb-6">
+                <i data-lucide="file-text" class="text-blue-200 w-12 h-12"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-700 mb-2">Dokümanları Güvenle Açın</h2>
+            <p class="max-w-md text-slate-500 mb-6">
+                Sol menüden incelemek istediğiniz mevzuatı seçerek doğrudan orijinal PDF okuyucu ile görüntüleyebilirsiniz.
+            </p>
+        </div>
+
+        <!-- Dosya Görüntüleyici Ekranı -->
+        <div id="viewerState" class="hidden flex-1 flex-col w-full h-full">
+            <!-- Üst Bar -->
+            <div class="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-2 sm:px-4 shadow-sm z-10 shrink-0 gap-2 sm:gap-4">
+                
+                <div class="flex items-center gap-1 sm:gap-3 overflow-hidden flex-1">
+                    <button id="backBtn" class="md:hidden p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div class="p-1.5 bg-blue-100 text-blue-600 rounded-md hidden sm:block shrink-0">
+                        <i data-lucide="file-check" class="w-5 h-5"></i>
+                    </div>
+                    <h2 id="viewerTitle" class="font-semibold text-slate-800 text-sm sm:text-base truncate" title="">Doküman Adı</h2>
+                </div>
+
+                <!-- İşlemler -->
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    
+                    <!-- Admin Firebase İşlemleri (Gizli) -->
+                    <button id="replaceBtn" class="hidden items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition-colors" title="Bu belgeyi yenisiyle değiştir">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Değiştir</span>
+                    </button>
+
+                    <button id="deleteBtn" class="hidden items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-medium transition-all" title="Bu belgeyi tamamen sil">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline" id="deleteBtnText">Sil</span>
+                    </button>
+                    
+                    <div id="adminDivider" class="hidden w-px h-6 bg-slate-200 mx-0.5 sm:mx-1"></div>
+                    
+                    <!-- Kullanıcı İndir Butonu -->
+                    <a id="downloadBtn" target="_blank" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200" title="İndir">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">İndir</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Hata Ekranı -->
+            <div id="errorState" class="hidden flex-1 flex-col items-center justify-center text-red-500 p-6 text-center">
+                <i data-lucide="alert-circle" class="mb-4 text-red-400 w-12 h-12"></i>
+                <h3 class="font-bold text-lg mb-2">İşlem Başarısız</h3>
+                <p id="errorText" class="text-sm text-red-700 bg-red-50 p-4 rounded-lg border border-red-200 max-w-lg">Hata detayı</p>
+            </div>
+
+            <!-- PDF İframe Alanı -->
+            <div id="iframeContainer" class="flex-1 p-0 sm:p-4 md:p-6 lg:p-8 bg-slate-200 overflow-hidden flex flex-col relative">
+                <div id="loader" class="hidden absolute inset-0 m-auto flex-col items-center justify-center z-10">
+                    <div class="loader mb-2"></div>
+                    <p class="text-sm font-medium text-blue-600">Yükleniyor...</p>
+                </div>
+                <div class="flex-1 bg-white sm:rounded-xl shadow-lg border border-slate-300 overflow-hidden relative">
+                    <iframe id="pdfIframe" class="w-full h-full border-0 absolute inset-0 hidden"></iframe>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase ve Uygulama Mantığı -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getStorage, ref, getDownloadURL, listAll, deleteObject, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+
+        // Firebase Yapılandırması
         const firebaseConfig = {
-            apiKey: k1 + k2,
+            apiKey: "AIzaSyDxq8AI16Y1jNuJMLES8NNEqKlGg2Ul4JI",
             authDomain: "mevzuat-f0699.firebaseapp.com",
             databaseURL: "https://mevzuat-f0699-default-rtdb.firebaseio.com",
             projectId: "mevzuat-f0699",
@@ -298,456 +181,400 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
         const storage = getStorage(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'mevzuat-f0699';
 
-        let state = { 
-            data: { tapu: {}, kadastro: {}, genel: {} }, 
-            pdfDoc: null, 
-            matches: [], 
-            currentMatch: -1, 
-            scale: 1.15, 
-            isAdmin: false,
-            tool: 'cursor'
+        let allDocs = [];
+        let selectedDoc = null;
+        let isAdmin = false; // YÖNETİCİ DURUMU
+        let currentPdfUrl = ''; 
+        const klasorYolu = 'mevzuat'; // Firebase Ana Klasörümüz
+
+        const els = {
+            sidebar: document.getElementById('sidebar'),
+            resizer: document.getElementById('resizer'),
+            mainPanel: document.getElementById('mainPanel'),
+            docList: document.getElementById('docList'),
+            listFooter: document.getElementById('listFooter'),
+            searchInput: document.getElementById('searchInput'),
+            adminLockBtn: document.getElementById('adminLockBtn'),
+            addNewBtn: document.getElementById('addNewBtn'),
+            uploadInput: document.getElementById('uploadInput'),
+            replaceBtn: document.getElementById('replaceBtn'),
+            replaceInput: document.getElementById('replaceInput'),
+            deleteBtn: document.getElementById('deleteBtn'),
+            deleteBtnText: document.getElementById('deleteBtnText'),
+            adminDivider: document.getElementById('adminDivider'),
+            emptyState: document.getElementById('emptyState'),
+            viewerState: document.getElementById('viewerState'),
+            viewerTitle: document.getElementById('viewerTitle'),
+            backBtn: document.getElementById('backBtn'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            errorState: document.getElementById('errorState'),
+            errorText: document.getElementById('errorText'),
+            pdfIframe: document.getElementById('pdfIframe'),
+            loader: document.getElementById('loader'),
+            globalLoader: document.getElementById('globalLoader'),
+            globalLoaderText: document.getElementById('globalLoaderText')
         };
 
-        const showToast = (m) => {
-            const t = document.getElementById('toast');
-            t.textContent = m; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        };
+        lucide.createIcons();
 
-        window.setTool = (tool) => {
-            state.tool = tool;
-            document.querySelectorAll('.tool-btn').forEach(btn => {
-                btn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
-                btn.classList.add('text-slate-400');
-            });
-            const activeBtn = document.getElementById(`tool-${tool}`);
-            activeBtn.classList.remove('text-slate-400');
-            activeBtn.classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
-
-            document.querySelectorAll('.drawing-layer').forEach(c => {
-                c.style.pointerEvents = tool === 'cursor' ? 'none' : 'auto';
-                c.style.cursor = tool === 'cursor' ? 'default' : 'crosshair';
-            });
-        };
-
-        window.clearDrawings = () => {
-            document.querySelectorAll('.drawing-layer').forEach(canvas => {
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            });
-            showToast("Çizimler temizlendi.");
-        };
-
-        const getPos = (e, canvas) => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: (clientX - rect.left) * scaleX,
-                y: (clientY - rect.top) * scaleY
-            };
-        };
-
-        const setupCanvasDrawing = (canvas) => {
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-
-            const start = (e) => {
-                if(state.tool === 'cursor') return;
-                isDrawing = true;
-                const pos = getPos(e, canvas);
-                ctx.beginPath();
-                ctx.moveTo(pos.x, pos.y);
-                e.preventDefault(); 
-            };
-
-            const draw = (e) => {
-                if(!isDrawing || state.tool === 'cursor') return;
-                const pos = getPos(e, canvas);
-                ctx.lineTo(pos.x, pos.y);
-                
-                if(state.tool === 'highlighter') {
-                    ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)';
-                    ctx.lineWidth = 18;
-                    ctx.lineCap = 'butt';
-                    ctx.lineJoin = 'miter';
-                } else {
-                    ctx.strokeStyle = '#ef4444';
-                    ctx.lineWidth = 2.5;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
+        // ==========================================
+        // YÖNETİCİ ŞİFRESİ MANTIĞI
+        // ==========================================
+        function updateAdminUI() {
+            if (isAdmin) {
+                els.addNewBtn.classList.remove('hidden');
+                if (selectedDoc) {
+                    els.replaceBtn.classList.remove('hidden');
+                    els.replaceBtn.classList.add('flex');
+                    els.deleteBtn.classList.remove('hidden');
+                    els.deleteBtn.classList.add('flex');
+                    els.adminDivider.classList.remove('hidden');
+                    els.adminDivider.classList.add('block');
                 }
-                ctx.stroke();
-                e.preventDefault();
-            };
-
-            const stop = () => { isDrawing = false; };
-
-            canvas.addEventListener('mousedown', start);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stop);
-            canvas.addEventListener('mouseout', stop);
-            
-            canvas.addEventListener('touchstart', (e) => start(e), {passive: false});
-            canvas.addEventListener('touchmove', (e) => draw(e), {passive: false});
-            canvas.addEventListener('touchend', stop);
-        };
-
-        window.deletePdf = async (id, url, event) => {
-            event.stopPropagation();
-            if (!confirm("Bu dökümanı kalıcı olarak silmek istediğinize emin misiniz?")) return;
-            
-            try {
-                if (!id) return showToast("Bu döküman silinemez.");
-                
-                await deleteDoc(doc(db, `artifacts/${appId}/public/data/mevzuat`, id));
-                const fileRef = ref(storage, url);
-                await deleteObject(fileRef).catch(e => console.warn("Storage silme hatası", e));
-                
-                showToast("Döküman silindi.");
-                
-                loadAppData();
-                const activeSection = document.getElementById('selection-modal').classList.contains('active');
-                if(!activeSection) document.getElementById('selection-modal').classList.remove('active');
-            } catch(e) {
-                showToast("Silinemedi!");
+            } else {
+                els.addNewBtn.classList.add('hidden');
+                els.replaceBtn.classList.add('hidden');
+                els.replaceBtn.classList.remove('flex');
+                els.deleteBtn.classList.add('hidden');
+                els.deleteBtn.classList.remove('flex');
+                els.adminDivider.classList.add('hidden');
+                els.adminDivider.classList.remove('block');
             }
-        };
+        }
 
-        // Cache (Ön Bellek) Sistemi İle PDF Açma
-        window.openPdf = async (url, title) => {
-            document.getElementById('pdf-modal').classList.add('active');
-            document.getElementById('pdf-title').textContent = title;
-            document.getElementById('pdf-container').innerHTML = '';
-            document.getElementById('pdf-loader').classList.remove('hidden');
-            state.matches = []; state.currentMatch = -1;
-            window.setTool('cursor'); 
-            
-            try {
-                // Cihaz ön belleğini (cache) aç
-                const cache = await caches.open('tkgm-pdf-cache');
-                let cachedResponse = await cache.match(url);
-                let arrayBuffer;
-
-                if (cachedResponse) {
-                    // Veri cihaz hafızasında varsa direkt oradan al (internetsiz)
-                    arrayBuffer = await cachedResponse.arrayBuffer();
-                    showToast("Cihaz hafızasından hızlı açıldı.");
-                } else {
-                    // Hafızada yoksa Firebase SDK'dan çek (CORS aşarak) ve hafızaya kaydet
-                    const fileRef = ref(storage, url);
-                    arrayBuffer = await getBytes(fileRef);
-                    const responseToCache = new Response(arrayBuffer);
-                    await cache.put(url, responseToCache);
-                }
-
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                state.pdfDoc = await loadingTask.promise;
-                
-                for (let i = 1; i <= state.pdfDoc.numPages; i++) {
-                    await renderPage(i);
-                    if (i === 1) document.getElementById('pdf-loader').classList.add('hidden');
-                    // Kasmayı engellemek için mini bekleme
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-            } catch (e) {
-                console.warn("Hata:", e);
-                showToast("Döküman yüklenemedi!");
-                document.getElementById('pdf-loader').classList.add('hidden');
-            }
-        };
-
-        const initAuthAndData = async () => {
-            try { await signInAnonymously(auth); } catch (err) {}
-            await loadAppData();
-        };
-
-        const loadAppData = async () => {
-            state.data = { tapu: { genelge: [], talimat: [] }, kadastro: { genelge: [], talimat: [] }, genel: { genelge: [], talimat: [] } };
-
-            try {
-                const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
-                const snapshot = await getDocs(collection(db, collectionPath));
-                
-                snapshot.forEach(doc => {
-                    const item = doc.data();
-                    const formattedItem = { id: doc.id, ...item };
-                    if (state.data[item.section] && state.data[item.section][item.type]) {
-                        state.data[item.section][item.type].push(formattedItem);
-                    }
-                });
-
-                document.getElementById('main-loader-container').style.display = 'none';
-                document.getElementById('app-container').style.display = 'flex';
-                animateBg();
-                setupEvents();
-
-                const sectionTitle = document.getElementById('selection-title').textContent.toLowerCase();
-                if(sectionTitle && document.getElementById('selection-modal').classList.contains('active')) {
-                     const body = document.getElementById('selection-body');
-                     if(body.innerHTML.includes('GENELGE')) { /* wait */ }
-                }
-
-            } catch (err) {
-                document.getElementById('loader-text').textContent = "HATA";
-                showToast("Veriler çekilirken hata oluştu!");
-            }
-        };
-
-        const getDeleteButton = (id, url) => {
-            if(!state.isAdmin) return '';
-            return `
-            <button onclick="window.deletePdf('${id}', '${url}', event)" class="p-2 text-rose-500 hover:bg-rose-100 rounded-lg ml-auto transition-colors" title="Sil">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>`;
-        };
-
-        const handleUpload = async () => {
-            const fileInput = document.getElementById('file-input');
-            const files = fileInput.files;
-            const section = document.getElementById('section-select').value;
-            const type = document.getElementById('type-select').value;
-            const startBtn = document.getElementById('start-upload-btn');
-            
-            if (files.length === 0) return showToast("Döküman seçmelisiniz.");
-            
-            startBtn.disabled = true;
-            document.getElementById('upload-progress').classList.remove('hidden');
-            const bar = document.getElementById('progress-bar');
-            bar.style.width = '0%';
-            
-            try {
-                let completed = 0;
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    const storageRef = ref(storage, `mevzuat/${Date.now()}_${file.name}`);
-                    await uploadBytes(storageRef, file);
-                    const downloadUrl = await getDownloadURL(storageRef);
-                    
-                    const collectionPath = `artifacts/${appId}/public/data/mevzuat`;
-                    await addDoc(collection(db, collectionPath), {
-                        title: file.name.replace('.pdf', '').toUpperCase(),
-                        url: downloadUrl,
-                        section, type, createdAt: new Date().toISOString()
-                    });
-                    
-                    completed++;
-                    bar.style.width = `${(completed / files.length) * 100}%`;
-                }
-                
-                showToast(`${files.length} döküman eklendi!`);
-                setTimeout(() => {
-                    document.getElementById('upload-modal').classList.remove('active');
-                    fileInput.value = ''; 
-                    loadAppData(); 
-                }, 800);
-            } catch (e) {
-                showToast("Yükleme başarısız!");
-            } finally {
-                startBtn.disabled = false;
-            }
-        };
-
-        const renderPage = async (num) => {
-            const page = await state.pdfDoc.getPage(num);
-            const renderScale = 1.5; 
-            const vp = page.getViewport({ scale: renderScale });
-            
-            const container = document.createElement('div');
-            container.className = 'pdf-page-container relative';
-            container.style.width = `${vp.width * (state.scale / renderScale)}px`;
-            container.style.height = `${vp.height * (state.scale / renderScale)}px`;
-            
-            const canvas = document.createElement('canvas');
-            canvas.className = 'absolute inset-0 w-full h-full z-0';
-            canvas.width = vp.width; canvas.height = vp.height;
-            const ctx = canvas.getContext('2d');
-            
-            const drawCanvas = document.createElement('canvas');
-            drawCanvas.className = 'drawing-layer absolute inset-0 w-full h-full z-20';
-            drawCanvas.width = vp.width; drawCanvas.height = vp.height;
-            drawCanvas.style.pointerEvents = state.tool === 'cursor' ? 'none' : 'auto';
-            setupCanvasDrawing(drawCanvas);
-
-            const textLayer = document.createElement('div');
-            textLayer.className = 'textLayer z-10';
-            textLayer.style.setProperty('--scale-factor', state.scale);
-
-            container.append(canvas, textLayer, drawCanvas);
-            document.getElementById('pdf-container').append(container);
-
-            await page.render({ canvasContext: ctx, viewport: vp }).promise;
-            const textContent = await page.getTextContent();
-            pdfjsLib.renderTextLayer({ textContent, container: textLayer, viewport: page.getViewport({ scale: state.scale }), textDivs: [] });
-        };
-
-        const performSearch = (query) => {
-            if (!query || query.length < 2) {
-                document.querySelectorAll('.highlight').forEach(s => s.parentNode.textContent = s.parentNode.textContent);
-                state.matches = []; state.currentMatch = -1;
-                document.getElementById('pdf-search-info').textContent = '0 / 0';
+        els.adminLockBtn.addEventListener('click', () => {
+            if (isAdmin) {
+                isAdmin = false;
+                els.adminLockBtn.setAttribute('data-lucide', 'lock');
+                lucide.createIcons();
+                updateAdminUI();
                 return;
             }
-            document.querySelectorAll('.highlight').forEach(s => s.parentNode.textContent = s.parentNode.textContent);
-            state.matches = [];
-            const q = query.toLocaleLowerCase('tr-TR');
-            document.querySelectorAll('.textLayer span').forEach(span => {
-                if (span.textContent.toLocaleLowerCase('tr-TR').includes(q)) {
-                    span.innerHTML = span.textContent.replace(new RegExp(`(${query})`, 'gi'), '<mark class="highlight">$1</mark>');
-                    state.matches.push(...span.querySelectorAll('.highlight'));
-                }
-            });
-            document.getElementById('pdf-search-info').textContent = `0 / ${state.matches.length}`;
-            if (state.matches[0]) navMatch(0);
-        };
 
-        const navMatch = (idx) => {
-            if (!state.matches.length) return;
-            if (state.matches[state.currentMatch]) state.matches[state.currentMatch].classList.remove('selected');
-            state.currentMatch = (idx + state.matches.length) % state.matches.length;
-            const target = state.matches[state.currentMatch];
-            target.classList.add('selected');
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            document.getElementById('pdf-search-info').textContent = `${state.currentMatch + 1} / ${state.matches.length}`;
-        };
+            const pwd = prompt("Yönetici Şifresini Giriniz:");
+            if (pwd === "5034") {
+                isAdmin = true;
+                els.adminLockBtn.setAttribute('data-lucide', 'unlock');
+                lucide.createIcons();
+                updateAdminUI();
+            } else if (pwd !== null) {
+                alert("Hatalı şifre! Yönetici yetkisi alınamadı.");
+            }
+        });
 
-        const renderList = (s, t) => {
-            const docs = state.data[s][t] || [];
-            docs.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
-            const body = document.getElementById('selection-body');
-            body.innerHTML = docs.length ? docs.map(d => `
-                <div class="p-4 bg-white border border-slate-200 shadow-sm rounded-2xl flex items-center gap-4 cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all" onclick="window.openPdf('${d.url}', '${d.title}')">
-                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-[9px] tracking-tighter shrink-0 border border-indigo-100">PDF</div>
-                    <span class="truncate text-[13px] font-bold text-slate-700 w-full">${d.title}</span>
-                    ${getDeleteButton(d.id, d.url)}
-                </div>`).join('') : '<p class="text-center py-6 text-slate-400 text-sm font-medium">Kayıt bulunamadı.</p>';
-        };
+        // ==========================================
+        // YAN PANEL BOYUTLANDIRMA MANTIĞI
+        // ==========================================
+        let isResizing = false;
+        els.resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            let newWidth = e.clientX;
+            if (newWidth < 250) newWidth = 250;
+            if (newWidth > window.innerWidth / 1.5) newWidth = window.innerWidth / 1.5;
+            els.sidebar.style.width = newWidth + 'px';
+        });
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.classList.remove('resizing');
+                document.body.style.cursor = 'default';
+            }
+        });
 
-        const setupEvents = () => {
-            document.getElementById('secret-admin-trigger').ondblclick = () => {
-                state.isAdmin = !state.isAdmin;
-                showToast(state.isAdmin ? "Yönetici Modu Açık" : "Yönetici Modu Kapalı");
-                document.getElementById('upload-btn').style.display = state.isAdmin ? 'block' : 'none';
-                
-                const sectionTitle = document.getElementById('selection-title').textContent.toLowerCase();
-                if(sectionTitle && document.getElementById('selection-modal').classList.contains('active')) {
-                     const body = document.getElementById('selection-body');
-                     if(!body.innerHTML.includes('GENELGE')) { 
-                        document.getElementById('selection-body').innerHTML = `
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <button class="p-8 bg-white border border-slate-200 shadow-sm rounded-3xl font-black text-sm text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase tracking-widest" id="btn-genelge">Genelge</button>
-                                <button class="p-8 bg-white border border-slate-200 shadow-sm rounded-3xl font-black text-sm text-slate-700 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all uppercase tracking-widest" id="btn-talimat">Talimat</button>
-                            </div>`;
-                        document.getElementById('btn-genelge').onclick = () => renderList(sectionTitle, 'genelge');
-                        document.getElementById('btn-talimat').onclick = () => renderList(sectionTitle, 'talimat');
-                     }
-                }
-            };
 
-            document.getElementById('upload-btn').onclick = () => document.getElementById('upload-modal').classList.add('active');
+        // ==========================================
+        // AKILLI BAŞLIK TEMİZLEME (2023-5 GİBİ NUMARALARI KORUR)
+        // ==========================================
+        function cleanTitle(filename) {
+            let title = filename.replace(/\.pdf$/i, ''); 
+            
+            // Sadece 13 haneli veya daha uzun anlamsız sistem sayılarını (örn: 1776883268077_) siler.
+            // 2023-5, 2022-7 gibi geçerli sayılara KESİNLİKLE dokunmaz.
+            title = title.replace(/^\d{13,}[_\-\s]*/, '');
+            
+            // Alt çizgileri boşluk yap
+            title = title.replace(/_/g, ' ');
 
-            document.querySelectorAll('[data-section]').forEach(c => c.onclick = () => {
-                const s = c.dataset.section;
-                document.getElementById('selection-title').textContent = s;
-                document.getElementById('selection-modal').classList.add('active');
-                document.getElementById('selection-body').innerHTML = `
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <button class="p-8 bg-white border border-slate-200 shadow-sm rounded-3xl font-black text-sm text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase tracking-widest" id="btn-genelge">Genelge</button>
-                        <button class="p-8 bg-white border border-slate-200 shadow-sm rounded-3xl font-black text-sm text-slate-700 hover:bg-cyan-600 hover:text-white hover:border-cyan-600 transition-all uppercase tracking-widest" id="btn-talimat">Talimat</button>
+            return title.trim() || filename.replace(/\.pdf$/i, '');
+        }
+
+        function extractYear(filename) {
+            const yearMatch = filename.match(/(20\d{2})/);
+            return yearMatch ? yearMatch[1] : 'Genel';
+        }
+
+
+        // ==========================================
+        // LİSTELEME EKRANI
+        // ==========================================
+        window.renderList = function() {
+            const query = els.searchInput.value.toLocaleLowerCase('tr-TR');
+            
+            const filtered = allDocs.filter(doc => 
+                doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) || 
+                doc.year.toLocaleLowerCase('tr-TR').includes(query)
+            );
+
+            els.listFooter.innerText = `Toplam ${filtered.length} belge`;
+
+            if (filtered.length === 0) {
+                els.docList.innerHTML = `
+                    <div class="text-center py-12 text-slate-500">
+                        <i data-lucide="search" class="mx-auto mb-3 text-slate-300 w-8 h-8"></i>
+                        <p class="text-sm">Aradığınız belge bulunamadı.</p>
                     </div>`;
-                document.getElementById('btn-genelge').onclick = () => renderList(s, 'genelge');
-                document.getElementById('btn-talimat').onclick = () => renderList(s, 'talimat');
-            });
+            } else {
+                els.docList.innerHTML = filtered.map(doc => `
+                    <button onclick="selectDoc('${doc.id}')" class="w-full text-left p-3 rounded-xl border transition-all duration-200 group flex items-start gap-3 ${selectedDoc?.id === doc.id ? 'bg-blue-50 border-blue-400 shadow-sm ring-1 ring-blue-400' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50 hover:shadow-sm'}">
+                        <div class="p-2 rounded-lg mt-0.5 shrink-0 ${selectedDoc?.id === doc.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}">
+                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-medium text-sm sm:text-[15px] leading-snug truncate ${selectedDoc?.id === doc.id ? 'text-blue-800' : 'text-slate-700 group-hover:text-blue-700'}">
+                                ${doc.cleanName}
+                            </h3>
+                            <div class="flex items-center gap-1.5 mt-1.5 text-[11px] font-medium">
+                                <span class="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-100 text-slate-600 flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 opacity-70"></i> ${doc.year}
+                                </span>
+                            </div>
+                        </div>
+                    </button>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
 
-            const searchInput = document.getElementById('search-input');
-            const clearSearchBtn = document.getElementById('clear-search-btn');
-            const searchResults = document.getElementById('search-results');
 
-            searchInput.oninput = (e) => {
-                const q = e.target.value.toLowerCase().trim();
-                
-                if (q.length > 0) {
-                    clearSearchBtn.style.display = 'block';
-                    searchResults.classList.remove('hidden');
-                } else {
-                    clearSearchBtn.style.display = 'none';
-                    searchResults.classList.add('hidden');
-                    searchResults.innerHTML = '';
+        // ==========================================
+        // FIREBASE'DEN LİSTEYİ İLK ÇEKİŞ
+        // ==========================================
+        async function fetchFromFirebase() {
+            try {
+                els.docList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-blue-500">
+                        <div class="loader mb-3"></div>
+                        <p class="text-sm font-medium">Dosyalar alınıyor...</p>
+                    </div>`;
+
+                const listRef = ref(storage, klasorYolu);
+                const res = await listAll(listRef);
+
+                if (res.items.length === 0) {
+                    els.docList.innerHTML = `<div class="p-4 text-amber-600 bg-amber-50 text-sm rounded-lg border border-amber-200">Klasörde hiç PDF bulunamadı.</div>`;
+                    els.listFooter.innerText = "0 Belge";
                     return;
                 }
 
-                if (q.length < 2) return;
+                allDocs = res.items
+                    .filter(item => item.name.toLowerCase().endsWith('.pdf'))
+                    .map((item, index) => {
+                        return {
+                            id: `firebase-${item.name}-${index}`,
+                            originalName: item.name,
+                            cleanName: cleanTitle(item.name),
+                            year: extractYear(item.name),
+                            fullPath: item.fullPath
+                        };
+                    });
+
+                // İsme göre alfabetik sırala
+                allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
+                renderList();
+
+            } catch (error) {
+                console.error(error);
+                els.docList.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center text-sm">
+                        <i data-lucide="alert-circle" class="mx-auto mb-2 text-red-500 w-6 h-6"></i>
+                        <p class="font-semibold mb-1">Liste Hatası</p>
+                        <p>${error.code === 'storage/unauthorized' ? 'Storage okuma/yazma izniniz yok.' : error.message}</p>
+                    </div>`;
+                lucide.createIcons();
+            }
+        }
+
+
+        // ==========================================
+        // BELGE SEÇİM VE GÖRÜNTÜLEME
+        // ==========================================
+        window.selectDoc = async function(id) {
+            selectedDoc = allDocs.find(d => d.id === id);
+            if (!selectedDoc) return;
+
+            resetDeleteBtn(); // Eğer silme butonuna basılmışsa sıfırla
+            updateAdminUI(); // Seçili doküman olduğu için sil/değiştir butonlarını göster (eğer adminse)
+            renderList();
+            
+            els.sidebar.classList.remove('flex');
+            els.sidebar.classList.add('hidden', 'md:flex');
+            els.mainPanel.classList.remove('hidden');
+            els.mainPanel.classList.add('flex');
+
+            els.emptyState.classList.add('hidden');
+            els.viewerState.classList.remove('hidden');
+            els.viewerState.classList.add('flex');
+            
+            els.viewerTitle.innerText = selectedDoc.cleanName;
+            els.viewerTitle.title = selectedDoc.cleanName;
+            els.downloadBtn.download = selectedDoc.cleanName + ".pdf";
+            
+            els.pdfIframe.classList.add('hidden');
+            els.errorState.classList.add('hidden');
+            els.loader.classList.remove('hidden');
+            els.loader.classList.add('flex');
+            els.pdfIframe.src = 'about:blank'; // Frame'i temizle
+
+            try {
+                const fileRef = ref(storage, selectedDoc.fullPath);
+                currentPdfUrl = await getDownloadURL(fileRef);
+                els.pdfIframe.src = currentPdfUrl;
+                els.downloadBtn.href = currentPdfUrl;
+                els.pdfIframe.classList.remove('hidden');
+            } catch (err) {
+                els.errorText.innerText = err.code === 'storage/unauthorized' 
+                    ? "Storage kurallarında okuma izni yok." : err.message;
+                els.errorState.classList.remove('hidden');
+                els.errorState.classList.add('flex');
+            } finally {
+                els.loader.classList.add('hidden');
+                els.loader.classList.remove('flex');
+            }
+        }
+
+
+        // ==========================================
+        // YENİ EKLE, DEĞİŞTİR VE SİL MANTIĞI
+        // ==========================================
+        
+        async function handleUpload(file, oldDocToReplace = null) {
+            try {
+                els.globalLoaderText.innerText = oldDocToReplace ? "Dosya değiştiriliyor..." : "Yeni belge yükleniyor...";
+                els.globalLoader.classList.remove('hidden');
+                els.globalLoader.classList.add('flex');
                 
-                const found = [];
-                for (let s in state.data) for (let t in state.data[s]) state.data[s][t].forEach(d => { if (d.title.toLowerCase().includes(q)) found.push(d); });
-                
-                if (found.length > 0) {
-                    searchResults.innerHTML = found.slice(0, 6).map(d => `
-                        <div class="p-4 bg-white border-b last:border-0 border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-indigo-50 transition-colors" onclick="window.openPdf('${d.url}', '${d.title}')">
-                            <div class="w-8 h-8 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg flex items-center justify-center font-bold text-[9px] shrink-0">PDF</div>
-                            <span class="truncate text-sm font-semibold text-slate-700 w-full">${d.title}</span>
-                        </div>`).join('');
-                } else {
-                    searchResults.innerHTML = '<div class="p-4 text-sm font-medium text-slate-400 text-center">Sonuç bulunamadı.</div>';
+                const cleanName = cleanTitle(file.name);
+                const finalFilename = cleanName + ".pdf";
+                const finalPath = `${klasorYolu}/${finalFilename}`;
+                const fileRef = ref(storage, finalPath);
+
+                if (oldDocToReplace && oldDocToReplace.fullPath !== finalPath) {
+                    const oldRef = ref(storage, oldDocToReplace.fullPath);
+                    await deleteObject(oldRef).catch(e => console.warn("Eski dosya silinemedi", e));
+                    allDocs = allDocs.filter(d => d.id !== oldDocToReplace.id);
+                } else if (oldDocToReplace) {
+                    allDocs = allDocs.filter(d => d.id !== oldDocToReplace.id);
                 }
-            };
 
-            clearSearchBtn.onclick = () => {
-                searchInput.value = '';
-                searchResults.innerHTML = '';
-                searchResults.classList.add('hidden');
-                clearSearchBtn.style.display = 'none';
-                searchInput.focus();
-            };
+                await uploadBytes(fileRef, file);
+                
+                const newDoc = {
+                    id: `firebase-${Date.now()}`,
+                    originalName: finalFilename,
+                    cleanName: cleanName,
+                    year: extractYear(file.name),
+                    fullPath: finalPath
+                };
 
-            const psi = document.getElementById('pdf-search-input');
-            psi.oninput = (e) => performSearch(e.target.value);
-            psi.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); navMatch(state.currentMatch + 1); } };
-            document.getElementById('search-next').onclick = () => navMatch(state.currentMatch + 1);
-            document.getElementById('search-prev').onclick = () => navMatch(state.currentMatch - 1);
+                allDocs = allDocs.filter(d => d.fullPath !== finalPath);
+                allDocs.unshift(newDoc); 
+                allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
+
+                renderList();
+                window.selectDoc(newDoc.id); 
+                
+            } catch(e) {
+                console.error(e);
+                alert("İşlem Hatası: " + (e.code === 'storage/unauthorized' ? "Yazma izniniz yok!" : e.message));
+            } finally {
+                els.globalLoader.classList.add('hidden');
+                els.globalLoader.classList.remove('flex');
+            }
+        }
+
+        els.addNewBtn.addEventListener('click', () => els.uploadInput.click());
+        els.uploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(file) handleUpload(file);
+            e.target.value = '';
+        });
+
+        els.replaceBtn.addEventListener('click', () => els.replaceInput.click());
+        els.replaceInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(file && selectedDoc) handleUpload(file, selectedDoc);
+            e.target.value = '';
+        });
+
+        let deleteConfirmTimeout;
+        function resetDeleteBtn() {
+            els.deleteBtn.classList.remove('bg-red-600', 'text-white', 'border-red-600', 'confirm-mode');
+            els.deleteBtn.classList.add('bg-red-50', 'text-red-600', 'border-red-200');
+            els.deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span class="hidden sm:inline">Sil</span>';
+            lucide.createIcons();
+        }
+
+        els.deleteBtn.addEventListener('click', async () => {
+            if(!selectedDoc) return;
             
-            document.getElementById('zoom-in').onclick = () => { state.scale += 0.2; document.getElementById('zoom-text').textContent = Math.round(state.scale * 100) + '%'; refreshPdfView(); };
-            document.getElementById('zoom-out').onclick = () => { state.scale = Math.max(0.4, state.scale - 0.2); document.getElementById('zoom-text').textContent = Math.round(state.scale * 100) + '%'; refreshPdfView(); };
+            if(!els.deleteBtn.classList.contains('confirm-mode')) {
+                els.deleteBtn.classList.add('confirm-mode', 'bg-red-600', 'text-white', 'border-red-600');
+                els.deleteBtn.classList.remove('bg-red-50', 'text-red-600', 'border-red-200');
+                els.deleteBtn.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i><span class="hidden sm:inline">Emin misin?</span>';
+                lucide.createIcons();
+                
+                deleteConfirmTimeout = setTimeout(() => { resetDeleteBtn(); }, 3000);
+                return;
+            }
             
-            document.getElementById('start-upload-btn').onclick = handleUpload;
-            document.getElementById('cancel-upload-btn').onclick = () => document.getElementById('upload-modal').classList.remove('active');
-            document.getElementById('refresh-data-btn').onclick = loadAppData;
-            document.getElementById('close-selection-btn').onclick = () => document.getElementById('selection-modal').classList.remove('active');
-            document.getElementById('close-pdf-btn').onclick = () => { document.getElementById('pdf-modal').classList.remove('active'); state.pdfDoc = null; };
-        };
+            clearTimeout(deleteConfirmTimeout);
+            resetDeleteBtn();
 
-        const refreshPdfView = () => {
-            document.querySelectorAll('.pdf-page-container').forEach(async (c, i) => {
-                const page = await state.pdfDoc.getPage(i + 1);
-                const renderScale = 1.3;
-                const vp = page.getViewport({ scale: renderScale });
-                c.style.width = `${vp.width * (state.scale / renderScale)}px`;
-                c.style.height = `${vp.height * (state.scale / renderScale)}px`;
-            });
-        };
+            try {
+                els.globalLoaderText.innerText = "Belge siliniyor...";
+                els.globalLoader.classList.remove('hidden');
+                els.globalLoader.classList.add('flex');
+                
+                const fileRef = ref(storage, selectedDoc.fullPath);
+                await deleteObject(fileRef);
+                
+                allDocs = allDocs.filter(d => d.id !== selectedDoc.id);
+                selectedDoc = null;
+                els.backBtn.click();
+                renderList();
+                updateAdminUI();
+            } catch(e) {
+                console.error(e);
+                alert("Silme Hatası: " + (e.code === 'storage/unauthorized' ? "Silme izniniz yok!" : e.message));
+            } finally {
+                els.globalLoader.classList.add('hidden');
+                els.globalLoader.classList.remove('flex');
+            }
+        });
 
-        const animateBg = () => {
-            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('dynamic-bg'), alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.z = 60;
-            const pts = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(300).map(() => (Math.random()-0.5)*150), 3)), new THREE.PointsMaterial({ color: 0x6366f1, size: 0.15, transparent: true, opacity: 0.3 }));
-            scene.add(pts);
-            const loop = () => { requestAnimationFrame(loop); pts.rotation.y += 0.0003; renderer.render(scene, camera); };
-            loop();
-            window.addEventListener('resize', () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); });
-        };
 
-        initAuthAndData();
+        // Arama ve Geri Dönüş Eventleri
+        els.searchInput.addEventListener('input', renderList);
+        els.backBtn.addEventListener('click', () => {
+            els.sidebar.classList.add('flex');
+            els.sidebar.classList.remove('hidden');
+            els.mainPanel.classList.add('hidden');
+            els.mainPanel.classList.remove('flex');
+            selectedDoc = null;
+            updateAdminUI();
+            renderList();
+        });
+
+        // Uygulamayı Başlat
+        fetchFromFirebase();
     </script>
 </body>
 </html>
