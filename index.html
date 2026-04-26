@@ -31,13 +31,16 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .resizing { user-select: none; }
-        
-        /* PDF Yüzen Bar Animasyonu */
+
+        /* Yüzen Kontrol Paneli (HUD) Estetiği */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
@@ -65,7 +68,7 @@
                     <div class="flex items-center gap-3">
                         <i data-lucide="book-open" class="text-blue-200 w-7 h-7"></i>
                         <!-- GİZLİ ADMİN GİRİŞİ: 3 kez tıklanacak -->
-                        <h1 id="mevzuatTitle" class="text-xl font-bold tracking-wide flex items-center gap-2 cursor-pointer select-none">
+                        <h1 id="mevzuatTitle" class="text-xl font-bold tracking-wide flex items-center gap-2 cursor-pointer select-none" title="Yönetici girişi için 3 kez tıklayın">
                             Mevzuat
                             <!-- Kilit Açıldı İkonu -->
                             <span id="adminIndicator" class="hidden text-emerald-300" title="Yönetici Modu Aktif"><i data-lucide="unlock" class="w-4 h-4"></i></span>
@@ -88,7 +91,7 @@
 
         <!-- Belge Listesi -->
         <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2">
-            <!-- Dinamik liste -->
+            <!-- Dinamik liste buraya gelecek -->
         </div>
         
         <div id="listFooter" class="p-3 border-t border-slate-200 bg-slate-50 text-xs text-slate-500 text-center font-medium shrink-0">
@@ -108,78 +111,77 @@
                 <i data-lucide="file-text" class="text-blue-200 w-12 h-12"></i>
             </div>
             <h2 class="text-2xl font-bold text-slate-700 mb-2">Dokümanları Güvenle Açın</h2>
-            <p class="max-w-md text-slate-500 mb-6">
-                Sol menüden incelemek istediğiniz mevzuatı seçerek doğrudan orijinal PDF okuyucu ile görüntüleyebilirsiniz.
+            <p class="max-w-md text-slate-500 mb-6 px-4">
+                Sol menüden incelemek istediğiniz mevzuatı seçerek görüntüleyebilirsiniz.
             </p>
         </div>
 
         <!-- PDF Görüntüleyici Ekranı -->
-        <div id="viewerState" class="hidden flex-1 flex-col w-full h-full relative">
+        <div id="viewerState" class="hidden flex-1 flex-col w-full h-full relative bg-slate-600">
             
-            <!-- Üst Bar (Sadece Başlık ve Geri Butonu) -->
-            <div class="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-5 shadow-sm z-10 shrink-0">
-                <div class="flex items-center gap-2 sm:gap-3 overflow-hidden flex-1">
-                    <button id="backBtn" class="md:hidden p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    </button>
-                    <div class="p-1.5 bg-blue-100 text-blue-600 rounded-md hidden sm:block shrink-0">
-                        <i data-lucide="file-check" class="w-5 h-5"></i>
-                    </div>
-                    <h2 id="viewerTitle" class="font-semibold text-slate-800 text-sm sm:text-base truncate" title="">Doküman Adı</h2>
+            <!-- YÜZEN KONTROL PANELİ (HUD) -->
+            <div class="absolute top-3 sm:top-4 left-1/2 -translate-x-1/2 z-30 flex items-center glass-panel border border-slate-200/60 rounded-xl p-1.5 gap-1.5 transition-all w-[96%] sm:w-auto max-w-full overflow-x-auto no-scrollbar">
+                
+                <!-- Mobil Geri Butonu -->
+                <button id="backBtn" class="md:hidden flex items-center justify-center p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg shrink-0 transition-colors" title="Listeye Dön">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Belge Başlığı (Sadece PC) -->
+                <div class="hidden sm:flex items-center px-2 shrink-0 max-w-[200px] lg:max-w-[350px]">
+                    <i data-lucide="file-check" class="w-4 h-4 text-blue-600 mr-1.5 shrink-0"></i>
+                    <span id="viewerTitle" class="text-sm font-bold text-slate-700 truncate"></span>
                 </div>
 
-                <!-- Admin İşlemleri (Üst Barda Sağda Gizli) -->
-                <div id="adminTools" class="hidden items-center gap-1.5 sm:gap-2 shrink-0">
-                    <button id="replaceBtn" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition-colors" title="Bu belgeyi yenisiyle değiştir">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        <span class="hidden lg:inline">Değiştir</span>
-                    </button>
+                <div class="hidden sm:block w-px h-5 bg-slate-300 mx-1 shrink-0"></div>
 
-                    <button id="deleteBtn" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-medium transition-all" title="Bu belgeyi tamamen sil">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        <span class="hidden lg:inline" id="deleteBtnText">Sil</span>
+                <!-- Arama Kutusu -->
+                <div class="flex items-center bg-white rounded-lg px-2 shadow-sm border border-slate-200 shrink-0">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                    <input type="text" id="pdfInnerSearch" placeholder="PDF'te Bul..." class="w-24 sm:w-36 bg-transparent text-sm py-1.5 px-2 focus:outline-none text-slate-700 placeholder-slate-400">
+                    <button id="pdfSearchBtn" class="text-blue-600 font-semibold px-1.5 py-1 hover:text-blue-800 text-sm shrink-0 transition-colors">Bul</button>
+                </div>
+
+                <!-- Admin İşlemleri (Gizli) -->
+                <div id="adminTools" class="hidden items-center gap-1 shrink-0 ml-1">
+                    <div class="w-px h-5 bg-slate-300 mx-0.5 shrink-0"></div>
+                    <button id="replaceBtn" class="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors shrink-0" title="Bu belgeyi yenisiyle değiştir">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                     </button>
+                    <button id="deleteBtn" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors shrink-0" title="Bu belgeyi sil">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="w-px h-5 bg-slate-300 mx-0.5 shrink-0"></div>
+
+                <!-- Tam Ekran ve İndir -->
+                <a id="fullScreenBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="Tam Ekran Aç (Mobilde Kaydırma Sorunu İçin Önerilir)">
+                    <i data-lucide="external-link" class="w-5 h-5"></i>
+                </a>
+                <a id="downloadBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i İndir">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                </a>
+            </div>
+
+            <!-- Hata & Yüklenme Ekranları -->
+            <div id="loader" class="hidden absolute inset-0 m-auto flex-col items-center justify-center z-10 bg-white/70 backdrop-blur-sm">
+                <div class="loader mb-2 border-t-blue-600"></div>
+                <p class="text-sm font-bold text-blue-800">PDF Bağlantısı Kuruluyor...</p>
+            </div>
+            
+            <div id="errorState" class="hidden absolute inset-0 m-auto flex-col items-center justify-center text-red-500 p-6 text-center z-10">
+                <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm border border-red-100">
+                    <i data-lucide="alert-circle" class="mb-4 text-red-500 w-12 h-12"></i>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">Bağlantı Başarısız</h3>
+                    <p id="errorText" class="text-sm text-red-600">Hata detayı</p>
                 </div>
             </div>
 
-            <!-- PDF İframe Alanı -->
-            <div id="iframeContainer" class="flex-1 bg-slate-200 overflow-hidden relative">
-                
-                <!-- YÜZEN ARAÇ ÇUBUĞU (PDF İÇİNDE ARAMA VE İNDİRME) -->
-                <div class="absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex items-center glass-panel shadow-md border border-slate-300 rounded-xl p-1.5 gap-1.5 sm:gap-2 max-w-[95%] w-max">
-                    <!-- Kelime Arama -->
-                    <div class="flex items-center bg-slate-100/80 rounded-lg px-2 border border-slate-200">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
-                        <input type="text" id="pdfInnerSearch" placeholder="Belgede Bul..." class="w-24 sm:w-40 bg-transparent text-sm py-1.5 px-2 focus:outline-none text-slate-700 placeholder-slate-400">
-                        <button id="pdfSearchBtn" class="text-blue-600 font-semibold px-2 py-1 hover:text-blue-800 text-sm">Bul</button>
-                    </div>
-                    
-                    <div class="w-px h-5 bg-slate-300 mx-0.5"></div>
-                    
-                    <!-- Tam Ekran / İndir -->
-                    <a id="fullScreenBtn" target="_blank" class="flex items-center gap-1 px-2.5 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Tam Ekran / İndir (Mobilde Önerilir)">
-                        <i data-lucide="external-link" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline text-xs font-semibold">Tam Ekran</span>
-                    </a>
-                </div>
-
-                <div id="loader" class="hidden absolute inset-0 m-auto flex-col items-center justify-center z-10">
-                    <div class="loader mb-2"></div>
-                    <p class="text-sm font-medium text-blue-600 bg-white/80 px-3 py-1 rounded-full">Yükleniyor...</p>
-                </div>
-                
-                <div id="errorState" class="hidden absolute inset-0 m-auto flex-col items-center justify-center text-red-500 p-6 text-center z-10">
-                    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm">
-                        <i data-lucide="alert-circle" class="mb-4 text-red-500 w-12 h-12"></i>
-                        <h3 class="font-bold text-lg mb-2 text-slate-800">Bağlantı Başarısız</h3>
-                        <p id="errorText" class="text-sm text-red-600">Hata detayı</p>
-                    </div>
-                </div>
-
-                <!-- Mobilde kaydırma sorununu çözen CSS hilesi (-webkit-overflow-scrolling) -->
-                <div class="w-full h-full overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
-                    <iframe id="pdfIframe" class="w-full h-full border-0 block" style="min-height: 100vh;"></iframe>
-                </div>
+            <!-- PDF İframe Alanı (Mobil Kaydırma Düzeltmeleri Uygulanmış) -->
+            <div id="iframeContainer" class="flex-1 w-full h-full overflow-auto relative" style="-webkit-overflow-scrolling: touch;">
+                <!-- iOS için kritik css: width/height 1px ve min- ölçüleri -->
+                <iframe id="pdfIframe" class="block border-0 shadow-inner" style="width: 1px; min-width: 100%; height: 1px; min-height: 100%; background-color: #525659;" allowfullscreen></iframe>
             </div>
         </div>
 
@@ -223,15 +225,16 @@
             replaceBtn: document.getElementById('replaceBtn'),
             replaceInput: document.getElementById('replaceInput'),
             deleteBtn: document.getElementById('deleteBtn'),
-            deleteBtnText: document.getElementById('deleteBtnText'),
             adminTools: document.getElementById('adminTools'),
             emptyState: document.getElementById('emptyState'),
             viewerState: document.getElementById('viewerState'),
             viewerTitle: document.getElementById('viewerTitle'),
             backBtn: document.getElementById('backBtn'),
             fullScreenBtn: document.getElementById('fullScreenBtn'),
+            downloadBtn: document.getElementById('downloadBtn'),
             errorState: document.getElementById('errorState'),
             errorText: document.getElementById('errorText'),
+            iframeContainer: document.getElementById('iframeContainer'),
             pdfIframe: document.getElementById('pdfIframe'),
             loader: document.getElementById('loader'),
             pdfInnerSearch: document.getElementById('pdfInnerSearch'),
@@ -308,11 +311,13 @@
             }
         });
 
-        // MÜKEMMELLEŞTİRİLMİŞ İSİM TEMİZLEME (Sadece 13 basamaklı çöp sayıları siler)
+        // GELİŞTİRİLMİŞ İSİM TEMİZLEME (2023-5 gibi sayılara dokunmaz!)
         function cleanTitle(filename) {
             let title = filename.replace(/\.pdf$/i, ''); 
-            // 2023-5 GİBİ GERÇEK SAYILARA DOKUNMAZ. SADECE 13 HANE VE ÜZERİ SAYILARI SİLER.
-            title = title.replace(/^\d{13,}[_\-\s]*/, '');
+            
+            // Sadece 10 haneden uzun anlamsız sistem sayılarını (örn: 1776883268077_) siler.
+            title = title.replace(/^\d{10,}[_\-\s]*/, '');
+            
             title = title.replace(/_/g, ' ');
             return title.trim() || filename.replace(/\.pdf$/i, '');
         }
@@ -372,6 +377,12 @@
                 const listRef = ref(storage, klasorYolu);
                 const res = await listAll(listRef);
 
+                if (res.items.length === 0) {
+                    els.docList.innerHTML = `<div class="p-4 text-amber-600 bg-amber-50 text-sm rounded-lg border border-amber-200">Klasörde hiç PDF bulunamadı.</div>`;
+                    els.listFooter.innerText = "0 Belge";
+                    return;
+                }
+
                 allDocs = res.items
                     .filter(item => item.name.toLowerCase().endsWith('.pdf'))
                     .map((item, index) => ({
@@ -403,7 +414,7 @@
 
             resetDeleteBtn(); 
             updateAdminUI(); 
-            els.pdfInnerSearch.value = '';
+            els.pdfInnerSearch.value = ''; // Yeni belge açıldığında aramayı sıfırla
             renderList();
             
             els.sidebar.classList.remove('flex');
@@ -426,9 +437,14 @@
             try {
                 const fileRef = ref(storage, selectedDoc.fullPath);
                 currentPdfUrl = await getDownloadURL(fileRef);
-                els.pdfIframe.src = currentPdfUrl;
+                
+                // İframe sıfırdan yükleniyor
+                loadIframe(currentPdfUrl);
+                
                 els.fullScreenBtn.href = currentPdfUrl;
-                els.pdfIframe.classList.remove('hidden');
+                els.downloadBtn.href = currentPdfUrl;
+                els.downloadBtn.download = selectedDoc.cleanName + ".pdf";
+                
             } catch (err) {
                 els.errorText.innerText = err.message;
                 els.errorState.classList.remove('hidden');
@@ -438,6 +454,38 @@
                 els.loader.classList.remove('flex');
             }
         }
+
+        // Iframe'i kökten yenileyen yardımcı fonksiyon
+        function loadIframe(url) {
+            const parent = els.pdfIframe.parentNode;
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'pdfIframe';
+            // Mobil scroll hilesi için aynı stiller
+            newIframe.className = 'block border-0 shadow-inner';
+            newIframe.style.cssText = 'width: 1px; min-width: 100%; height: 1px; min-height: 100%; background-color: #525659;';
+            newIframe.src = url;
+            
+            parent.replaceChild(newIframe, els.pdfIframe);
+            els.pdfIframe = newIframe; 
+        }
+
+        // PDF İÇİ KELİME ARAMA (KESİN ÇÖZÜM: DOM REPLACEMENT)
+        function searchInsidePDF() {
+            const keyword = els.pdfInnerSearch.value.trim();
+            if (!currentPdfUrl || !selectedDoc) return;
+            
+            let baseSrc = currentPdfUrl.split('#')[0];
+            let targetSrc = baseSrc + (keyword ? '#search=' + encodeURIComponent(keyword) : '');
+            
+            // Tarayıcı eklentisini aramaya zorlamak için iframe'i DOM'dan silip yeniden oluşturuyoruz.
+            loadIframe(targetSrc);
+        }
+
+        els.pdfSearchBtn.addEventListener('click', searchInsidePDF);
+        els.pdfInnerSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchInsidePDF();
+        });
+
 
         // YENİ EKLE / DEĞİŞTİR / SİL (SADECE ADMİN)
         async function handleUpload(file, oldDocToReplace = null) {
@@ -499,18 +547,18 @@
 
         let deleteConfirmTimeout;
         function resetDeleteBtn() {
-            els.deleteBtn.classList.remove('bg-red-600', 'text-white', 'border-red-600', 'confirm-mode');
-            els.deleteBtn.classList.add('bg-red-50', 'text-red-600', 'border-red-200');
-            els.deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span class="hidden lg:inline">Sil</span>';
+            els.deleteBtn.classList.remove('bg-red-600', 'text-white');
+            els.deleteBtn.classList.add('bg-red-50', 'text-red-600');
+            els.deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
             lucide.createIcons();
         }
 
         els.deleteBtn.addEventListener('click', async () => {
             if(!selectedDoc) return;
             if(!els.deleteBtn.classList.contains('confirm-mode')) {
-                els.deleteBtn.classList.add('confirm-mode', 'bg-red-600', 'text-white', 'border-red-600');
-                els.deleteBtn.classList.remove('bg-red-50', 'text-red-600', 'border-red-200');
-                els.deleteBtn.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i><span class="hidden lg:inline">Emin misin?</span>';
+                els.deleteBtn.classList.add('confirm-mode', 'bg-red-600', 'text-white');
+                els.deleteBtn.classList.remove('bg-red-50', 'text-red-600');
+                els.deleteBtn.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i>';
                 lucide.createIcons();
                 deleteConfirmTimeout = setTimeout(() => { resetDeleteBtn(); }, 3000);
                 return;
@@ -538,21 +586,6 @@
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
             }
-        });
-
-        // PDF İÇİ KELİME ARAMA (Yenilenmeyi Engelleyen Doğrudan Hash Ataması)
-        function searchInsidePDF() {
-            const keyword = els.pdfInnerSearch.value.trim();
-            if (!currentPdfUrl || !selectedDoc) return;
-            
-            // Temel adresi al ve sadece Hash(#) kısmını değiştirerek sayfayı yenilemeden aramayı tetikle.
-            let baseSrc = currentPdfUrl.split('#')[0];
-            els.pdfIframe.src = baseSrc + (keyword ? '#search=' + encodeURIComponent(keyword) : '');
-        }
-
-        els.pdfSearchBtn.addEventListener('click', searchInsidePDF);
-        els.pdfInnerSearch.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') searchInsidePDF();
         });
 
         // Arama ve Geri Dönüş Eventleri
