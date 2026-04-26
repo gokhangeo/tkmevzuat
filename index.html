@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mevzuat Kütüphanesi</title>
     
-    <!-- Tailwind CSS (Tasarım için) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Lucide İkonları -->
@@ -31,11 +31,18 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .resizing { user-select: none; }
+        
+        /* PDF Yüzen Bar Animasyonu */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
 
-    <!-- GLOBAL YÜKLEME EKRANI (Firebase İşlemleri İçin) -->
+    <!-- GLOBAL YÜKLEME EKRANI -->
     <div id="globalLoader" class="hidden fixed inset-0 bg-slate-900/60 z-50 items-center justify-center backdrop-blur-sm">
         <div class="bg-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center">
             <div class="loader mb-4 border-[3px] border-slate-200 border-t-blue-600 w-10 h-10"></div>
@@ -50,16 +57,18 @@
 
     <!-- SOL PANEL - LİSTE -->
     <div id="sidebar" class="w-full md:w-[320px] shrink-0 bg-white flex flex-col relative z-20">
-        <!-- Başlık Alanı -->
+        
+        <!-- Başlık ve Admin Paneli -->
         <div class="p-5 bg-blue-700 text-white shadow-md z-10 shrink-0">
             <div class="flex justify-between items-start mb-4">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-3">
                         <i data-lucide="book-open" class="text-blue-200 w-7 h-7"></i>
-                        <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
+                        <!-- GİZLİ ADMİN GİRİŞİ: 3 kez tıklanacak -->
+                        <h1 id="mevzuatTitle" class="text-xl font-bold tracking-wide flex items-center gap-2 cursor-pointer select-none">
                             Mevzuat
-                            <!-- YÖNETİCİ KİLİT İKONU -->
-                            <i data-lucide="lock" id="adminLockBtn" class="text-blue-300 w-4 h-4 cursor-pointer hover:text-white transition-colors" title="Yönetici Girişi"></i>
+                            <!-- Kilit Açıldı İkonu -->
+                            <span id="adminIndicator" class="hidden text-emerald-300" title="Yönetici Modu Aktif"><i data-lucide="unlock" class="w-4 h-4"></i></span>
                         </h1>
                     </div>
                     <p class="text-[11px] text-blue-200 mt-1.5 font-medium opacity-80">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
@@ -79,7 +88,7 @@
 
         <!-- Belge Listesi -->
         <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2">
-            <!-- Dinamik liste buraya gelecek -->
+            <!-- Dinamik liste -->
         </div>
         
         <div id="listFooter" class="p-3 border-t border-slate-200 bg-slate-50 text-xs text-slate-500 text-center font-medium shrink-0">
@@ -87,13 +96,13 @@
         </div>
     </div>
 
-    <!-- BOYUTLANDIRMA (RESIZER) ÇUBUĞU -->
+    <!-- YAN PANEL BOYUTLANDIRICI -->
     <div id="resizer" class="hidden md:block w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize transition-colors z-30 shrink-0"></div>
 
     <!-- SAĞ PANEL - GÖRÜNTÜLEYİCİ -->
     <div id="mainPanel" class="flex-1 hidden md:flex flex-col bg-slate-100 relative min-w-0">
         
-        <!-- Boş Ekran (Başlangıç) -->
+        <!-- Boş Ekran -->
         <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
             <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center mb-6">
                 <i data-lucide="file-text" class="text-blue-200 w-12 h-12"></i>
@@ -104,13 +113,13 @@
             </p>
         </div>
 
-        <!-- Dosya Görüntüleyici Ekranı -->
-        <div id="viewerState" class="hidden flex-1 flex-col w-full h-full">
-            <!-- Üst Bar -->
-            <div class="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-2 sm:px-4 shadow-sm z-10 shrink-0 gap-2 sm:gap-4">
-                
-                <div class="flex items-center gap-1 sm:gap-3 overflow-hidden flex-1">
-                    <button id="backBtn" class="md:hidden p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+        <!-- PDF Görüntüleyici Ekranı -->
+        <div id="viewerState" class="hidden flex-1 flex-col w-full h-full relative">
+            
+            <!-- Üst Bar (Sadece Başlık ve Geri Butonu) -->
+            <div class="h-14 sm:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-5 shadow-sm z-10 shrink-0">
+                <div class="flex items-center gap-2 sm:gap-3 overflow-hidden flex-1">
+                    <button id="backBtn" class="md:hidden p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
                         <i data-lucide="arrow-left" class="w-5 h-5"></i>
                     </button>
                     <div class="p-1.5 bg-blue-100 text-blue-600 rounded-md hidden sm:block shrink-0">
@@ -119,45 +128,57 @@
                     <h2 id="viewerTitle" class="font-semibold text-slate-800 text-sm sm:text-base truncate" title="">Doküman Adı</h2>
                 </div>
 
-                <!-- İşlemler -->
-                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                    
-                    <!-- Admin Firebase İşlemleri (Gizli) -->
-                    <button id="replaceBtn" class="hidden items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition-colors" title="Bu belgeyi yenisiyle değiştir">
+                <!-- Admin İşlemleri (Üst Barda Sağda Gizli) -->
+                <div id="adminTools" class="hidden items-center gap-1.5 sm:gap-2 shrink-0">
+                    <button id="replaceBtn" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition-colors" title="Bu belgeyi yenisiyle değiştir">
                         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Değiştir</span>
+                        <span class="hidden lg:inline">Değiştir</span>
                     </button>
 
-                    <button id="deleteBtn" class="hidden items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-medium transition-all" title="Bu belgeyi tamamen sil">
+                    <button id="deleteBtn" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-medium transition-all" title="Bu belgeyi tamamen sil">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline" id="deleteBtnText">Sil</span>
+                        <span class="hidden lg:inline" id="deleteBtnText">Sil</span>
                     </button>
-                    
-                    <div id="adminDivider" class="hidden w-px h-6 bg-slate-200 mx-0.5 sm:mx-1"></div>
-                    
-                    <!-- Kullanıcı İndir Butonu -->
-                    <a id="downloadBtn" target="_blank" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200" title="İndir">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">İndir</span>
-                    </a>
                 </div>
-            </div>
-
-            <!-- Hata Ekranı -->
-            <div id="errorState" class="hidden flex-1 flex-col items-center justify-center text-red-500 p-6 text-center">
-                <i data-lucide="alert-circle" class="mb-4 text-red-400 w-12 h-12"></i>
-                <h3 class="font-bold text-lg mb-2">İşlem Başarısız</h3>
-                <p id="errorText" class="text-sm text-red-700 bg-red-50 p-4 rounded-lg border border-red-200 max-w-lg">Hata detayı</p>
             </div>
 
             <!-- PDF İframe Alanı -->
-            <div id="iframeContainer" class="flex-1 p-0 sm:p-4 md:p-6 lg:p-8 bg-slate-200 overflow-hidden flex flex-col relative">
+            <div id="iframeContainer" class="flex-1 bg-slate-200 overflow-hidden relative">
+                
+                <!-- YÜZEN ARAÇ ÇUBUĞU (PDF İÇİNDE ARAMA VE İNDİRME) -->
+                <div class="absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-30 flex items-center glass-panel shadow-md border border-slate-300 rounded-xl p-1.5 gap-1.5 sm:gap-2 max-w-[95%] w-max">
+                    <!-- Kelime Arama -->
+                    <div class="flex items-center bg-slate-100/80 rounded-lg px-2 border border-slate-200">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                        <input type="text" id="pdfInnerSearch" placeholder="Belgede Bul..." class="w-24 sm:w-40 bg-transparent text-sm py-1.5 px-2 focus:outline-none text-slate-700 placeholder-slate-400">
+                        <button id="pdfSearchBtn" class="text-blue-600 font-semibold px-2 py-1 hover:text-blue-800 text-sm">Bul</button>
+                    </div>
+                    
+                    <div class="w-px h-5 bg-slate-300 mx-0.5"></div>
+                    
+                    <!-- Tam Ekran / İndir -->
+                    <a id="fullScreenBtn" target="_blank" class="flex items-center gap-1 px-2.5 py-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Tam Ekran / İndir (Mobilde Önerilir)">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline text-xs font-semibold">Tam Ekran</span>
+                    </a>
+                </div>
+
                 <div id="loader" class="hidden absolute inset-0 m-auto flex-col items-center justify-center z-10">
                     <div class="loader mb-2"></div>
-                    <p class="text-sm font-medium text-blue-600">Yükleniyor...</p>
+                    <p class="text-sm font-medium text-blue-600 bg-white/80 px-3 py-1 rounded-full">Yükleniyor...</p>
                 </div>
-                <div class="flex-1 bg-white sm:rounded-xl shadow-lg border border-slate-300 overflow-hidden relative">
-                    <iframe id="pdfIframe" class="w-full h-full border-0 absolute inset-0 hidden"></iframe>
+                
+                <div id="errorState" class="hidden absolute inset-0 m-auto flex-col items-center justify-center text-red-500 p-6 text-center z-10">
+                    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm">
+                        <i data-lucide="alert-circle" class="mb-4 text-red-500 w-12 h-12"></i>
+                        <h3 class="font-bold text-lg mb-2 text-slate-800">Bağlantı Başarısız</h3>
+                        <p id="errorText" class="text-sm text-red-600">Hata detayı</p>
+                    </div>
+                </div>
+
+                <!-- Mobilde kaydırma sorununu çözen CSS hilesi (-webkit-overflow-scrolling) -->
+                <div class="w-full h-full overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+                    <iframe id="pdfIframe" class="w-full h-full border-0 block" style="min-height: 100vh;"></iframe>
                 </div>
             </div>
         </div>
@@ -169,7 +190,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getStorage, ref, getDownloadURL, listAll, deleteObject, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-        // Firebase Yapılandırması
         const firebaseConfig = {
             apiKey: "AIzaSyDxq8AI16Y1jNuJMLES8NNEqKlGg2Ul4JI",
             authDomain: "mevzuat-f0699.firebaseapp.com",
@@ -185,9 +205,9 @@
 
         let allDocs = [];
         let selectedDoc = null;
-        let isAdmin = false; // YÖNETİCİ DURUMU
+        let isAdmin = false; 
         let currentPdfUrl = ''; 
-        const klasorYolu = 'mevzuat'; // Firebase Ana Klasörümüz
+        const klasorYolu = 'mevzuat'; 
 
         const els = {
             sidebar: document.getElementById('sidebar'),
@@ -196,80 +216,79 @@
             docList: document.getElementById('docList'),
             listFooter: document.getElementById('listFooter'),
             searchInput: document.getElementById('searchInput'),
-            adminLockBtn: document.getElementById('adminLockBtn'),
+            mevzuatTitle: document.getElementById('mevzuatTitle'),
+            adminIndicator: document.getElementById('adminIndicator'),
             addNewBtn: document.getElementById('addNewBtn'),
             uploadInput: document.getElementById('uploadInput'),
             replaceBtn: document.getElementById('replaceBtn'),
             replaceInput: document.getElementById('replaceInput'),
             deleteBtn: document.getElementById('deleteBtn'),
             deleteBtnText: document.getElementById('deleteBtnText'),
-            adminDivider: document.getElementById('adminDivider'),
+            adminTools: document.getElementById('adminTools'),
             emptyState: document.getElementById('emptyState'),
             viewerState: document.getElementById('viewerState'),
             viewerTitle: document.getElementById('viewerTitle'),
             backBtn: document.getElementById('backBtn'),
-            downloadBtn: document.getElementById('downloadBtn'),
+            fullScreenBtn: document.getElementById('fullScreenBtn'),
             errorState: document.getElementById('errorState'),
             errorText: document.getElementById('errorText'),
             pdfIframe: document.getElementById('pdfIframe'),
             loader: document.getElementById('loader'),
+            pdfInnerSearch: document.getElementById('pdfInnerSearch'),
+            pdfSearchBtn: document.getElementById('pdfSearchBtn'),
             globalLoader: document.getElementById('globalLoader'),
             globalLoaderText: document.getElementById('globalLoaderText')
         };
 
         lucide.createIcons();
 
-        // ==========================================
-        // YÖNETİCİ ŞİFRESİ MANTIĞI
-        // ==========================================
+        // GİZLİ YÖNETİCİ GİRİŞİ (3 TIKLAMA)
         function updateAdminUI() {
             if (isAdmin) {
+                els.adminIndicator.classList.remove('hidden');
                 els.addNewBtn.classList.remove('hidden');
                 if (selectedDoc) {
-                    els.replaceBtn.classList.remove('hidden');
-                    els.replaceBtn.classList.add('flex');
-                    els.deleteBtn.classList.remove('hidden');
-                    els.deleteBtn.classList.add('flex');
-                    els.adminDivider.classList.remove('hidden');
-                    els.adminDivider.classList.add('block');
+                    els.adminTools.classList.remove('hidden');
+                    els.adminTools.classList.add('flex');
                 }
             } else {
+                els.adminIndicator.classList.add('hidden');
                 els.addNewBtn.classList.add('hidden');
-                els.replaceBtn.classList.add('hidden');
-                els.replaceBtn.classList.remove('flex');
-                els.deleteBtn.classList.add('hidden');
-                els.deleteBtn.classList.remove('flex');
-                els.adminDivider.classList.add('hidden');
-                els.adminDivider.classList.remove('block');
+                els.adminTools.classList.add('hidden');
+                els.adminTools.classList.remove('flex');
             }
+            lucide.createIcons();
         }
 
-        els.adminLockBtn.addEventListener('click', () => {
-            if (isAdmin) {
-                isAdmin = false;
-                els.adminLockBtn.setAttribute('data-lucide', 'lock');
-                lucide.createIcons();
-                updateAdminUI();
-                return;
-            }
+        let secretClickCount = 0;
+        let secretClickTimer;
 
-            const pwd = prompt("Yönetici Şifresini Giriniz:");
-            if (pwd === "5034") {
-                isAdmin = true;
-                els.adminLockBtn.setAttribute('data-lucide', 'unlock');
-                lucide.createIcons();
-                updateAdminUI();
-            } else if (pwd !== null) {
-                alert("Hatalı şifre! Yönetici yetkisi alınamadı.");
+        els.mevzuatTitle.addEventListener('click', () => {
+            secretClickCount++;
+            clearTimeout(secretClickTimer);
+            
+            if (secretClickCount === 3) {
+                secretClickCount = 0; 
+                if (isAdmin) {
+                    isAdmin = false;
+                    updateAdminUI();
+                    return;
+                }
+                const pwd = prompt("Yönetici Şifresini Giriniz:");
+                if (pwd === "5034") {
+                    isAdmin = true;
+                    updateAdminUI();
+                } else if (pwd !== null) {
+                    alert("Hatalı şifre!");
+                }
+            } else {
+                secretClickTimer = setTimeout(() => { secretClickCount = 0; }, 1000);
             }
         });
 
-
-        // ==========================================
-        // YAN PANEL BOYUTLANDIRMA MANTIĞI
-        // ==========================================
+        // YAN PANEL BOYUTLANDIRMA
         let isResizing = false;
-        els.resizer.addEventListener('mousedown', (e) => {
+        els.resizer.addEventListener('mousedown', () => {
             isResizing = true;
             document.body.classList.add('resizing');
             document.body.style.cursor = 'col-resize';
@@ -289,20 +308,12 @@
             }
         });
 
-
-        // ==========================================
-        // AKILLI BAŞLIK TEMİZLEME (2023-5 GİBİ NUMARALARI KORUR)
-        // ==========================================
+        // MÜKEMMELLEŞTİRİLMİŞ İSİM TEMİZLEME (Sadece 13 basamaklı çöp sayıları siler)
         function cleanTitle(filename) {
             let title = filename.replace(/\.pdf$/i, ''); 
-            
-            // Sadece 13 haneli veya daha uzun anlamsız sistem sayılarını (örn: 1776883268077_) siler.
-            // 2023-5, 2022-7 gibi geçerli sayılara KESİNLİKLE dokunmaz.
+            // 2023-5 GİBİ GERÇEK SAYILARA DOKUNMAZ. SADECE 13 HANE VE ÜZERİ SAYILARI SİLER.
             title = title.replace(/^\d{13,}[_\-\s]*/, '');
-            
-            // Alt çizgileri boşluk yap
             title = title.replace(/_/g, ' ');
-
             return title.trim() || filename.replace(/\.pdf$/i, '');
         }
 
@@ -311,13 +322,9 @@
             return yearMatch ? yearMatch[1] : 'Genel';
         }
 
-
-        // ==========================================
-        // LİSTELEME EKRANI
-        // ==========================================
+        // LİSTELEME
         window.renderList = function() {
             const query = els.searchInput.value.toLocaleLowerCase('tr-TR');
-            
             const filtered = allDocs.filter(doc => 
                 doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) || 
                 doc.year.toLocaleLowerCase('tr-TR').includes(query)
@@ -329,7 +336,7 @@
                 els.docList.innerHTML = `
                     <div class="text-center py-12 text-slate-500">
                         <i data-lucide="search" class="mx-auto mb-3 text-slate-300 w-8 h-8"></i>
-                        <p class="text-sm">Aradığınız belge bulunamadı.</p>
+                        <p class="text-sm">Kayıt bulunamadı.</p>
                     </div>`;
             } else {
                 els.docList.innerHTML = filtered.map(doc => `
@@ -353,65 +360,50 @@
             lucide.createIcons();
         }
 
-
-        // ==========================================
-        // FIREBASE'DEN LİSTEYİ İLK ÇEKİŞ
-        // ==========================================
+        // FIREBASE İLK YÜKLEME
         async function fetchFromFirebase() {
             try {
                 els.docList.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-10 text-blue-500">
-                        <div class="loader mb-3"></div>
+                        <div class="loader mb-3 border-t-blue-500"></div>
                         <p class="text-sm font-medium">Dosyalar alınıyor...</p>
                     </div>`;
 
                 const listRef = ref(storage, klasorYolu);
                 const res = await listAll(listRef);
 
-                if (res.items.length === 0) {
-                    els.docList.innerHTML = `<div class="p-4 text-amber-600 bg-amber-50 text-sm rounded-lg border border-amber-200">Klasörde hiç PDF bulunamadı.</div>`;
-                    els.listFooter.innerText = "0 Belge";
-                    return;
-                }
-
                 allDocs = res.items
                     .filter(item => item.name.toLowerCase().endsWith('.pdf'))
-                    .map((item, index) => {
-                        return {
-                            id: `firebase-${item.name}-${index}`,
-                            originalName: item.name,
-                            cleanName: cleanTitle(item.name),
-                            year: extractYear(item.name),
-                            fullPath: item.fullPath
-                        };
-                    });
+                    .map((item, index) => ({
+                        id: `firebase-${item.name}-${index}`,
+                        originalName: item.name,
+                        cleanName: cleanTitle(item.name),
+                        year: extractYear(item.name),
+                        fullPath: item.fullPath
+                    }));
 
-                // İsme göre alfabetik sırala
                 allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
                 renderList();
 
             } catch (error) {
-                console.error(error);
                 els.docList.innerHTML = `
                     <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center text-sm">
                         <i data-lucide="alert-circle" class="mx-auto mb-2 text-red-500 w-6 h-6"></i>
                         <p class="font-semibold mb-1">Liste Hatası</p>
-                        <p>${error.code === 'storage/unauthorized' ? 'Storage okuma/yazma izniniz yok.' : error.message}</p>
+                        <p>${error.message}</p>
                     </div>`;
                 lucide.createIcons();
             }
         }
 
-
-        // ==========================================
-        // BELGE SEÇİM VE GÖRÜNTÜLEME
-        // ==========================================
+        // BELGE AÇMA
         window.selectDoc = async function(id) {
             selectedDoc = allDocs.find(d => d.id === id);
             if (!selectedDoc) return;
 
-            resetDeleteBtn(); // Eğer silme butonuna basılmışsa sıfırla
-            updateAdminUI(); // Seçili doküman olduğu için sil/değiştir butonlarını göster (eğer adminse)
+            resetDeleteBtn(); 
+            updateAdminUI(); 
+            els.pdfInnerSearch.value = '';
             renderList();
             
             els.sidebar.classList.remove('flex');
@@ -425,23 +417,20 @@
             
             els.viewerTitle.innerText = selectedDoc.cleanName;
             els.viewerTitle.title = selectedDoc.cleanName;
-            els.downloadBtn.download = selectedDoc.cleanName + ".pdf";
             
             els.pdfIframe.classList.add('hidden');
             els.errorState.classList.add('hidden');
             els.loader.classList.remove('hidden');
             els.loader.classList.add('flex');
-            els.pdfIframe.src = 'about:blank'; // Frame'i temizle
 
             try {
                 const fileRef = ref(storage, selectedDoc.fullPath);
                 currentPdfUrl = await getDownloadURL(fileRef);
                 els.pdfIframe.src = currentPdfUrl;
-                els.downloadBtn.href = currentPdfUrl;
+                els.fullScreenBtn.href = currentPdfUrl;
                 els.pdfIframe.classList.remove('hidden');
             } catch (err) {
-                els.errorText.innerText = err.code === 'storage/unauthorized' 
-                    ? "Storage kurallarında okuma izni yok." : err.message;
+                els.errorText.innerText = err.message;
                 els.errorState.classList.remove('hidden');
                 els.errorState.classList.add('flex');
             } finally {
@@ -450,11 +439,7 @@
             }
         }
 
-
-        // ==========================================
-        // YENİ EKLE, DEĞİŞTİR VE SİL MANTIĞI
-        // ==========================================
-        
+        // YENİ EKLE / DEĞİŞTİR / SİL (SADECE ADMİN)
         async function handleUpload(file, oldDocToReplace = null) {
             try {
                 els.globalLoaderText.innerText = oldDocToReplace ? "Dosya değiştiriliyor..." : "Yeni belge yükleniyor...";
@@ -468,7 +453,7 @@
 
                 if (oldDocToReplace && oldDocToReplace.fullPath !== finalPath) {
                     const oldRef = ref(storage, oldDocToReplace.fullPath);
-                    await deleteObject(oldRef).catch(e => console.warn("Eski dosya silinemedi", e));
+                    await deleteObject(oldRef).catch(e => console.warn(e));
                     allDocs = allDocs.filter(d => d.id !== oldDocToReplace.id);
                 } else if (oldDocToReplace) {
                     allDocs = allDocs.filter(d => d.id !== oldDocToReplace.id);
@@ -490,10 +475,8 @@
 
                 renderList();
                 window.selectDoc(newDoc.id); 
-                
             } catch(e) {
-                console.error(e);
-                alert("İşlem Hatası: " + (e.code === 'storage/unauthorized' ? "Yazma izniniz yok!" : e.message));
+                alert("İşlem Hatası: " + e.message);
             } finally {
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
@@ -518,19 +501,17 @@
         function resetDeleteBtn() {
             els.deleteBtn.classList.remove('bg-red-600', 'text-white', 'border-red-600', 'confirm-mode');
             els.deleteBtn.classList.add('bg-red-50', 'text-red-600', 'border-red-200');
-            els.deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span class="hidden sm:inline">Sil</span>';
+            els.deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i><span class="hidden lg:inline">Sil</span>';
             lucide.createIcons();
         }
 
         els.deleteBtn.addEventListener('click', async () => {
             if(!selectedDoc) return;
-            
             if(!els.deleteBtn.classList.contains('confirm-mode')) {
                 els.deleteBtn.classList.add('confirm-mode', 'bg-red-600', 'text-white', 'border-red-600');
                 els.deleteBtn.classList.remove('bg-red-50', 'text-red-600', 'border-red-200');
-                els.deleteBtn.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i><span class="hidden sm:inline">Emin misin?</span>';
+                els.deleteBtn.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i><span class="hidden lg:inline">Emin misin?</span>';
                 lucide.createIcons();
-                
                 deleteConfirmTimeout = setTimeout(() => { resetDeleteBtn(); }, 3000);
                 return;
             }
@@ -552,14 +533,27 @@
                 renderList();
                 updateAdminUI();
             } catch(e) {
-                console.error(e);
-                alert("Silme Hatası: " + (e.code === 'storage/unauthorized' ? "Silme izniniz yok!" : e.message));
+                alert("Silme Hatası: " + e.message);
             } finally {
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
             }
         });
 
+        // PDF İÇİ KELİME ARAMA (Yenilenmeyi Engelleyen Doğrudan Hash Ataması)
+        function searchInsidePDF() {
+            const keyword = els.pdfInnerSearch.value.trim();
+            if (!currentPdfUrl || !selectedDoc) return;
+            
+            // Temel adresi al ve sadece Hash(#) kısmını değiştirerek sayfayı yenilemeden aramayı tetikle.
+            let baseSrc = currentPdfUrl.split('#')[0];
+            els.pdfIframe.src = baseSrc + (keyword ? '#search=' + encodeURIComponent(keyword) : '');
+        }
+
+        els.pdfSearchBtn.addEventListener('click', searchInsidePDF);
+        els.pdfInnerSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchInsidePDF();
+        });
 
         // Arama ve Geri Dönüş Eventleri
         els.searchInput.addEventListener('input', renderList);
@@ -573,7 +567,7 @@
             renderList();
         });
 
-        // Uygulamayı Başlat
+        // Başlat
         fetchFromFirebase();
     </script>
 </body>
