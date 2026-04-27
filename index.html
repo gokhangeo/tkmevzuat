@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mevzuat Kütüphanesi</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Lucide İkonları -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -20,7 +20,7 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
+
         .loader {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #3b82f6;
@@ -32,7 +32,6 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .resizing { user-select: none; }
 
-        /* Yüzen Kontrol Paneli (HUD) Estetiği */
         .glass-panel {
             background: rgba(255, 255, 255, 0.90);
             backdrop-filter: blur(12px);
@@ -48,6 +47,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.35);
             border-radius: 8px;
             overflow: hidden;
+            --scale-factor: 1;
         }
         .pdf-canvas {
             display: block;
@@ -62,29 +62,32 @@
             line-height: 1;
             transform-origin: 0 0;
             pointer-events: none;
+            --scale-factor: 1;
         }
-        .pdf-text-layer span {
+        .pdf-text-layer span,
+        .pdf-text-layer br {
             color: transparent;
             position: absolute;
             white-space: pre;
-            cursor: text;
             transform-origin: 0% 0%;
+            cursor: text;
+        }
+        .pdf-text-layer ::selection {
+            background: rgba(59, 130, 246, 0.35);
         }
         .pdf-search-hit {
-            background: rgba(250, 204, 21, 0.55);
-            color: transparent !important;
+            outline: 2px solid rgba(202, 138, 4, 0.95);
+            background: rgba(250, 204, 21, 0.35) !important;
             border-radius: 3px;
-            box-shadow: 0 0 0 1px rgba(202, 138, 4, 0.35);
         }
         .pdf-search-hit-active {
-            background: rgba(249, 115, 22, 0.65);
-            box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.75);
+            outline: 3px solid rgba(234, 88, 12, 0.95);
+            background: rgba(249, 115, 22, 0.45) !important;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
 
-    <!-- GLOBAL YÜKLEME EKRANI -->
     <div id="globalLoader" class="hidden fixed inset-0 bg-slate-900/60 z-50 items-center justify-center backdrop-blur-sm">
         <div class="bg-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center">
             <div class="loader mb-4 border-[3px] border-slate-200 border-t-blue-600 w-10 h-10"></div>
@@ -93,80 +96,57 @@
         </div>
     </div>
 
-    <!-- GİZLİ DOSYA GİRİŞLERİ -->
     <input type="file" id="uploadInput" accept="application/pdf" class="hidden">
     <input type="file" id="replaceInput" accept="application/pdf" class="hidden">
 
-    <!-- SOL PANEL - LİSTE -->
     <div id="sidebar" class="w-full md:w-[320px] shrink-0 bg-white flex flex-col relative z-20">
-        
-        <!-- Başlık ve Admin Paneli -->
         <div class="p-5 bg-blue-700 text-white shadow-md z-10 shrink-0">
             <div class="flex justify-between items-start mb-4">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-3">
                         <i data-lucide="book-open" class="text-blue-200 w-7 h-7"></i>
-                        <!-- GİZLİ ADMİN GİRİŞİ: 3 kez tıklanacak -->
                         <h1 id="mevzuatTitle" class="text-xl font-bold tracking-wide flex items-center gap-2 cursor-pointer select-none" title="Yönetici girişi için 3 kez tıklayın">
                             Mevzuat
-                            <!-- Kilit Açıldı İkonu -->
                             <span id="adminIndicator" class="hidden text-emerald-300" title="Yönetici Modu Aktif"><i data-lucide="unlock" class="w-4 h-4"></i></span>
                         </h1>
                     </div>
                     <p class="text-[11px] text-blue-200 mt-1.5 font-medium opacity-80">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
                 </div>
-                <!-- YENİ BELGE EKLE BUTONU (Sadece Admin Görür) -->
                 <button id="addNewBtn" class="hidden p-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors text-white shrink-0 shadow-sm" title="Yeni Belge Yükle">
                     <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
             </div>
-            
-            <!-- Arama Kutusu -->
+
             <div class="relative">
                 <input type="text" id="searchInput" placeholder="Genelge, kanun veya yıl ara..." class="w-full pl-10 pr-4 py-2.5 bg-blue-800/50 border border-blue-600 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors">
                 <i data-lucide="search" class="absolute left-3 top-3 text-blue-300 w-4 h-4"></i>
             </div>
         </div>
 
-        <!-- Belge Listesi -->
-        <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2">
-            <!-- Dinamik liste buraya gelecek -->
-        </div>
-        
+        <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+
         <div id="listFooter" class="p-3 border-t border-slate-200 bg-slate-50 text-xs text-slate-500 text-center font-medium shrink-0">
             Yükleniyor...
         </div>
     </div>
 
-    <!-- YAN PANEL BOYUTLANDIRICI -->
     <div id="resizer" class="hidden md:block w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize transition-colors z-30 shrink-0"></div>
 
-    <!-- SAĞ PANEL - GÖRÜNTÜLEYİCİ -->
     <div id="mainPanel" class="flex-1 hidden md:flex flex-col bg-slate-100 relative min-w-0">
-        
-        <!-- Boş Ekran -->
         <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
             <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center mb-6">
                 <i data-lucide="file-text" class="text-blue-200 w-12 h-12"></i>
             </div>
             <h2 class="text-2xl font-bold text-slate-700 mb-2">Dokümanları Güvenle Açın</h2>
-            <p class="max-w-md text-slate-500 mb-6 px-4">
-                Sol menüden incelemek istediğiniz mevzuatı seçerek görüntüleyebilirsiniz.
-            </p>
+            <p class="max-w-md text-slate-500 mb-6 px-4">Sol menüden incelemek istediğiniz mevzuatı seçerek görüntüleyebilirsiniz.</p>
         </div>
 
-        <!-- PDF Görüntüleyici Ekranı -->
         <div id="viewerState" class="hidden flex-1 flex-col w-full h-full relative bg-slate-600">
-            
-            <!-- YÜZEN KONTROL PANELİ (HUD) -->
             <div class="absolute top-3 sm:top-4 left-1/2 -translate-x-1/2 z-30 flex items-center glass-panel border border-slate-200/60 rounded-xl p-1.5 gap-1.5 transition-all w-[96%] sm:w-auto max-w-full overflow-x-auto no-scrollbar">
-                
-                <!-- Mobil Geri Butonu -->
                 <button id="backBtn" class="md:hidden flex items-center justify-center p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg shrink-0 transition-colors" title="Listeye Dön">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </button>
 
-                <!-- Belge Başlığı (Sadece PC) -->
                 <div class="hidden sm:flex items-center px-2 shrink-0 max-w-[200px] lg:max-w-[350px]">
                     <i data-lucide="file-check" class="w-4 h-4 text-blue-600 mr-1.5 shrink-0"></i>
                     <span id="viewerTitle" class="text-sm font-bold text-slate-700 truncate"></span>
@@ -174,7 +154,6 @@
 
                 <div class="hidden sm:block w-px h-5 bg-slate-300 mx-1 shrink-0"></div>
 
-                <!-- Arama Kutusu -->
                 <div class="flex items-center bg-white rounded-lg px-2 shadow-sm border border-slate-200 shrink-0">
                     <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     <input type="text" id="pdfInnerSearch" placeholder="PDF'te Bul..." class="w-24 sm:w-36 bg-transparent text-sm py-1.5 px-2 focus:outline-none text-slate-700 placeholder-slate-400">
@@ -182,7 +161,6 @@
                     <button id="pdfClearSearchBtn" class="hidden text-slate-500 font-semibold px-1.5 py-1 hover:text-red-600 text-sm shrink-0 transition-colors" title="Aramayı temizle">×</button>
                 </div>
 
-                <!-- Admin İşlemleri (Gizli) -->
                 <div id="adminTools" class="hidden items-center gap-1 shrink-0 ml-1">
                     <div class="w-px h-5 bg-slate-300 mx-0.5 shrink-0"></div>
                     <button id="replaceBtn" class="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors shrink-0" title="Bu belgeyi yenisiyle değiştir">
@@ -195,8 +173,7 @@
 
                 <div class="w-px h-5 bg-slate-300 mx-0.5 shrink-0"></div>
 
-                <!-- Tam Ekran ve İndir -->
-                <a id="fullScreenBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="Tam Ekran Aç (Mobilde Kaydırma Sorunu İçin Önerilir)">
+                <a id="fullScreenBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i yeni sekmede aç">
                     <i data-lucide="external-link" class="w-5 h-5"></i>
                 </a>
                 <a id="downloadBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i İndir">
@@ -204,12 +181,11 @@
                 </a>
             </div>
 
-            <!-- Hata & Yüklenme Ekranları -->
             <div id="loader" class="hidden absolute inset-0 m-auto flex-col items-center justify-center z-10 bg-white/70 backdrop-blur-sm">
                 <div class="loader mb-2 border-t-blue-600"></div>
                 <p class="text-sm font-bold text-blue-800">PDF Bağlantısı Kuruluyor...</p>
             </div>
-            
+
             <div id="errorState" class="hidden absolute inset-0 m-auto flex-col items-center justify-center text-red-500 p-6 text-center z-10">
                 <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm border border-red-100">
                     <i data-lucide="alert-circle" class="mb-4 text-red-500 w-12 h-12"></i>
@@ -218,21 +194,19 @@
                 </div>
             </div>
 
-            <!-- PDF.js Görüntüleyici Alanı: iframe yerine gerçek metin katmanı ile arama yapılır -->
             <div id="pdfViewerContainer" class="flex-1 w-full h-full overflow-auto relative bg-slate-700 pt-20 pb-8 px-2 sm:px-6">
                 <div id="pdfPages" class="mx-auto flex flex-col items-center gap-5"></div>
             </div>
         </div>
-
     </div>
 
     <!-- PDF.js Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-    <!-- Firebase ve Uygulama Mantığı -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getStorage, ref, getDownloadURL, listAll, deleteObject, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxq8AI16Y1jNuJMLES8NNEqKlGg2Ul4JI",
@@ -246,16 +220,17 @@
 
         const app = initializeApp(firebaseConfig);
         const storage = getStorage(app);
+        const auth = getAuth(app);
 
         let allDocs = [];
         let selectedDoc = null;
-        let isAdmin = false; 
-        let currentPdfUrl = ''; 
+        let isAdmin = false;
+        let currentPdfUrl = '';
         let pdfDoc = null;
         let pdfSearchMatches = [];
         let activeSearchIndex = -1;
         let currentRenderTask = null;
-        const klasorYolu = 'mevzuat'; 
+        const klasorYolu = 'mevzuat';
 
         const els = {
             sidebar: document.getElementById('sidebar'),
@@ -296,20 +271,38 @@
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
-        function escapeHtml(text) {
-            return String(text)
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#039;');
-        }
+        // Güvenli Kimlik Doğrulama ve Yükleme Sırası (GÜNCELLENDİ)
+        const initAuth = async () => {
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.warn("Anonim giriş kapalı olabilir, açık kurallarla devam ediliyor:", e);
+            } finally {
+                // Giriş yapsın ya da yapamasın her halükarda dosyaları getirmeyi dener
+                await fetchFromFirebase();
+            }
+        };
+        initAuth();
 
         function normalizeText(text) {
-            return String(text || '').toLocaleLowerCase('tr-TR');
+            return String(text || '')
+                .toLocaleLowerCase('tr-TR')
+                .replace(/\s+/g, ' ')
+                .trim();
         }
 
-        // GİZLİ YÖNETİCİ GİRİŞİ
+        function cleanTitle(filename) {
+            let title = filename.replace(/\.pdf$/i, '');
+            title = title.replace(/^\d{10,}[_\-\s]*/, '');
+            title = title.replace(/_/g, ' ');
+            return title.trim() || filename.replace(/\.pdf$/i, '');
+        }
+
+        function extractYear(filename) {
+            const yearMatch = filename.match(/(20\d{2})/);
+            return yearMatch ? yearMatch[1] : 'Genel';
+        }
+
         function updateAdminUI() {
             if (isAdmin) {
                 els.adminIndicator.classList.remove('hidden');
@@ -333,27 +326,26 @@
         els.mevzuatTitle.addEventListener('click', () => {
             secretClickCount++;
             clearTimeout(secretClickTimer);
-            
+
             if (secretClickCount === 3) {
-                secretClickCount = 0; 
+                secretClickCount = 0;
                 if (isAdmin) {
                     isAdmin = false;
                     updateAdminUI();
                     return;
                 }
-                const pwd = prompt("Yönetici Şifresini Giriniz:");
-                if (pwd === "5034") {
+                const pwd = prompt('Yönetici Şifresini Giriniz:');
+                if (pwd === '5034') {
                     isAdmin = true;
                     updateAdminUI();
                 } else if (pwd !== null) {
-                    alert("Hatalı şifre!");
+                    alert('Hatalı şifre!');
                 }
             } else {
                 secretClickTimer = setTimeout(() => { secretClickCount = 0; }, 1000);
             }
         });
 
-        // YAN PANEL BOYUTLANDIRMA
         let isResizing = false;
         els.resizer.addEventListener('mousedown', () => {
             isResizing = true;
@@ -375,23 +367,10 @@
             }
         });
 
-        function cleanTitle(filename) {
-            let title = filename.replace(/\.pdf$/i, ''); 
-            title = title.replace(/^\d{10,}[_\-\s]*/, '');
-            title = title.replace(/_/g, ' ');
-            return title.trim() || filename.replace(/\.pdf$/i, '');
-        }
-
-        function extractYear(filename) {
-            const yearMatch = filename.match(/(20\d{2})/);
-            return yearMatch ? yearMatch[1] : 'Genel';
-        }
-
-        // LİSTELEME
         window.renderList = function() {
             const query = els.searchInput.value.toLocaleLowerCase('tr-TR');
-            const filtered = allDocs.filter(doc => 
-                doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) || 
+            const filtered = allDocs.filter(doc =>
+                doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) ||
                 doc.year.toLocaleLowerCase('tr-TR').includes(query)
             );
 
@@ -410,9 +389,7 @@
                             <i data-lucide="file-text" class="w-5 h-5"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="font-medium text-sm sm:text-[15px] leading-snug truncate ${selectedDoc?.id === doc.id ? 'text-blue-800' : 'text-slate-700 group-hover:text-blue-700'}">
-                                ${doc.cleanName}
-                            </h3>
+                            <h3 class="font-medium text-sm sm:text-[15px] leading-snug truncate ${selectedDoc?.id === doc.id ? 'text-blue-800' : 'text-slate-700 group-hover:text-blue-700'}">${doc.cleanName}</h3>
                             <div class="flex items-center gap-1.5 mt-1.5 text-[11px] font-medium">
                                 <span class="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-100 text-slate-600 flex items-center gap-1">
                                     <i data-lucide="calendar" class="w-3 h-3 opacity-70"></i> ${doc.year}
@@ -423,9 +400,8 @@
                 `).join('');
             }
             lucide.createIcons();
-        }
+        };
 
-        // FIREBASE İLK YÜKLEME
         async function fetchFromFirebase() {
             try {
                 els.docList.innerHTML = `
@@ -438,8 +414,8 @@
                 const res = await listAll(listRef);
 
                 if (res.items.length === 0) {
-                    els.docList.innerHTML = `<div class="p-4 text-amber-600 bg-amber-50 text-sm rounded-lg border border-amber-200">Klasörde hiç PDF bulunamadı.</div>`;
-                    els.listFooter.innerText = "0 Belge";
+                    els.docList.innerHTML = '<div class="p-4 text-amber-600 bg-amber-50 text-sm rounded-lg border border-amber-200">Klasörde hiç PDF bulunamadı.</div>';
+                    els.listFooter.innerText = '0 Belge';
                     return;
                 }
 
@@ -455,7 +431,6 @@
 
                 allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
                 renderList();
-
             } catch (error) {
                 els.docList.innerHTML = `
                     <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center text-sm">
@@ -467,28 +442,25 @@
             }
         }
 
-        // BELGE AÇMA
         window.selectDoc = async function(id) {
             selectedDoc = allDocs.find(d => d.id === id);
             if (!selectedDoc) return;
 
-            resetDeleteBtn(); 
-            updateAdminUI(); 
-            els.pdfInnerSearch.value = ''; // Yeni belgede aramayı temizle
+            resetDeleteBtn();
+            updateAdminUI();
+            els.pdfInnerSearch.value = '';
             renderList();
-            
+
             els.sidebar.classList.remove('flex');
             els.sidebar.classList.add('hidden', 'md:flex');
             els.mainPanel.classList.remove('hidden');
             els.mainPanel.classList.add('flex');
-
             els.emptyState.classList.add('hidden');
             els.viewerState.classList.remove('hidden');
             els.viewerState.classList.add('flex');
-            
             els.viewerTitle.innerText = selectedDoc.cleanName;
             els.viewerTitle.title = selectedDoc.cleanName;
-            
+
             els.pdfPages.innerHTML = '';
             els.errorState.classList.add('hidden');
             els.loader.classList.remove('hidden');
@@ -497,25 +469,22 @@
             try {
                 const fileRef = ref(storage, selectedDoc.fullPath);
                 currentPdfUrl = await getDownloadURL(fileRef);
-                
-                await renderPdfWithTextLayer(currentPdfUrl);
-                
+
                 els.fullScreenBtn.href = currentPdfUrl;
                 els.downloadBtn.href = currentPdfUrl;
-                els.downloadBtn.download = selectedDoc.cleanName + ".pdf";
-                
+                els.downloadBtn.download = selectedDoc.cleanName + '.pdf';
+
+                await renderPdfWithTextLayer(currentPdfUrl);
             } catch (err) {
-                els.errorText.innerText = err.message;
+                els.errorText.innerText = err.message || String(err);
                 els.errorState.classList.remove('hidden');
                 els.errorState.classList.add('flex');
             } finally {
                 els.loader.classList.add('hidden');
                 els.loader.classList.remove('flex');
-                
             }
-        }
+        };
 
-        // PDF.js görüntüleme ve gerçek kelime arama
         async function renderPdfWithTextLayer(url) {
             if (!window.pdfjsLib) {
                 throw new Error('PDF.js yüklenemedi. İnternet bağlantısı veya kurum güvenlik duvarı CDN erişimini engelliyor olabilir.');
@@ -528,6 +497,7 @@
 
             pdfSearchMatches = [];
             activeSearchIndex = -1;
+            pdfDoc = null;
             els.pdfPages.innerHTML = '';
             els.pdfClearSearchBtn.classList.add('hidden');
             els.pdfViewerContainer.scrollTop = 0;
@@ -549,14 +519,15 @@
 
                 const pageWrap = document.createElement('div');
                 pageWrap.className = 'pdf-page-wrap';
-                pageWrap.dataset.pageNumber = pageNum;
+                pageWrap.dataset.pageNumber = String(pageNum);
                 pageWrap.style.width = `${viewport.width}px`;
                 pageWrap.style.height = `${viewport.height}px`;
                 pageWrap.style.maxWidth = '100%';
+                pageWrap.style.setProperty('--scale-factor', String(viewport.scale));
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'pdf-canvas';
-                const context = canvas.getContext('2d');
+                const context = canvas.getContext('2d', { alpha: false });
                 const outputScale = window.devicePixelRatio || 1;
                 canvas.width = Math.floor(viewport.width * outputScale);
                 canvas.height = Math.floor(viewport.height * outputScale);
@@ -566,9 +537,10 @@
 
                 const textLayer = document.createElement('div');
                 textLayer.className = 'pdf-text-layer';
-                textLayer.dataset.pageNumber = pageNum;
+                textLayer.dataset.pageNumber = String(pageNum);
                 textLayer.style.width = `${viewport.width}px`;
                 textLayer.style.height = `${viewport.height}px`;
+                textLayer.style.setProperty('--scale-factor', String(viewport.scale));
 
                 pageWrap.appendChild(canvas);
                 pageWrap.appendChild(textLayer);
@@ -584,50 +556,48 @@
                     viewport,
                     textDivs: []
                 }).promise;
+
+                Array.from(textLayer.querySelectorAll('span')).forEach(span => {
+                    span.dataset.searchText = span.textContent || '';
+                    span.title = span.textContent || '';
+                });
             }
 
             currentRenderTask = null;
         }
 
         function clearSearchHighlights() {
-            els.pdfPages.querySelectorAll('.pdf-text-layer span').forEach(span => {
-                span.classList.remove('pdf-search-hit', 'pdf-search-hit-active');
-                if (span.dataset.originalText) {
-                    span.textContent = span.dataset.originalText;
-                }
+            els.pdfPages.querySelectorAll('.pdf-search-hit, .pdf-search-hit-active').forEach(el => {
+                el.classList.remove('pdf-search-hit', 'pdf-search-hit-active');
             });
             pdfSearchMatches = [];
             activeSearchIndex = -1;
         }
 
-        function highlightTextInSpan(span, keyword) {
-            const original = span.dataset.originalText || span.textContent || '';
-            span.dataset.originalText = original;
-
-            const originalNorm = normalizeText(original);
+        function findMatchesInTextLayer(keyword) {
             const keywordNorm = normalizeText(keyword);
-            const index = originalNorm.indexOf(keywordNorm);
+            const spans = Array.from(els.pdfPages.querySelectorAll('.pdf-text-layer span'));
+            const matches = [];
 
-            if (index === -1) return false;
+            spans.forEach(span => {
+                const text = span.dataset.searchText || span.textContent || '';
+                if (normalizeText(text).includes(keywordNorm)) {
+                    span.classList.add('pdf-search-hit');
+                    matches.push({ el: span, page: span.closest('.pdf-text-layer')?.dataset.pageNumber || '' });
+                }
+            });
 
-            const before = escapeHtml(original.slice(0, index));
-            const match = escapeHtml(original.slice(index, index + keyword.length));
-            const after = escapeHtml(original.slice(index + keyword.length));
-            span.innerHTML = `${before}<mark class="pdf-search-hit">${match}</mark>${after}`;
-            return true;
+            return matches;
         }
 
         function activateSearchResult(index) {
             if (!pdfSearchMatches.length) return;
 
-            pdfSearchMatches.forEach(item => {
-                item.mark.classList.remove('pdf-search-hit-active');
-            });
-
+            pdfSearchMatches.forEach(item => item.el.classList.remove('pdf-search-hit-active'));
             activeSearchIndex = ((index % pdfSearchMatches.length) + pdfSearchMatches.length) % pdfSearchMatches.length;
             const active = pdfSearchMatches[activeSearchIndex];
-            active.mark.classList.add('pdf-search-hit-active');
-            active.mark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            active.el.classList.add('pdf-search-hit-active');
+            active.el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         }
 
         function searchInsidePDF() {
@@ -640,16 +610,7 @@
             }
 
             clearSearchHighlights();
-
-            const spans = Array.from(els.pdfPages.querySelectorAll('.pdf-text-layer span'));
-            spans.forEach(span => {
-                if (highlightTextInSpan(span, keyword)) {
-                    const marks = Array.from(span.querySelectorAll('mark.pdf-search-hit'));
-                    marks.forEach(mark => {
-                        pdfSearchMatches.push({ mark, page: span.closest('.pdf-text-layer')?.dataset.pageNumber || '' });
-                    });
-                }
-            });
+            pdfSearchMatches = findMatchesInTextLayer(keyword);
 
             if (!pdfSearchMatches.length) {
                 alert(`“${keyword}” kelimesi bu PDF içinde bulunamadı. PDF taranmış resim ise metin içermez; OCR yapılmış PDF yüklenmelidir.`);
@@ -657,7 +618,7 @@
             }
 
             els.pdfClearSearchBtn.classList.remove('hidden');
-            activateSearchResult(activeSearchIndex + 1);
+            activateSearchResult(0);
         }
 
         function clearPdfSearch() {
@@ -686,15 +647,14 @@
             }
         });
 
-        // YENİ EKLE / DEĞİŞTİR / SİL (SADECE ADMİN)
         async function handleUpload(file, oldDocToReplace = null) {
             try {
-                els.globalLoaderText.innerText = oldDocToReplace ? "Dosya değiştiriliyor..." : "Yeni belge yükleniyor...";
+                els.globalLoaderText.innerText = oldDocToReplace ? 'Dosya değiştiriliyor...' : 'Yeni belge yükleniyor...';
                 els.globalLoader.classList.remove('hidden');
                 els.globalLoader.classList.add('flex');
-                
+
                 const cleanName = cleanTitle(file.name);
-                const finalFilename = cleanName + ".pdf";
+                const finalFilename = cleanName + '.pdf';
                 const finalPath = `${klasorYolu}/${finalFilename}`;
                 const fileRef = ref(storage, finalPath);
 
@@ -707,23 +667,23 @@
                 }
 
                 await uploadBytes(fileRef, file);
-                
+
                 const newDoc = {
                     id: `firebase-${Date.now()}`,
                     originalName: finalFilename,
-                    cleanName: cleanName,
+                    cleanName,
                     year: extractYear(file.name),
                     fullPath: finalPath
                 };
 
                 allDocs = allDocs.filter(d => d.fullPath !== finalPath);
-                allDocs.unshift(newDoc); 
+                allDocs.unshift(newDoc);
                 allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
 
                 renderList();
-                window.selectDoc(newDoc.id); 
+                window.selectDoc(newDoc.id);
             } catch(e) {
-                alert("İşlem Hatası: " + e.message);
+                alert('İşlem Hatası: ' + e.message);
             } finally {
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
@@ -733,28 +693,28 @@
         els.addNewBtn.addEventListener('click', () => els.uploadInput.click());
         els.uploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if(file) handleUpload(file);
+            if (file) handleUpload(file);
             e.target.value = '';
         });
 
         els.replaceBtn.addEventListener('click', () => els.replaceInput.click());
         els.replaceInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if(file && selectedDoc) handleUpload(file, selectedDoc);
+            if (file && selectedDoc) handleUpload(file, selectedDoc);
             e.target.value = '';
         });
 
         let deleteConfirmTimeout;
         function resetDeleteBtn() {
-            els.deleteBtn.classList.remove('bg-red-600', 'text-white');
+            els.deleteBtn.classList.remove('confirm-mode', 'bg-red-600', 'text-white');
             els.deleteBtn.classList.add('bg-red-50', 'text-red-600');
             els.deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
             lucide.createIcons();
         }
 
         els.deleteBtn.addEventListener('click', async () => {
-            if(!selectedDoc) return;
-            if(!els.deleteBtn.classList.contains('confirm-mode')) {
+            if (!selectedDoc) return;
+            if (!els.deleteBtn.classList.contains('confirm-mode')) {
                 els.deleteBtn.classList.add('confirm-mode', 'bg-red-600', 'text-white');
                 els.deleteBtn.classList.remove('bg-red-50', 'text-red-600');
                 els.deleteBtn.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i>';
@@ -762,32 +722,31 @@
                 deleteConfirmTimeout = setTimeout(() => { resetDeleteBtn(); }, 3000);
                 return;
             }
-            
+
             clearTimeout(deleteConfirmTimeout);
             resetDeleteBtn();
 
             try {
-                els.globalLoaderText.innerText = "Belge siliniyor...";
+                els.globalLoaderText.innerText = 'Belge siliniyor...';
                 els.globalLoader.classList.remove('hidden');
                 els.globalLoader.classList.add('flex');
-                
+
                 const fileRef = ref(storage, selectedDoc.fullPath);
                 await deleteObject(fileRef);
-                
+
                 allDocs = allDocs.filter(d => d.id !== selectedDoc.id);
                 selectedDoc = null;
                 els.backBtn.click();
                 renderList();
                 updateAdminUI();
             } catch(e) {
-                alert("Silme Hatası: " + e.message);
+                alert('Silme Hatası: ' + e.message);
             } finally {
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
             }
         });
 
-        // Arama ve Geri Dönüş Eventleri
         els.searchInput.addEventListener('input', renderList);
         els.backBtn.addEventListener('click', () => {
             els.sidebar.classList.add('flex');
@@ -799,8 +758,6 @@
             renderList();
         });
 
-        // Başlat
-        fetchFromFirebase();
     </script>
 </body>
 </html>
