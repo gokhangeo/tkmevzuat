@@ -84,6 +84,13 @@
             outline: 3px solid rgba(234, 88, 12, 0.95);
             background: rgba(249, 115, 22, 0.45) !important;
         }
+
+        /* Yıl filtresi dropdown stili için ok simgesi kaldırma */
+        .select-arrow-none {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
@@ -117,9 +124,17 @@
                 </button>
             </div>
 
-            <div class="relative">
-                <input type="text" id="searchInput" placeholder="Genelge, kanun veya yıl ara..." class="w-full pl-10 pr-4 py-2.5 bg-blue-800/50 border border-blue-600 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors">
-                <i data-lucide="search" class="absolute left-3 top-3 text-blue-300 w-4 h-4"></i>
+            <div class="flex gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="searchInput" placeholder="Ara..." class="w-full pl-9 pr-3 py-2.5 bg-blue-800/50 border border-blue-600 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors text-sm">
+                    <i data-lucide="search" class="absolute left-3 top-3 text-blue-300 w-4 h-4"></i>
+                </div>
+                <div class="relative w-28 shrink-0">
+                    <select id="yearFilter" class="w-full h-full bg-blue-800/50 border border-blue-600 rounded-lg text-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors cursor-pointer select-arrow-none">
+                        <option value="all">Tümü</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="absolute right-2 top-3 text-blue-300 w-4 h-4 pointer-events-none"></i>
+                </div>
             </div>
         </div>
 
@@ -190,7 +205,7 @@
                 <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm border border-red-100">
                     <i data-lucide="alert-circle" class="mb-4 text-red-500 w-12 h-12"></i>
                     <h3 class="font-bold text-lg mb-2 text-slate-800">Bağlantı Başarısız</h3>
-                    <p id="errorText" class="text-sm text-red-600 break-words w-full">Kurum ağınız PDF kütüphanesini veya Firebase sunucularını engelliyor olabilir.</p>
+                    <p id="errorText" class="text-sm text-red-600">Hata detayı</p>
                 </div>
             </div>
 
@@ -206,7 +221,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getStorage, ref, getDownloadURL, listAll, deleteObject, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxq8AI16Y1jNuJMLES8NNEqKlGg2Ul4JI",
@@ -220,7 +234,6 @@
 
         const app = initializeApp(firebaseConfig);
         const storage = getStorage(app);
-        const auth = getAuth(app);
 
         let allDocs = [];
         let selectedDoc = null;
@@ -239,6 +252,7 @@
             docList: document.getElementById('docList'),
             listFooter: document.getElementById('listFooter'),
             searchInput: document.getElementById('searchInput'),
+            yearFilter: document.getElementById('yearFilter'),
             mevzuatTitle: document.getElementById('mevzuatTitle'),
             adminIndicator: document.getElementById('adminIndicator'),
             addNewBtn: document.getElementById('addNewBtn'),
@@ -267,28 +281,21 @@
 
         lucide.createIcons();
 
-        // Worker devre dışı bırakıldı (Güvenlik duvarlarına takılmaması için)
         if (window.pdfjsLib) {
-            // pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
-        const initAuth = async () => {
-            try {
-                await signInAnonymously(auth);
-            } catch (e) {
-                console.warn("Anonim giriş kapalı olabilir:", e);
-            } finally {
-                await fetchFromFirebase();
-            }
-        };
-        initAuth();
-
         function normalizeText(text) {
-            return String(text || '').toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
+            return String(text || '')
+                .toLocaleLowerCase('tr-TR')
+                .replace(/\s+/g, ' ')
+                .trim();
         }
 
         function cleanTitle(filename) {
-            let title = filename.replace(/\.pdf$/i, '').replace(/^\d{10,}[_\-\s]*/, '').replace(/_/g, ' ');
+            let title = filename.replace(/\.pdf$/i, '');
+            title = title.replace(/^\d{10,}[_\-\s]*/, '');
+            title = title.replace(/_/g, ' ');
             return title.trim() || filename.replace(/\.pdf$/i, '');
         }
 
@@ -361,12 +368,35 @@
             }
         });
 
+        function populateYearFilter() {
+            const currentSelection = els.yearFilter.value;
+            const uniqueYears = [...new Set(allDocs.map(d => d.year))].filter(y => y !== 'Genel').sort((a, b) => b.localeCompare(a));
+            
+            let optionsHtml = '<option value="all">Tümü</option>';
+            uniqueYears.forEach(year => {
+                optionsHtml += `<option value="${year}">${year}</option>`;
+            });
+            
+            if (allDocs.some(d => d.year === 'Genel')) {
+                optionsHtml += '<option value="Genel">Genel</option>';
+            }
+            
+            els.yearFilter.innerHTML = optionsHtml;
+            
+            if ([...els.yearFilter.options].some(opt => opt.value === currentSelection)) {
+                els.yearFilter.value = currentSelection;
+            }
+        }
+
         window.renderList = function() {
             const query = els.searchInput.value.toLocaleLowerCase('tr-TR');
-            const filtered = allDocs.filter(doc =>
-                doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) ||
-                doc.year.toLocaleLowerCase('tr-TR').includes(query)
-            );
+            const selectedYear = els.yearFilter.value;
+
+            const filtered = allDocs.filter(doc => {
+                const matchesQuery = doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) || doc.year.toLocaleLowerCase('tr-TR').includes(query);
+                const matchesYear = selectedYear === 'all' || doc.year === selectedYear;
+                return matchesQuery && matchesYear;
+            });
 
             els.listFooter.innerText = `Toplam ${filtered.length} belge`;
 
@@ -424,13 +454,15 @@
                     }));
 
                 allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
+                
+                populateYearFilter();
                 renderList();
             } catch (error) {
                 els.docList.innerHTML = `
                     <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center text-sm">
                         <i data-lucide="alert-circle" class="mx-auto mb-2 text-red-500 w-6 h-6"></i>
-                        <p class="font-semibold mb-1">Bağlantı Hatası</p>
-                        <p class="text-xs">Kurum ağı engelliyor olabilir.</p>
+                        <p class="font-semibold mb-1">Liste Hatası</p>
+                        <p>${error.message}</p>
                     </div>`;
                 lucide.createIcons();
             }
@@ -470,7 +502,7 @@
 
                 await renderPdfWithTextLayer(currentPdfUrl);
             } catch (err) {
-                els.errorText.innerText = "Firebase engellendi: " + (err.message || String(err));
+                els.errorText.innerText = err.message || String(err);
                 els.errorState.classList.remove('hidden');
                 els.errorState.classList.add('flex');
             } finally {
@@ -481,7 +513,7 @@
 
         async function renderPdfWithTextLayer(url) {
             if (!window.pdfjsLib) {
-                throw new Error('PDF.js yüklenemedi. Kurum ağı CDN erişimini engelliyor.');
+                throw new Error('PDF.js yüklenemedi. İnternet bağlantısı veya kurum güvenlik duvarı CDN erişimini engelliyor olabilir.');
             }
 
             if (currentRenderTask) {
@@ -499,8 +531,7 @@
             const loadingTask = pdfjsLib.getDocument({
                 url,
                 cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-                cMapPacked: true,
-                disableWorker: true // Kurum ağı engeline karşı worker iptal edildi
+                cMapPacked: true
             });
 
             pdfDoc = await loadingTask.promise;
@@ -518,6 +549,7 @@
                 pageWrap.style.width = `${viewport.width}px`;
                 pageWrap.style.height = `${viewport.height}px`;
                 pageWrap.style.maxWidth = '100%';
+                pageWrap.style.setProperty('--scale-factor', String(viewport.scale));
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'pdf-canvas';
@@ -599,7 +631,7 @@
             if (!currentPdfUrl || !selectedDoc || !pdfDoc) return;
 
             if (!keyword) {
-                alert('Arama alanı boş.');
+                alert('Lütfen PDF içinde aranacak kelimeyi yazın.');
                 return;
             }
 
@@ -607,7 +639,7 @@
             pdfSearchMatches = findMatchesInTextLayer(keyword);
 
             if (!pdfSearchMatches.length) {
-                alert('Bulunamadı.');
+                alert(`“${keyword}” kelimesi bu PDF içinde bulunamadı. PDF taranmış resim ise metin içermez; OCR yapılmış PDF yüklenmelidir.`);
                 return;
             }
 
@@ -643,7 +675,7 @@
 
         async function handleUpload(file, oldDocToReplace = null) {
             try {
-                els.globalLoaderText.innerText = 'Yükleniyor...';
+                els.globalLoaderText.innerText = oldDocToReplace ? 'Dosya değiştiriliyor...' : 'Yeni belge yükleniyor...';
                 els.globalLoader.classList.remove('hidden');
                 els.globalLoader.classList.add('flex');
 
@@ -674,6 +706,7 @@
                 allDocs.unshift(newDoc);
                 allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
 
+                populateYearFilter();
                 renderList();
                 window.selectDoc(newDoc.id);
             } catch(e) {
@@ -721,7 +754,7 @@
             resetDeleteBtn();
 
             try {
-                els.globalLoaderText.innerText = 'Siliniyor...';
+                els.globalLoaderText.innerText = 'Belge siliniyor...';
                 els.globalLoader.classList.remove('hidden');
                 els.globalLoader.classList.add('flex');
 
@@ -730,6 +763,8 @@
 
                 allDocs = allDocs.filter(d => d.id !== selectedDoc.id);
                 selectedDoc = null;
+                
+                populateYearFilter();
                 els.backBtn.click();
                 renderList();
                 updateAdminUI();
@@ -742,6 +777,8 @@
         });
 
         els.searchInput.addEventListener('input', renderList);
+        els.yearFilter.addEventListener('change', renderList);
+        
         els.backBtn.addEventListener('click', () => {
             els.sidebar.classList.add('flex');
             els.sidebar.classList.remove('hidden');
@@ -752,6 +789,7 @@
             renderList();
         });
 
+        fetchFromFirebase();
     </script>
 </body>
 </html>
