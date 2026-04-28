@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mevzuat Kütüphanesi</title>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide İkonları -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -28,7 +33,7 @@
         .resizing { user-select: none; }
 
         .glass-panel {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.90);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -44,7 +49,11 @@
             overflow: hidden;
             --scale-factor: 1;
         }
-        .pdf-canvas { display: block; width: 100%; height: auto; }
+        .pdf-canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
         .pdf-text-layer {
             position: absolute;
             inset: 0;
@@ -62,6 +71,9 @@
             white-space: pre;
             transform-origin: 0% 0%;
             cursor: text;
+        }
+        .pdf-text-layer ::selection {
+            background: rgba(59, 130, 246, 0.35);
         }
         .pdf-search-hit {
             outline: 2px solid rgba(202, 138, 4, 0.95);
@@ -112,7 +124,10 @@
         </div>
 
         <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
-        <div id="listFooter" class="p-3 border-t border-slate-200 bg-slate-50 text-xs text-slate-500 text-center font-medium shrink-0">Yükleniyor...</div>
+
+        <div id="listFooter" class="p-3 border-t border-slate-200 bg-slate-50 text-xs text-slate-500 text-center font-medium shrink-0">
+            Yükleniyor...
+        </div>
     </div>
 
     <div id="resizer" class="hidden md:block w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize transition-colors z-30 shrink-0"></div>
@@ -158,10 +173,10 @@
 
                 <div class="w-px h-5 bg-slate-300 mx-0.5 shrink-0"></div>
 
-                <a id="fullScreenBtn" target="_blank" rel="noopener" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i yeni sekmede aç">
+                <a id="fullScreenBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i yeni sekmede aç">
                     <i data-lucide="external-link" class="w-5 h-5"></i>
                 </a>
-                <a id="downloadBtn" target="_blank" rel="noopener" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i İndir">
+                <a id="downloadBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF'i İndir">
                     <i data-lucide="download" class="w-5 h-5"></i>
                 </a>
             </div>
@@ -175,28 +190,23 @@
                 <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-sm border border-red-100">
                     <i data-lucide="alert-circle" class="mb-4 text-red-500 w-12 h-12"></i>
                     <h3 class="font-bold text-lg mb-2 text-slate-800">Bağlantı Başarısız</h3>
-                    <pre id="errorText" class="text-xs text-red-600 whitespace-pre-wrap text-left max-h-56 overflow-auto">Hata detayı</pre>
+                    <p id="errorText" class="text-sm text-red-600 break-words w-full">Kurum ağınız PDF kütüphanesini veya Firebase sunucularını engelliyor olabilir.</p>
                 </div>
             </div>
 
             <div id="pdfViewerContainer" class="flex-1 w-full h-full overflow-auto relative bg-slate-700 pt-20 pb-8 px-2 sm:px-6">
                 <div id="pdfPages" class="mx-auto flex flex-col items-center gap-5"></div>
             </div>
-
-            <div id="fallbackViewerContainer" class="hidden flex-1 w-full h-full overflow-hidden relative bg-slate-700 pt-16">
-                <div id="fallbackNotice" class="absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-xl shadow-lg text-xs sm:text-sm max-w-[92%] text-center">
-                    PDF metin araması bu bağlantıda çalışmadı. Belge yedek görüntüleyiciyle açılıyor.
-                </div>
-                <iframe id="fallbackPdfIframe" class="w-full h-full border-0 bg-slate-700" allowfullscreen></iframe>
-            </div>
         </div>
     </div>
 
+    <!-- PDF.js Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getStorage, ref, getDownloadURL, listAll, deleteObject, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxq8AI16Y1jNuJMLES8NNEqKlGg2Ul4JI",
@@ -210,6 +220,7 @@
 
         const app = initializeApp(firebaseConfig);
         const storage = getStorage(app);
+        const auth = getAuth(app);
 
         let allDocs = [];
         let selectedDoc = null;
@@ -246,9 +257,6 @@
             errorText: document.getElementById('errorText'),
             pdfViewerContainer: document.getElementById('pdfViewerContainer'),
             pdfPages: document.getElementById('pdfPages'),
-            fallbackViewerContainer: document.getElementById('fallbackViewerContainer'),
-            fallbackPdfIframe: document.getElementById('fallbackPdfIframe'),
-            fallbackNotice: document.getElementById('fallbackNotice'),
             loader: document.getElementById('loader'),
             pdfInnerSearch: document.getElementById('pdfInnerSearch'),
             pdfSearchBtn: document.getElementById('pdfSearchBtn'),
@@ -259,71 +267,35 @@
 
         lucide.createIcons();
 
+        // Worker devre dışı bırakıldı (Güvenlik duvarlarına takılmaması için)
         if (window.pdfjsLib) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            // pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
-        function escapeHtml(value) {
-            return String(value || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
+        const initAuth = async () => {
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.warn("Anonim giriş kapalı olabilir:", e);
+            } finally {
+                await fetchFromFirebase();
+            }
+        };
+        initAuth();
 
         function normalizeText(text) {
-            return String(text || '')
-                .toLocaleLowerCase('tr-TR')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        function getErrorMessage(error, context = 'İşlem') {
-            const parts = [];
-            if (context) parts.push(context);
-            if (error && error.code) parts.push('Kod: ' + error.code);
-            if (error && error.message) parts.push('Mesaj: ' + error.message);
-            if (error && error.serverResponse) parts.push('Sunucu: ' + error.serverResponse);
-            if (error && error.customData && error.customData.serverResponse) parts.push('Sunucu: ' + error.customData.serverResponse);
-            if (parts.length === 0) parts.push(String(error));
-            return parts.join('\n');
-        }
-
-        function showListError(error) {
-            const message = getErrorMessage(error, 'Liste Hatası');
-            els.docList.innerHTML =
-                '<div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center text-sm">' +
-                '<i data-lucide="alert-circle" class="mx-auto mb-2 text-red-500 w-6 h-6"></i>' +
-                '<p class="font-semibold mb-2">Firebase Storage bağlantı hatası</p>' +
-                '<pre class="whitespace-pre-wrap text-left text-xs bg-white/70 border border-red-100 rounded-lg p-2 overflow-auto max-h-40">' + escapeHtml(message) + '</pre>' +
-                '<p class="mt-3 text-xs text-red-600">Storage Rules içinde list/read izni veya Firebase Storage CORS ayarı kontrol edilmelidir.</p>' +
-                '</div>';
-            els.listFooter.innerText = 'Bağlantı hatası';
-            lucide.createIcons();
+            return String(text || '').toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
         }
 
         function cleanTitle(filename) {
-            let title = String(filename || '').replace(/\.pdf$/i, '');
-            title = title.replace(/^\d{10,}[_\-\s]*/, '');
-            title = title.replace(/_/g, ' ');
-            return title.trim() || String(filename || '').replace(/\.pdf$/i, '');
+            let title = filename.replace(/\.pdf$/i, '').replace(/^\d{10,}[_\-\s]*/, '').replace(/_/g, ' ');
+            return title.trim() || filename.replace(/\.pdf$/i, '');
         }
 
         function extractYear(filename) {
-            const yearMatch = String(filename || '').match(/(20\d{2})/);
+            const yearMatch = filename.match(/(20\d{2})/);
             return yearMatch ? yearMatch[1] : 'Genel';
         }
-
-        function runSelfTests() {
-            console.assert(normalizeText('  İMAR   Kanunu ') === 'imar kanunu', 'normalizeText Türkçe ve boşluk testi başarısız');
-            console.assert(cleanTitle('1700000000000_Test_Belgesi.pdf') === 'Test Belgesi', 'cleanTitle dosya adı testi başarısız');
-            console.assert(extractYear('2024_genelge.pdf') === '2024', 'extractYear yıl testi başarısız');
-            console.assert(extractYear('genelge.pdf') === 'Genel', 'extractYear Genel testi başarısız');
-            console.assert(getErrorMessage({ code: 'storage/unknown', message: 'X' }, 'Test').includes('storage/unknown'), 'getErrorMessage kod testi başarısız');
-            console.assert(escapeHtml('<x>') === '&lt;x&gt;', 'escapeHtml testi başarısız');
-        }
-        runSelfTests();
 
         function updateAdminUI() {
             if (isAdmin) {
@@ -344,9 +316,11 @@
 
         let secretClickCount = 0;
         let secretClickTimer;
+
         els.mevzuatTitle.addEventListener('click', () => {
             secretClickCount++;
             clearTimeout(secretClickTimer);
+
             if (secretClickCount === 3) {
                 secretClickCount = 0;
                 if (isAdmin) {
@@ -380,10 +354,11 @@
             els.sidebar.style.width = newWidth + 'px';
         });
         document.addEventListener('mouseup', () => {
-            if (!isResizing) return;
-            isResizing = false;
-            document.body.classList.remove('resizing');
-            document.body.style.cursor = 'default';
+            if (isResizing) {
+                isResizing = false;
+                document.body.classList.remove('resizing');
+                document.body.style.cursor = 'default';
+            }
         });
 
         window.renderList = function() {
@@ -392,30 +367,47 @@
                 doc.cleanName.toLocaleLowerCase('tr-TR').includes(query) ||
                 doc.year.toLocaleLowerCase('tr-TR').includes(query)
             );
-            els.listFooter.innerText = 'Toplam ' + filtered.length + ' belge';
+
+            els.listFooter.innerText = `Toplam ${filtered.length} belge`;
 
             if (filtered.length === 0) {
-                els.docList.innerHTML = '<div class="text-center py-12 text-slate-500"><i data-lucide="search" class="mx-auto mb-3 text-slate-300 w-8 h-8"></i><p class="text-sm">Kayıt bulunamadı.</p></div>';
+                els.docList.innerHTML = `
+                    <div class="text-center py-12 text-slate-500">
+                        <i data-lucide="search" class="mx-auto mb-3 text-slate-300 w-8 h-8"></i>
+                        <p class="text-sm">Kayıt bulunamadı.</p>
+                    </div>`;
             } else {
-                els.docList.innerHTML = filtered.map(doc => {
-                    const active = selectedDoc && selectedDoc.id === doc.id;
-                    return '<button onclick="selectDoc(\'' + String(doc.id).replace(/'/g, "\\'") + '\')" class="w-full text-left p-3 rounded-xl border transition-all duration-200 group flex items-start gap-3 ' +
-                        (active ? 'bg-blue-50 border-blue-400 shadow-sm ring-1 ring-blue-400' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50 hover:shadow-sm') + '">' +
-                        '<div class="p-2 rounded-lg mt-0.5 shrink-0 ' + (active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600') + '"><i data-lucide="file-text" class="w-5 h-5"></i></div>' +
-                        '<div class="flex-1 min-w-0"><h3 class="font-medium text-sm sm:text-[15px] leading-snug truncate ' + (active ? 'text-blue-800' : 'text-slate-700 group-hover:text-blue-700') + '">' + escapeHtml(doc.cleanName) + '</h3>' +
-                        '<div class="flex items-center gap-1.5 mt-1.5 text-[11px] font-medium"><span class="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-100 text-slate-600 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3 opacity-70"></i> ' + escapeHtml(doc.year) + '</span></div></div></button>';
-                }).join('');
+                els.docList.innerHTML = filtered.map(doc => `
+                    <button onclick="selectDoc('${doc.id}')" class="w-full text-left p-3 rounded-xl border transition-all duration-200 group flex items-start gap-3 ${selectedDoc?.id === doc.id ? 'bg-blue-50 border-blue-400 shadow-sm ring-1 ring-blue-400' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50 hover:shadow-sm'}">
+                        <div class="p-2 rounded-lg mt-0.5 shrink-0 ${selectedDoc?.id === doc.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}">
+                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-medium text-sm sm:text-[15px] leading-snug truncate ${selectedDoc?.id === doc.id ? 'text-blue-800' : 'text-slate-700 group-hover:text-blue-700'}">${doc.cleanName}</h3>
+                            <div class="flex items-center gap-1.5 mt-1.5 text-[11px] font-medium">
+                                <span class="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-100 text-slate-600 flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 opacity-70"></i> ${doc.year}
+                                </span>
+                            </div>
+                        </div>
+                    </button>
+                `).join('');
             }
             lucide.createIcons();
         };
 
         async function fetchFromFirebase() {
             try {
-                els.docList.innerHTML = '<div class="flex flex-col items-center justify-center py-10 text-blue-500"><div class="loader mb-3 border-t-blue-500"></div><p class="text-sm font-medium">Dosyalar alınıyor...</p></div>';
+                els.docList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-blue-500">
+                        <div class="loader mb-3 border-t-blue-500"></div>
+                        <p class="text-sm font-medium">Dosyalar alınıyor...</p>
+                    </div>`;
+
                 const listRef = ref(storage, klasorYolu);
                 const res = await listAll(listRef);
 
-                if (!res.items.length) {
+                if (res.items.length === 0) {
                     els.docList.innerHTML = '<div class="p-4 text-amber-600 bg-amber-50 text-sm rounded-lg border border-amber-200">Klasörde hiç PDF bulunamadı.</div>';
                     els.listFooter.innerText = '0 Belge';
                     return;
@@ -424,17 +416,23 @@
                 allDocs = res.items
                     .filter(item => item.name.toLowerCase().endsWith('.pdf'))
                     .map((item, index) => ({
-                        id: 'firebase-' + item.name + '-' + index,
+                        id: `firebase-${item.name}-${index}`,
                         originalName: item.name,
                         cleanName: cleanTitle(item.name),
                         year: extractYear(item.name),
                         fullPath: item.fullPath
-                    }))
-                    .sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
+                    }));
 
+                allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
                 renderList();
             } catch (error) {
-                showListError(error);
+                els.docList.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center text-sm">
+                        <i data-lucide="alert-circle" class="mx-auto mb-2 text-red-500 w-6 h-6"></i>
+                        <p class="font-semibold mb-1">Bağlantı Hatası</p>
+                        <p class="text-xs">Kurum ağı engelliyor olabilir.</p>
+                    </div>`;
+                lucide.createIcons();
             }
         }
 
@@ -458,10 +456,6 @@
             els.viewerTitle.title = selectedDoc.cleanName;
 
             els.pdfPages.innerHTML = '';
-            els.fallbackPdfIframe.src = 'about:blank';
-            els.fallbackViewerContainer.classList.add('hidden');
-            els.fallbackViewerContainer.classList.remove('flex');
-            els.pdfViewerContainer.classList.remove('hidden');
             els.errorState.classList.add('hidden');
             els.loader.classList.remove('hidden');
             els.loader.classList.add('flex');
@@ -469,18 +463,14 @@
             try {
                 const fileRef = ref(storage, selectedDoc.fullPath);
                 currentPdfUrl = await getDownloadURL(fileRef);
+
                 els.fullScreenBtn.href = currentPdfUrl;
                 els.downloadBtn.href = currentPdfUrl;
                 els.downloadBtn.download = selectedDoc.cleanName + '.pdf';
 
-                try {
-                    await renderPdfWithTextLayer(currentPdfUrl);
-                } catch (pdfRenderError) {
-                    console.warn('PDF.js görüntüleme başarısız, yedek görüntüleyici açılıyor:', pdfRenderError);
-                    loadFallbackViewer(currentPdfUrl, pdfRenderError);
-                }
+                await renderPdfWithTextLayer(currentPdfUrl);
             } catch (err) {
-                els.errorText.textContent = getErrorMessage(err, 'PDF bağlantısı alınamadı');
+                els.errorText.innerText = "Firebase engellendi: " + (err.message || String(err));
                 els.errorState.classList.remove('hidden');
                 els.errorState.classList.add('flex');
             } finally {
@@ -489,23 +479,9 @@
             }
         };
 
-        function loadFallbackViewer(url, error = null) {
-            els.pdfViewerContainer.classList.add('hidden');
-            els.fallbackViewerContainer.classList.remove('hidden');
-            els.fallbackViewerContainer.classList.add('flex');
-            els.pdfClearSearchBtn.classList.add('hidden');
-            pdfDoc = null;
-
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const directUrl = url.split('#')[0];
-            const viewerUrl = isMobile ? 'https://docs.google.com/viewer?url=' + encodeURIComponent(directUrl) + '&embedded=true' : directUrl;
-            els.fallbackPdfIframe.src = viewerUrl;
-            els.fallbackNotice.innerHTML = 'PDF metin araması bu bağlantıda çalışmadı. Belge yedek görüntüleyiciyle açılıyor.<br><span class="text-[11px] opacity-80">' + escapeHtml(error && error.message ? error.message : 'Firebase Storage CORS/izin kısıtı olabilir.') + '</span>';
-        }
-
         async function renderPdfWithTextLayer(url) {
             if (!window.pdfjsLib) {
-                throw new Error('PDF.js yüklenemedi. İnternet bağlantısı veya kurum güvenlik duvarı CDN erişimini engelliyor olabilir.');
+                throw new Error('PDF.js yüklenemedi. Kurum ağı CDN erişimini engelliyor.');
             }
 
             if (currentRenderTask) {
@@ -521,12 +497,10 @@
             els.pdfViewerContainer.scrollTop = 0;
 
             const loadingTask = pdfjsLib.getDocument({
-                url: url,
-                withCredentials: false,
-                disableRange: true,
-                disableStream: true,
+                url,
                 cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-                cMapPacked: true
+                cMapPacked: true,
+                disableWorker: true // Kurum ağı engeline karşı worker iptal edildi
             });
 
             pdfDoc = await loadingTask.promise;
@@ -536,15 +510,14 @@
                 const page = await pdfDoc.getPage(pageNum);
                 const baseViewport = page.getViewport({ scale: 1 });
                 const scale = Math.min(1.7, containerWidth / baseViewport.width);
-                const viewport = page.getViewport({ scale: scale });
+                const viewport = page.getViewport({ scale });
 
                 const pageWrap = document.createElement('div');
                 pageWrap.className = 'pdf-page-wrap';
                 pageWrap.dataset.pageNumber = String(pageNum);
-                pageWrap.style.width = viewport.width + 'px';
-                pageWrap.style.height = viewport.height + 'px';
+                pageWrap.style.width = `${viewport.width}px`;
+                pageWrap.style.height = `${viewport.height}px`;
                 pageWrap.style.maxWidth = '100%';
-                pageWrap.style.setProperty('--scale-factor', String(viewport.scale));
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'pdf-canvas';
@@ -552,29 +525,29 @@
                 const outputScale = window.devicePixelRatio || 1;
                 canvas.width = Math.floor(viewport.width * outputScale);
                 canvas.height = Math.floor(viewport.height * outputScale);
-                canvas.style.width = viewport.width + 'px';
-                canvas.style.height = viewport.height + 'px';
+                canvas.style.width = `${viewport.width}px`;
+                canvas.style.height = `${viewport.height}px`;
                 context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
 
                 const textLayer = document.createElement('div');
                 textLayer.className = 'pdf-text-layer';
                 textLayer.dataset.pageNumber = String(pageNum);
-                textLayer.style.width = viewport.width + 'px';
-                textLayer.style.height = viewport.height + 'px';
+                textLayer.style.width = `${viewport.width}px`;
+                textLayer.style.height = `${viewport.height}px`;
                 textLayer.style.setProperty('--scale-factor', String(viewport.scale));
 
                 pageWrap.appendChild(canvas);
                 pageWrap.appendChild(textLayer);
                 els.pdfPages.appendChild(pageWrap);
 
-                currentRenderTask = page.render({ canvasContext: context, viewport: viewport });
+                currentRenderTask = page.render({ canvasContext: context, viewport });
                 await currentRenderTask.promise;
 
                 const textContent = await page.getTextContent();
                 await pdfjsLib.renderTextLayer({
                     textContentSource: textContent,
                     container: textLayer,
-                    viewport: viewport,
+                    viewport,
                     textDivs: []
                 }).promise;
 
@@ -599,6 +572,7 @@
             const keywordNorm = normalizeText(keyword);
             const spans = Array.from(els.pdfPages.querySelectorAll('.pdf-text-layer span'));
             const matches = [];
+
             spans.forEach(span => {
                 const text = span.dataset.searchText || span.textContent || '';
                 if (normalizeText(text).includes(keywordNorm)) {
@@ -606,11 +580,13 @@
                     matches.push({ el: span, page: span.closest('.pdf-text-layer')?.dataset.pageNumber || '' });
                 }
             });
+
             return matches;
         }
 
         function activateSearchResult(index) {
             if (!pdfSearchMatches.length) return;
+
             pdfSearchMatches.forEach(item => item.el.classList.remove('pdf-search-hit-active'));
             activeSearchIndex = ((index % pdfSearchMatches.length) + pdfSearchMatches.length) % pdfSearchMatches.length;
             const active = pdfSearchMatches[activeSearchIndex];
@@ -620,21 +596,21 @@
 
         function searchInsidePDF() {
             const keyword = els.pdfInnerSearch.value.trim();
-            if (!currentPdfUrl || !selectedDoc) return;
-            if (!pdfDoc) {
-                alert('Bu belge yedek görüntüleyiciyle açıldı. PDF içi kelime araması için Firebase Storage CORS ayarı yapılmalı veya OCR/metin içeren PDF kullanılmalıdır.');
-                return;
-            }
+            if (!currentPdfUrl || !selectedDoc || !pdfDoc) return;
+
             if (!keyword) {
-                alert('Lütfen PDF içinde aranacak kelimeyi yazın.');
+                alert('Arama alanı boş.');
                 return;
             }
+
             clearSearchHighlights();
             pdfSearchMatches = findMatchesInTextLayer(keyword);
+
             if (!pdfSearchMatches.length) {
-                alert('“' + keyword + '” kelimesi bu PDF içinde bulunamadı. PDF taranmış resim ise metin içermez; OCR yapılmış PDF yüklenmelidir.');
+                alert('Bulunamadı.');
                 return;
             }
+
             els.pdfClearSearchBtn.classList.remove('hidden');
             activateSearchResult(0);
         }
@@ -646,8 +622,11 @@
         }
 
         els.pdfSearchBtn.addEventListener('click', () => {
-            if (pdfSearchMatches.length && els.pdfInnerSearch.value.trim()) activateSearchResult(activeSearchIndex + 1);
-            else searchInsidePDF();
+            if (pdfSearchMatches.length && els.pdfInnerSearch.value.trim()) {
+                activateSearchResult(activeSearchIndex + 1);
+            } else {
+                searchInsidePDF();
+            }
         });
         els.pdfClearSearchBtn.addEventListener('click', clearPdfSearch);
         els.pdfInnerSearch.addEventListener('input', () => {
@@ -664,13 +643,13 @@
 
         async function handleUpload(file, oldDocToReplace = null) {
             try {
-                els.globalLoaderText.innerText = oldDocToReplace ? 'Dosya değiştiriliyor...' : 'Yeni belge yükleniyor...';
+                els.globalLoaderText.innerText = 'Yükleniyor...';
                 els.globalLoader.classList.remove('hidden');
                 els.globalLoader.classList.add('flex');
 
                 const cleanName = cleanTitle(file.name);
                 const finalFilename = cleanName + '.pdf';
-                const finalPath = klasorYolu + '/' + finalFilename;
+                const finalPath = `${klasorYolu}/${finalFilename}`;
                 const fileRef = ref(storage, finalPath);
 
                 if (oldDocToReplace && oldDocToReplace.fullPath !== finalPath) {
@@ -684,9 +663,9 @@
                 await uploadBytes(fileRef, file);
 
                 const newDoc = {
-                    id: 'firebase-' + Date.now(),
+                    id: `firebase-${Date.now()}`,
                     originalName: finalFilename,
-                    cleanName: cleanName,
+                    cleanName,
                     year: extractYear(file.name),
                     fullPath: finalPath
                 };
@@ -694,10 +673,11 @@
                 allDocs = allDocs.filter(d => d.fullPath !== finalPath);
                 allDocs.unshift(newDoc);
                 allDocs.sort((a, b) => a.cleanName.localeCompare(b.cleanName, 'tr-TR'));
+
                 renderList();
                 window.selectDoc(newDoc.id);
             } catch(e) {
-                alert(getErrorMessage(e, 'Yükleme/Değiştirme Hatası'));
+                alert('İşlem Hatası: ' + e.message);
             } finally {
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
@@ -710,6 +690,7 @@
             if (file) handleUpload(file);
             e.target.value = '';
         });
+
         els.replaceBtn.addEventListener('click', () => els.replaceInput.click());
         els.replaceInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -738,18 +719,22 @@
 
             clearTimeout(deleteConfirmTimeout);
             resetDeleteBtn();
+
             try {
-                els.globalLoaderText.innerText = 'Belge siliniyor...';
+                els.globalLoaderText.innerText = 'Siliniyor...';
                 els.globalLoader.classList.remove('hidden');
                 els.globalLoader.classList.add('flex');
-                await deleteObject(ref(storage, selectedDoc.fullPath));
+
+                const fileRef = ref(storage, selectedDoc.fullPath);
+                await deleteObject(fileRef);
+
                 allDocs = allDocs.filter(d => d.id !== selectedDoc.id);
                 selectedDoc = null;
                 els.backBtn.click();
                 renderList();
                 updateAdminUI();
             } catch(e) {
-                alert(getErrorMessage(e, 'Silme Hatası'));
+                alert('Silme Hatası: ' + e.message);
             } finally {
                 els.globalLoader.classList.add('hidden');
                 els.globalLoader.classList.remove('flex');
@@ -767,7 +752,6 @@
             renderList();
         });
 
-        fetchFromFirebase();
     </script>
 </body>
 </html>
