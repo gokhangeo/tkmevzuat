@@ -119,8 +119,19 @@
             </div>
 
             <!-- Google Drive İframe Alanı -->
-            <div class="flex-1 w-full h-full pt-16 pb-0 px-0 sm:pt-20 sm:px-4 sm:pb-4">
-                <iframe id="pdfFrame" class="w-full h-full border-0 sm:rounded-xl shadow-lg bg-white" src="" allowfullscreen></iframe>
+            <div class="flex-1 flex flex-col w-full h-full pt-16 pb-0 px-0 sm:pt-20 sm:px-4 sm:pb-4">
+                
+                <!-- MOBİL GÜVENLİK ENGELİNİ AŞMA BUTONU (Sadece Mobilde Görünür) -->
+                <div class="md:hidden bg-indigo-50 px-4 py-2.5 flex items-center justify-between border-b border-indigo-200 shrink-0 shadow-sm">
+                    <span class="text-xs text-indigo-800 font-medium leading-snug">
+                        Giriş uyarısı alırsanız<br>hemen yandaki butona tıklayın:
+                    </span>
+                    <a id="mobileDirectBtn" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold px-4 py-2 rounded-lg shadow-md flex items-center gap-1.5 transition-colors whitespace-nowrap active:scale-95">
+                        <i data-lucide="external-link" class="w-4 h-4"></i> Dosyayı Aç
+                    </a>
+                </div>
+
+                <iframe id="pdfFrame" class="w-full flex-1 border-0 sm:rounded-xl shadow-lg bg-white" src="" allowfullscreen></iframe>
             </div>
         </div>
     </div>
@@ -150,14 +161,20 @@
             viewerTitle: document.getElementById('viewerTitle'),
             backBtn: document.getElementById('backBtn'),
             fullScreenBtn: document.getElementById('fullScreenBtn'),
-            pdfFrame: document.getElementById('pdfFrame')
+            pdfFrame: document.getElementById('pdfFrame'),
+            mobileDirectBtn: document.getElementById('mobileDirectBtn') // Yeni eklendi
         };
 
-        // Drive Linkini Çevirici
+        // Drive Linkini Çevirici (Mobil Uyumluluk İçin Güncellendi)
         function driveLinkiniCevir(link) {
             if (link.includes('drive.google.com/file/d/')) {
                 const idMatch = link.match(/\/d\/(.+?)\//);
                 if (idMatch && idMatch[1]) {
+                    // Telefonlardan girildiğinde çerez engeline takılmayan alternatif altyapı
+                    if (window.innerWidth <= 768) {
+                        return `https://docs.google.com/viewer?url=https://drive.google.com/uc?export=download&id=${idMatch[1]}&embedded=true`;
+                    }
+                    // Bilgisayarlarda standart görünüm
                     return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
                 }
             }
@@ -244,9 +261,11 @@
             
             els.viewerTitle.innerText = doc.isim;
             
+            // Linkleri Ayarla
             const onizlemeLinki = driveLinkiniCevir(doc.link);
             els.pdfFrame.src = onizlemeLinki;
-            els.fullScreenBtn.href = onizlemeLinki;
+            els.fullScreenBtn.href = doc.link;
+            els.mobileDirectBtn.href = doc.link; // Mobilde tıklandığında engelsiz orijinal linke gider
         };
 
         els.backBtn.addEventListener('click', () => {
