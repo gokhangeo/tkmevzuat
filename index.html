@@ -118,10 +118,10 @@
                 </a>
             </div>
 
-            <!-- Google Drive İframe Alanı -->
+            <!-- Görüntüleyici Alanı -->
             <div class="flex-1 flex flex-col w-full h-full pt-16 pb-0 px-0 sm:pt-20 sm:px-4 sm:pb-4">
                 
-                <!-- MOBİL GÜVENLİK ENGELİNİ AŞMA BUTONU (Sadece Mobilde Görünür) -->
+                <!-- MOBİL GÜVENLİK ENGELİNİ AŞMA BUTONU (Gerekirse) -->
                 <div class="md:hidden bg-indigo-50 px-4 py-2.5 flex items-center justify-between border-b border-indigo-200 shrink-0 shadow-sm">
                     <span class="text-xs text-indigo-800 font-medium leading-snug">
                         Giriş uyarısı alırsanız<br>hemen yandaki butona tıklayın:
@@ -131,7 +131,19 @@
                     </a>
                 </div>
 
-                <iframe id="pdfFrame" class="w-full flex-1 border-0 sm:rounded-xl shadow-lg bg-white" src="" allowfullscreen></iframe>
+                <!-- PAYLAŞIM AYARI UYARISI (Önizleme Yok hatasına karşı rehber) -->
+                <div id="permissionWarning" class="bg-amber-100 px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between border border-amber-300 sm:rounded-t-xl shrink-0 shadow-sm gap-2">
+                    <div class="flex items-center gap-2 text-amber-900 text-xs sm:text-sm font-medium">
+                        <i data-lucide="info" class="w-5 h-5 shrink-0 text-amber-600"></i>
+                        <p>Ekranda gri renkli <b>"Önizleme Yok"</b> hatası görüyorsanız, Google Drive üzerinden klasör paylaşım izninizi <b>"Bağlantıya sahip herkes"</b> olarak değiştirmelisiniz.</p>
+                    </div>
+                    <button onclick="document.getElementById('permissionWarning').style.display='none'" class="text-amber-700 hover:text-amber-900 bg-amber-200/50 px-2 py-1 rounded text-xs font-bold transition-colors">
+                        Gizle
+                    </button>
+                </div>
+
+                <!-- DİREKT AÇAN IFRAME ALANI -->
+                <iframe id="pdfFrame" class="w-full flex-1 border-0 sm:rounded-b-xl shadow-lg bg-white" src="" allowfullscreen></iframe>
             </div>
         </div>
     </div>
@@ -162,19 +174,17 @@
             backBtn: document.getElementById('backBtn'),
             fullScreenBtn: document.getElementById('fullScreenBtn'),
             pdfFrame: document.getElementById('pdfFrame'),
-            mobileDirectBtn: document.getElementById('mobileDirectBtn') // Yeni eklendi
+            mobileDirectBtn: document.getElementById('mobileDirectBtn'),
+            permissionWarning: document.getElementById('permissionWarning')
         };
 
-        // Drive Linkini Çevirici (Mobil Uyumluluk İçin Güncellendi)
+        // En Stabil Önizleme Linkine Çevirici
         function driveLinkiniCevir(link) {
             if (link.includes('drive.google.com/file/d/')) {
                 const idMatch = link.match(/\/d\/(.+?)\//);
                 if (idMatch && idMatch[1]) {
-                    // Telefonlardan girildiğinde çerez engeline takılmayan alternatif altyapı
-                    if (window.innerWidth <= 768) {
-                        return `https://docs.google.com/viewer?url=https://drive.google.com/uc?export=download&id=${idMatch[1]}&embedded=true`;
-                    }
-                    // Bilgisayarlarda standart görünüm
+                    // Google Drive'ın resmi gömülü (embed) önizleme linki. 
+                    // Klasör "Herkese Açık" ise kesin olarak direkt açılır.
                     return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
                 }
             }
@@ -259,13 +269,16 @@
             els.viewerState.classList.remove('hidden');
             els.viewerState.classList.add('flex');
             
+            // Yeni belge açıldığında uyarı panelini tekrar görünür yap (hatırlatma amaçlı)
+            els.permissionWarning.style.display = 'flex';
+            
             els.viewerTitle.innerText = doc.isim;
             
-            // Linkleri Ayarla
+            // Resmi önizleme linkini oluştur ve iframe'e aktar
             const onizlemeLinki = driveLinkiniCevir(doc.link);
             els.pdfFrame.src = onizlemeLinki;
             els.fullScreenBtn.href = doc.link;
-            els.mobileDirectBtn.href = doc.link; // Mobilde tıklandığında engelsiz orijinal linke gider
+            els.mobileDirectBtn.href = doc.link;
         };
 
         els.backBtn.addEventListener('click', () => {
