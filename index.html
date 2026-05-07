@@ -47,17 +47,36 @@
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
 
+    <!-- Genel Yükleme Ekranı -->
+    <div id="globalLoader" class="hidden fixed inset-0 bg-slate-900/60 z-50 items-center justify-center backdrop-blur-sm">
+        <div class="bg-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center">
+            <div class="loader mb-4 border-[3px] border-slate-200 border-t-blue-600 w-10 h-10"></div>
+            <p id="globalLoaderText" class="text-slate-700 font-semibold text-center">İşlem yapılıyor...</p>
+            <p class="text-slate-400 text-xs mt-2">Lütfen bekleyin</p>
+        </div>
+    </div>
+
+    <!-- Dosya Yükleme Inputu (Çoklu Seçim Açık) -->
+    <input type="file" id="uploadInput" accept="application/pdf" multiple class="hidden">
+
     <!-- Sol Menü -->
     <div id="sidebar" class="w-full md:w-[320px] shrink-0 bg-white flex flex-col relative z-20 shadow-xl">
         <div class="p-5 bg-blue-700 text-white shadow-md z-10 shrink-0">
-            <div class="flex flex-col mb-4">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="book-open" class="text-blue-200 w-7 h-7"></i>
-                    <h1 class="text-xl font-bold tracking-wide flex items-center gap-2 select-none">
-                        TKGM Mevzuat
-                    </h1>
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="book-open" class="text-blue-200 w-7 h-7"></i>
+                        <h1 id="mevzuatTitle" class="text-xl font-bold tracking-wide flex items-center gap-2 cursor-pointer select-none" title="Yönetici girişi için 3 kez tıklayın">
+                            TKGM Mevzuat
+                            <span id="adminIndicator" class="hidden text-emerald-300" title="Yönetici Modu Aktif"><i data-lucide="unlock" class="w-4 h-4"></i></span>
+                        </h1>
+                    </div>
+                    <p class="text-[11px] text-blue-200 mt-1.5 font-medium opacity-80">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
                 </div>
-                <p class="text-[11px] text-blue-200 mt-1.5 font-medium opacity-80">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
+                <!-- Admin Dosya Ekle Butonu -->
+                <button id="addNewBtn" class="hidden p-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors text-white shrink-0 shadow-sm" title="Yeni Belge Yükle">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
             </div>
 
             <div class="flex gap-2">
@@ -120,8 +139,6 @@
 
             <!-- Görüntüleyici Alanı -->
             <div class="flex-1 flex flex-col w-full h-full pt-16 pb-0 px-0 sm:pt-20 sm:px-4 sm:pb-4">
-                
-                <!-- DİREKT AÇAN IFRAME ALANI -->
                 <iframe id="pdfFrame" class="w-full flex-1 border-0 sm:rounded-xl shadow-lg bg-white" src="" allowfullscreen></iframe>
             </div>
         </div>
@@ -131,14 +148,16 @@
         lucide.createIcons();
 
         // -------------------------------------------------------------
-        // GOOGLE SCRIPT LINKİ (Parçalanmış Halde)
+        // GOOGLE SCRIPT LINKİ 
+        // DİKKAT: Yeni "Dağıtım" linkindeki uzun ID'yi buraya yazın.
         // -------------------------------------------------------------
         const scriptBase = 'https://script.google.com/macros/s/';
-        const scriptId = 'AKfycbzRdxxZFEIHyt9iQB9s8xUQ_gN6C7-L0eUqVDsGDKTKGAwBO-ywHidv5EBqvS9a00rV';
+        const scriptId = 'AKfycbzRdxxZFEIHyt9iQB9s8xUQ_gN6C7-L0eUqVDsGDKTKGAwBO-ywHidv5EBqvS9a00rV'; // Burayı yeni ID ile güncelleyin
         const WEB_APP_URL = scriptBase + scriptId + '/exec';
 
         let belgeler = [];
         let seciliBelgeId = null;
+        let isAdmin = false;
 
         const els = {
             sidebar: document.getElementById('sidebar'),
@@ -152,16 +171,113 @@
             viewerTitle: document.getElementById('viewerTitle'),
             backBtn: document.getElementById('backBtn'),
             downloadBtn: document.getElementById('downloadBtn'),
-            pdfFrame: document.getElementById('pdfFrame')
+            pdfFrame: document.getElementById('pdfFrame'),
+            mevzuatTitle: document.getElementById('mevzuatTitle'),
+            adminIndicator: document.getElementById('adminIndicator'),
+            addNewBtn: document.getElementById('addNewBtn'),
+            uploadInput: document.getElementById('uploadInput'),
+            globalLoader: document.getElementById('globalLoader'),
+            globalLoaderText: document.getElementById('globalLoaderText')
         };
+
+        // --- ADMİN PANELİ (3 Tıklama) ---
+        let secretClickCount = 0;
+        let secretClickTimer;
+
+        els.mevzuatTitle.addEventListener('click', () => {
+            secretClickCount++;
+            clearTimeout(secretClickTimer);
+
+            if (secretClickCount === 3) {
+                secretClickCount = 0;
+                if (isAdmin) {
+                    isAdmin = false;
+                    els.adminIndicator.classList.add('hidden');
+                    els.addNewBtn.classList.add('hidden');
+                    return;
+                }
+                const pwd = prompt('Yönetici Şifresini Giriniz:');
+                if (pwd === '5034') {
+                    isAdmin = true;
+                    els.adminIndicator.classList.remove('hidden');
+                    els.addNewBtn.classList.remove('hidden');
+                } else if (pwd !== null) {
+                    alert('Hatalı şifre!');
+                }
+            } else {
+                secretClickTimer = setTimeout(() => { secretClickCount = 0; }, 1000);
+            }
+        });
+
+        // --- DOSYA YÜKLEME İŞLEMLERİ (Tek veya Toplu) ---
+        els.addNewBtn.addEventListener('click', () => els.uploadInput.click());
+
+        els.uploadInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            els.globalLoader.classList.remove('hidden');
+            els.globalLoader.classList.add('flex');
+
+            let basarili = 0;
+            let hatali = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                els.globalLoaderText.innerText = `Yükleniyor... (${i + 1}/${files.length})\n${file.name}`;
+                
+                try {
+                    const base64 = await toBase64(file);
+                    
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            isim: file.name,
+                            base64: base64
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        basarili++;
+                    } else {
+                        console.error(data.error);
+                        hatali++;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    hatali++;
+                }
+            }
+
+            e.target.value = ''; // Inputu temizle
+            els.globalLoader.classList.add('hidden');
+            els.globalLoader.classList.remove('flex');
+
+            if (hatali > 0) {
+                alert(`${basarili} dosya yüklendi, ${hatali} dosya yüklenemedi.\nLütfen çok büyük dosyalar için Drive'ı doğrudan kullanın.`);
+            }
+
+            // Listeyi yenile
+            dosyalariCek();
+        });
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
 
         // En Stabil Önizleme Linkine Çevirici
         function driveLinkiniCevir(link) {
             if (link.includes('drive.google.com/file/d/')) {
                 const idMatch = link.match(/\/d\/(.+?)\//);
                 if (idMatch && idMatch[1]) {
-                    // Google Drive'ın resmi gömülü (embed) önizleme linki. 
-                    // Klasör "Herkese Açık" ise kesin olarak direkt açılır.
                     return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
                 }
             }
@@ -259,7 +375,6 @@
             
             els.viewerTitle.innerText = doc.isim;
             
-            // Resmi önizleme linkini oluştur ve iframe'e aktar
             const onizlemeLinki = driveLinkiniCevir(doc.link);
             els.pdfFrame.src = onizlemeLinki;
             els.downloadBtn.href = indirmeLinkiniCevir(doc.link);
