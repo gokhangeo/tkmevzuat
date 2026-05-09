@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    <!-- Dosya Yükleme Inputu (Çoklu Seçim Açık) -->
+    <!-- Dosya Yükleme Inputu -->
     <input type="file" id="uploadInput" accept="application/pdf" multiple class="hidden">
 
     <!-- Sol Menü -->
@@ -73,23 +73,30 @@
                     </div>
                     <p class="text-[11px] text-blue-200 mt-1.5 font-medium opacity-80">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
                 </div>
-                <!-- Admin Dosya Ekle Butonu -->
                 <button id="addNewBtn" class="hidden p-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors text-white shrink-0 shadow-sm" title="Yeni Belge Yükle">
                     <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
             </div>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 mb-4">
                 <div class="relative flex-1">
                     <input type="text" id="searchInput" placeholder="Ara..." class="w-full pl-9 pr-3 py-2.5 bg-blue-800/50 border border-blue-600 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors text-sm">
                     <i data-lucide="search" class="absolute left-3 top-3 text-blue-300 w-4 h-4"></i>
                 </div>
-                <div class="relative w-28 shrink-0">
+                <div class="relative w-24 shrink-0">
                     <select id="yearFilter" class="w-full h-full bg-blue-800/50 border border-blue-600 rounded-lg text-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 transition-colors cursor-pointer select-arrow-none">
                         <option value="all">Tümü</option>
                     </select>
                     <i data-lucide="chevron-down" class="absolute right-2 top-3 text-blue-300 w-4 h-4 pointer-events-none"></i>
                 </div>
+            </div>
+
+            <!-- Kategori Sekmeleri -->
+            <div class="flex gap-1 bg-blue-900/40 p-1 rounded-lg">
+                <button onclick="kategoriDegistir('all', this)" class="kategori-tab flex-1 text-[11px] py-1.5 rounded bg-blue-600 text-white font-medium shadow-sm transition-all">Tümü</button>
+                <button onclick="kategoriDegistir('Genelge', this)" class="kategori-tab flex-1 text-[11px] py-1.5 rounded text-blue-200 hover:text-white hover:bg-blue-600/50 transition-all">Genelge</button>
+                <button onclick="kategoriDegistir('Yönetmelik', this)" class="kategori-tab flex-1 text-[11px] py-1.5 rounded text-blue-200 hover:text-white hover:bg-blue-600/50 transition-all">Yönetmelik</button>
+                <button onclick="kategoriDegistir('Talimat', this)" class="kategori-tab flex-1 text-[11px] py-1.5 rounded text-blue-200 hover:text-white hover:bg-blue-600/50 transition-all">Talimat</button>
             </div>
         </div>
 
@@ -108,7 +115,6 @@
     <!-- Sağ Görüntüleyici Alanı -->
     <div id="mainPanel" class="flex-1 hidden md:flex flex-col bg-slate-100 relative min-w-0">
         
-        <!-- Boş Durum Ekranı -->
         <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
             <div class="w-24 h-24 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center mb-6">
                 <i data-lucide="file-text" class="text-blue-200 w-12 h-12"></i>
@@ -117,9 +123,7 @@
             <p class="max-w-md text-slate-500 mb-6 px-4">Sol menüden incelemek istediğiniz mevzuatı seçerek görüntüleyebilirsiniz.</p>
         </div>
 
-        <!-- PDF Gösterim Ekranı -->
         <div id="viewerState" class="hidden flex-1 flex-col w-full h-full relative bg-slate-200">
-            <!-- Üst Çubuk -->
             <div class="absolute top-3 sm:top-4 left-1/2 -translate-x-1/2 z-30 flex items-center glass-panel border border-slate-200/60 rounded-xl p-1.5 gap-1.5 transition-all w-[96%] sm:w-auto max-w-full overflow-x-auto">
                 <button id="backBtn" class="md:hidden flex items-center justify-center p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg shrink-0 transition-colors" title="Listeye Dön">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
@@ -130,7 +134,6 @@
                     <span id="viewerTitle" class="text-sm font-bold text-slate-700 truncate"></span>
                 </div>
 
-                <!-- Mobilde PDF İçinde Arama Yapabilmek İçin Kısayol Butonu -->
                 <a id="mobileSearchBtn" target="_blank" class="md:hidden flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg font-semibold text-xs transition-colors shrink-0 ml-1 gap-1" title="Ara / Tam Ekran">
                     <i data-lucide="search" class="w-3.5 h-3.5"></i> Ara
                 </a>
@@ -142,7 +145,6 @@
                 </a>
             </div>
 
-            <!-- Görüntüleyici Alanı -->
             <div class="flex-1 flex flex-col w-full h-full pt-16 pb-0 px-0 sm:pt-20 sm:px-4 sm:pb-4">
                 <iframe id="pdfFrame" class="w-full flex-1 border-0 sm:rounded-xl shadow-lg bg-white" src="" allowfullscreen></iframe>
             </div>
@@ -152,9 +154,6 @@
     <script>
         lucide.createIcons();
 
-        // -------------------------------------------------------------
-        // GOOGLE SCRIPT LINKİ 
-        // -------------------------------------------------------------
         const scriptBase = 'https://script.google.com/macros/s/';
         const scriptId = 'AKfycbzRdxxZFEIHyt9iQB9s8xUQ_gN6C7-L0eUqVDsGDKTKGAwBO-ywHidv5EBqvS9a00rV'; 
         const WEB_APP_URL = scriptBase + scriptId + '/exec';
@@ -162,6 +161,7 @@
         let belgeler = [];
         let seciliBelgeId = null;
         let isAdmin = false;
+        let seciliKategori = 'all';
 
         const els = {
             sidebar: document.getElementById('sidebar'),
@@ -185,7 +185,18 @@
             globalLoaderText: document.getElementById('globalLoaderText')
         };
 
-        // --- ADMİN PANELİ (3 Tıklama) ---
+        // Kategori Seçimi
+        window.kategoriDegistir = function(kategori, btnElement) {
+            seciliKategori = kategori;
+            
+            document.querySelectorAll('.kategori-tab').forEach(btn => {
+                btn.className = "kategori-tab flex-1 text-[11px] py-1.5 rounded text-blue-200 hover:text-white hover:bg-blue-600/50 transition-all";
+            });
+            btnElement.className = "kategori-tab flex-1 text-[11px] py-1.5 rounded bg-blue-600 text-white font-medium shadow-sm transition-all";
+            
+            listeyiGuncelle();
+        };
+
         let secretClickCount = 0;
         let secretClickTimer;
 
@@ -214,7 +225,6 @@
             }
         });
 
-        // --- DOSYA YÜKLEME İŞLEMLERİ (Tek veya Toplu) ---
         els.addNewBtn.addEventListener('click', () => els.uploadInput.click());
 
         els.uploadInput.addEventListener('change', async (e) => {
@@ -247,24 +257,20 @@
                     if (data.success) {
                         basarili++;
                     } else {
-                        console.error(data.error);
                         hatali++;
                     }
                 } catch (err) {
-                    console.error(err);
                     hatali++;
                 }
             }
 
-            e.target.value = ''; // Inputu temizle
+            e.target.value = ''; 
             els.globalLoader.classList.add('hidden');
             els.globalLoader.classList.remove('flex');
 
             if (hatali > 0) {
-                alert(`${basarili} dosya yüklendi, ${hatali} dosya yüklenemedi.\nLütfen çok büyük dosyalar için Drive'ı doğrudan kullanın.`);
+                alert(`${basarili} dosya yüklendi, ${hatali} dosya yüklenemedi.`);
             }
-
-            // Listeyi yenile
             dosyalariCek();
         });
 
@@ -277,7 +283,6 @@
             });
         }
 
-        // En Stabil Önizleme Linkine Çevirici
         function driveLinkiniCevir(link) {
             if (link.includes('drive.google.com/file/d/')) {
                 const idMatch = link.match(/\/d\/(.+?)\//);
@@ -288,7 +293,6 @@
             return link;
         }
 
-        // Direkt İndirme Linkine Çevirici
         function indirmeLinkiniCevir(link) {
             if (link.includes('drive.google.com/file/d/')) {
                 const idMatch = link.match(/\/d\/(.+?)\//);
@@ -299,13 +303,25 @@
             return link;
         }
 
-        // Klasörden Dosyaları Çekme İşlemi
         async function dosyalariCek() {
             try {
                 const response = await fetch(WEB_APP_URL);
-                belgeler = await response.json();
+                const data = await response.json();
                 
-                // İsim sırasına göre diz
+                // Belge türünü kurallara göre ayır
+                belgeler = data.map(doc => {
+                    let tur = 'Talimat';
+                    const isimUpper = doc.isim.toLocaleUpperCase('tr-TR');
+                    
+                    if (/^\d{4}-\d+/.test(doc.isim)) {
+                        tur = 'Genelge';
+                    } else if (isimUpper.includes('YÖNETMELİK') || isimUpper.includes('YÖNETMELİĞİ')) {
+                        tur = 'Yönetmelik';
+                    }
+                    
+                    return { ...doc, tur: tur };
+                });
+
                 belgeler.sort((a, b) => a.isim.localeCompare(b.isim, 'tr-TR'));
                 
                 yillariDoldur();
@@ -323,6 +339,12 @@
             els.yearFilter.innerHTML = html;
         }
 
+        function getTurIcon(tur) {
+            if (tur === 'Genelge') return 'bookmark';
+            if (tur === 'Yönetmelik') return 'scale';
+            return 'file-text';
+        }
+
         function listeyiGuncelle() {
             const aranan = els.searchInput.value.toLocaleLowerCase('tr-TR');
             const seciliYil = els.yearFilter.value;
@@ -330,7 +352,9 @@
             const filtrelenmis = belgeler.filter(doc => {
                 const isimUyumu = doc.isim.toLocaleLowerCase('tr-TR').includes(aranan);
                 const yilUyumu = seciliYil === 'all' || doc.yil === seciliYil;
-                return isimUyumu && yilUyumu;
+                const kategoriUyumu = seciliKategori === 'all' || doc.tur === seciliKategori;
+                
+                return isimUyumu && yilUyumu && kategoriUyumu;
             });
 
             els.listFooter.innerText = `Toplam ${filtrelenmis.length} belge`;
@@ -345,12 +369,15 @@
                 els.docList.innerHTML = filtrelenmis.map(doc => `
                     <button onclick="belgeSec('${doc.id}')" class="w-full text-left p-3 rounded-xl border transition-all duration-200 group flex items-start gap-3 ${seciliBelgeId === doc.id ? 'bg-blue-50 border-blue-400 shadow-sm ring-1 ring-blue-400' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50'}">
                         <div class="p-2 rounded-lg mt-0.5 shrink-0 ${seciliBelgeId === doc.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}">
-                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                            <i data-lucide="${getTurIcon(doc.tur)}" class="w-5 h-5"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <h3 class="font-medium text-sm sm:text-[15px] leading-snug truncate ${seciliBelgeId === doc.id ? 'text-blue-800' : 'text-slate-700 group-hover:text-blue-700'}">${doc.isim}</h3>
-                            <div class="flex items-center gap-1.5 mt-1.5 text-[11px] font-medium">
-                                <span class="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-100 text-slate-600 flex items-center gap-1">
+                            <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                                <span class="px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700 flex items-center gap-1 text-[10px] font-bold tracking-wide">
+                                    ${doc.tur}
+                                </span>
+                                <span class="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-100 text-slate-600 flex items-center gap-1 text-[11px] font-medium">
                                     <i data-lucide="calendar" class="w-3 h-3 opacity-70"></i> ${doc.yil}
                                 </span>
                             </div>
@@ -382,8 +409,6 @@
             const onizlemeLinki = driveLinkiniCevir(doc.link);
             els.pdfFrame.src = onizlemeLinki;
             els.downloadBtn.href = indirmeLinkiniCevir(doc.link);
-            
-            // Mobilde tıklandığında aramaya izin veren ana linki ata
             els.mobileSearchBtn.href = onizlemeLinki;
         };
 
@@ -400,7 +425,6 @@
         els.searchInput.addEventListener('input', listeyiGuncelle);
         els.yearFilter.addEventListener('change', listeyiGuncelle);
 
-        // Uygulama açılınca dosyaları çekmeye başla
         dosyalariCek();
     </script>
 </body>
