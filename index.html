@@ -130,6 +130,11 @@
                     <span id="viewerTitle" class="text-sm font-bold text-slate-700 truncate"></span>
                 </div>
 
+                <!-- Mobilde PDF İçinde Arama Yapabilmek İçin Kısayol Butonu -->
+                <a id="mobileSearchBtn" target="_blank" class="md:hidden flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg font-semibold text-xs transition-colors shrink-0 ml-1 gap-1" title="Ara / Tam Ekran">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i> Ara
+                </a>
+
                 <div class="w-px h-5 bg-slate-300 mx-1 shrink-0"></div>
 
                 <a id="downloadBtn" target="_blank" class="flex items-center justify-center p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="PDF İndir">
@@ -149,10 +154,9 @@
 
         // -------------------------------------------------------------
         // GOOGLE SCRIPT LINKİ 
-        // DİKKAT: Yeni "Dağıtım" linkindeki uzun ID'yi buraya yazın.
         // -------------------------------------------------------------
         const scriptBase = 'https://script.google.com/macros/s/';
-        const scriptId = 'AKfycbzRdxxZFEIHyt9iQB9s8xUQ_gN6C7-L0eUqVDsGDKTKGAwBO-ywHidv5EBqvS9a00rV'; // Burayı yeni ID ile güncelleyin
+        const scriptId = 'AKfycbzRdxxZFEIHyt9iQB9s8xUQ_gN6C7-L0eUqVDsGDKTKGAwBO-ywHidv5EBqvS9a00rV'; 
         const WEB_APP_URL = scriptBase + scriptId + '/exec';
 
         let belgeler = [];
@@ -171,6 +175,7 @@
             viewerTitle: document.getElementById('viewerTitle'),
             backBtn: document.getElementById('backBtn'),
             downloadBtn: document.getElementById('downloadBtn'),
+            mobileSearchBtn: document.getElementById('mobileSearchBtn'),
             pdfFrame: document.getElementById('pdfFrame'),
             mevzuatTitle: document.getElementById('mevzuatTitle'),
             adminIndicator: document.getElementById('adminIndicator'),
@@ -271,7 +276,6 @@
                 reader.onerror = error => reject(error);
             });
         }
-
 
         // En Stabil Önizleme Linkine Çevirici
         function driveLinkiniCevir(link) {
@@ -378,6 +382,9 @@
             const onizlemeLinki = driveLinkiniCevir(doc.link);
             els.pdfFrame.src = onizlemeLinki;
             els.downloadBtn.href = indirmeLinkiniCevir(doc.link);
+            
+            // Mobilde tıklandığında aramaya izin veren ana linki ata
+            els.mobileSearchBtn.href = onizlemeLinki;
         };
 
         els.backBtn.addEventListener('click', () => {
