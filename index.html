@@ -155,7 +155,7 @@
         lucide.createIcons();
 
         const scriptBase = 'https://script.google.com/macros/s/';
-        const scriptId = 'AKfycbzRdxxZFEIHyt9iQB9s8xUQ_gN6C7-L0eUqVDsGDKTKGAwBO-ywHidv5EBqvS9a00rV'; 
+        const scriptId = 'AKfycbyxJ607tNx88MUCX93ruFzt5_ngjnH0NSh7owIAw1NHS8-o5hIiOrbGFHEVt2mYeVie_A'; 
         const WEB_APP_URL = scriptBase + scriptId + '/exec';
 
         let belgeler = [];
@@ -249,7 +249,8 @@
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({
                             isim: file.name,
-                            base64: base64
+                            base64: base64,
+                            kategori: seciliKategori === 'all' ? 'Talimat' : seciliKategori
                         })
                     });
                     
@@ -308,18 +309,23 @@
                 const response = await fetch(WEB_APP_URL);
                 const data = await response.json();
                 
-                // Belge türünü kurallara göre ayır
+                // Belge türünü dosya adından tahmin etmek yerine Drive klasöründen al.
                 belgeler = data.map(doc => {
-                    let tur = 'Talimat';
-                    const isimUpper = doc.isim.toLocaleUpperCase('tr-TR');
-                    
-                    if (/^\d{4}-\d+/.test(doc.isim)) {
-                        tur = 'Genelge';
-                    } else if (isimUpper.includes('YÖNETMELİK') || isimUpper.includes('YÖNETMELİĞİ')) {
-                        tur = 'Yönetmelik';
-                    }
-                    
-                    return { ...doc, tur: tur };
+                    const klasorAdi = String(
+                        doc.klasor ?? doc.kategori ?? doc.tur ?? doc.folderName ?? ''
+                    ).trim().toLocaleLowerCase('tr-TR');
+
+                    const kategoriEslesmeleri = {
+                        'genelge': 'Genelge',
+                        'yönetmelik': 'Yönetmelik',
+                        'yonetmelik': 'Yönetmelik',
+                        'talimat': 'Talimat'
+                    };
+
+                    return {
+                        ...doc,
+                        tur: kategoriEslesmeleri[klasorAdi] || 'Kategorisiz'
+                    };
                 });
 
                 belgeler.sort((a, b) => a.isim.localeCompare(b.isim, 'tr-TR'));
