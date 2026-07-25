@@ -67,6 +67,33 @@
             overflow-wrap: anywhere;
             word-break: normal;
         }
+
+        #pdfContainer {
+            touch-action: pan-y;
+        }
+
+        @media (max-width: 639px) {
+            #pdfSearchBar {
+                display: none;
+                position: absolute;
+                left: 8px;
+                right: 8px;
+                bottom: 56px;
+                z-index: 35;
+                min-height: 48px;
+                border: 1px solid #cbd5e1;
+                border-radius: 14px;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.22);
+            }
+
+            #pdfSearchBar.mobile-search-open {
+                display: flex;
+            }
+
+            #pdfPages {
+                transform-origin: top center;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen w-full overflow-hidden flex relative">
@@ -127,7 +154,6 @@
         <div id="docList" class="flex-1 overflow-y-auto p-3 space-y-2">
             <div class="flex flex-col items-center justify-center py-10 text-blue-500">
                 <div class="loader mb-3 border-t-blue-500"></div>
-                <p class="text-sm font-medium">Drive'dan dosyalar çekiliyor...</p>
             </div>
         </div>
 
@@ -170,7 +196,7 @@
             </div>
 
             <div class="flex-1 flex flex-col w-full h-full pt-16 pb-0 px-0 sm:pt-20 sm:px-4 sm:pb-4 min-h-0">
-                <div class="min-h-12 shrink-0 bg-white border-b border-slate-200 sm:rounded-t-xl flex items-center gap-1.5 px-2 sm:px-3 overflow-x-auto">
+                <div id="pdfSearchBar" class="min-h-12 shrink-0 bg-white border-b border-slate-200 sm:rounded-t-xl flex items-center gap-1.5 px-2 sm:px-3 overflow-x-auto">
                     <form id="pdfSearchForm" class="contents">
                         <div class="relative flex-1 min-w-[150px] max-w-md">
                             <input id="pdfSearchInput" type="search" enterkeyhint="search" placeholder="PDF içinde ara..." class="w-full h-8 pl-8 pr-2 rounded-lg border border-slate-300 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
@@ -200,7 +226,6 @@
                 <div id="pdfContainer" class="relative w-full flex-1 min-h-0 overflow-auto bg-slate-300 shadow-lg">
                     <div id="pdfLoading" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-100 text-blue-600">
                         <div class="loader mb-3"></div>
-                        <p class="text-sm font-semibold">PDF hazırlanıyor...</p>
                     </div>
                     <div id="pdfError" class="hidden absolute inset-0 z-10 flex-col items-center justify-center bg-white p-6 text-center">
                         <i data-lucide="file-warning" class="w-10 h-10 text-amber-500 mb-3"></i>
@@ -208,6 +233,9 @@
                         <p class="text-xs text-slate-500 mt-2">Tam Ekran düğmesiyle PDF'yi ayrıca açabilirsiniz.</p>
                     </div>
                     <div id="pdfPages" class="min-h-full p-2 sm:p-4 flex flex-col items-center gap-3 sm:gap-4"></div>
+                    <button id="mobileSearchFab" class="sm:hidden absolute bottom-3 right-3 z-20 w-11 h-11 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform" title="PDF içinde ara">
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="h-12 shrink-0 bg-white border-t border-slate-200 sm:rounded-b-xl flex items-center justify-center gap-3 px-3">
                     <button id="pdfPrevBtn" class="p-1.5 rounded-lg text-slate-600 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed" title="Önceki Sayfa">
@@ -249,6 +277,8 @@
             mobileSearchBtn: document.getElementById('mobileSearchBtn'),
             pdfContainer: document.getElementById('pdfContainer'),
             pdfPages: document.getElementById('pdfPages'),
+            pdfSearchBar: document.getElementById('pdfSearchBar'),
+            mobileSearchFab: document.getElementById('mobileSearchFab'),
             pdfLoading: document.getElementById('pdfLoading'),
             pdfError: document.getElementById('pdfError'),
             pdfErrorText: document.getElementById('pdfErrorText'),
@@ -378,11 +408,17 @@
         let pdfYaklastirma = 1;
         let pdfRenderSurumu = 0;
         let pdfAramaMetni = '';
+        let sonArananPdfMetni = '';
+        let pdfAramaDevamEdiyor = false;
         let pdfAramaSonuclari = [];
         let aktifAramaSonucu = -1;
         const pdfMetinOnbellegi = new Map();
         const pdfSayfaBilgileri = new Map();
         const aktifRenderGorevleri = new Set();
+        let pinchBaslangicMesafesi = 0;
+        let pinchBaslangicZoom = 1;
+        let pinchAktif = false;
+        let pinchGeciciZoom = 1;
 
         if (window.pdfjsLib) {
             pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -407,6 +443,7 @@
             aktifPdf = null;
             aktifSayfa = 1;
             pdfAramaMetni = '';
+            sonArananPdfMetni = '';
             pdfAramaSonuclari = [];
             aktifAramaSonucu = -1;
             pdfYaklastirma = 1;
@@ -589,12 +626,21 @@
         }
 
         async function pdfIcerigindeAra() {
-            if (!aktifPdf) return;
+            if (!aktifPdf || pdfAramaDevamEdiyor) return;
 
             const aranan = els.pdfSearchInput.value.trim().toLocaleLowerCase('tr-TR');
+
+            // Enter, aynı arama metni için yeni tarama başlatmak yerine sonraki eşleşmeye geçer.
+            if (aranan && aranan === sonArananPdfMetni && pdfAramaSonuclari.length > 0) {
+                await aramaSonucunaGit(aktifAramaSonucu + 1);
+                return;
+            }
+
             pdfAramaMetni = aranan;
+            sonArananPdfMetni = aranan;
             pdfAramaSonuclari = [];
             aktifAramaSonucu = -1;
+            pdfAramaDevamEdiyor = true;
             els.pdfSearchInfo.innerText = 'Aranıyor...';
             els.pdfSearchBtn.disabled = true;
 
@@ -633,6 +679,7 @@
                 tumAramaVurgulariniGoster();
                 requestAnimationFrame(aktifAramaSonucunaKaydir);
             } finally {
+                pdfAramaDevamEdiyor = false;
                 els.pdfSearchBtn.disabled = false;
             }
         }
@@ -853,6 +900,43 @@
         els.pdfSearchNextBtn.addEventListener('click', () => {
             aramaSonucunaGit(aktifAramaSonucu + 1);
         });
+
+        els.mobileSearchFab.addEventListener('click', () => {
+            const acik = els.pdfSearchBar.classList.toggle('mobile-search-open');
+            if (acik) {
+                els.pdfSearchInput.focus({ preventScroll: true });
+            }
+        });
+
+        function ikiParmakMesafesi(touches) {
+            const x = touches[0].clientX - touches[1].clientX;
+            const y = touches[0].clientY - touches[1].clientY;
+            return Math.hypot(x, y);
+        }
+
+        els.pdfContainer.addEventListener('touchstart', event => {
+            if (event.touches.length !== 2 || !aktifPdf) return;
+            pinchAktif = true;
+            pinchBaslangicMesafesi = ikiParmakMesafesi(event.touches);
+            pinchBaslangicZoom = pdfYaklastirma;
+            pinchGeciciZoom = pdfYaklastirma;
+        }, { passive: false });
+
+        els.pdfContainer.addEventListener('touchmove', event => {
+            if (!pinchAktif || event.touches.length !== 2) return;
+            event.preventDefault();
+            const oran = ikiParmakMesafesi(event.touches) / Math.max(1, pinchBaslangicMesafesi);
+            pinchGeciciZoom = Math.min(2, Math.max(0.5, pinchBaslangicZoom * oran));
+            els.pdfPages.style.transform = `scale(${pinchGeciciZoom / pinchBaslangicZoom})`;
+        }, { passive: false });
+
+        els.pdfContainer.addEventListener('touchend', async event => {
+            if (!pinchAktif || event.touches.length > 1) return;
+            pinchAktif = false;
+            els.pdfPages.style.transform = '';
+            pdfYaklastirma = Math.round(pinchGeciciZoom * 10) / 10;
+            if (aktifPdf) await pdfSayfalariniGoster(aktifSayfa);
+        }, { passive: false });
 
         els.pdfZoomOutBtn.addEventListener('click', async () => {
             if (!aktifPdf) return;
