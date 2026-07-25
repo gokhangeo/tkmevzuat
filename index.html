@@ -223,7 +223,8 @@
                         <i data-lucide="zoom-in" class="w-4 h-4"></i>
                     </button>
                 </div>
-                <div id="pdfContainer" class="relative w-full flex-1 min-h-0 overflow-auto bg-slate-300 shadow-lg">
+                <div class="relative flex-1 min-h-0">
+                <div id="pdfContainer" class="relative w-full h-full min-h-0 overflow-auto bg-slate-300 shadow-lg">
                     <div id="pdfLoading" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-100 text-blue-600">
                         <div class="loader mb-3"></div>
                     </div>
@@ -233,9 +234,10 @@
                         <p class="text-xs text-slate-500 mt-2">Tam Ekran düğmesiyle PDF'yi ayrıca açabilirsiniz.</p>
                     </div>
                     <div id="pdfPages" class="min-h-full p-2 sm:p-4 flex flex-col items-center gap-3 sm:gap-4"></div>
-                    <button id="mobileSearchFab" class="sm:hidden absolute bottom-3 right-3 z-20 w-11 h-11 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform" title="PDF içinde ara">
-                        <i data-lucide="search" class="w-5 h-5"></i>
-                    </button>
+                </div>
+                <button id="mobileSearchFab" class="sm:hidden absolute bottom-3 right-3 z-20 w-11 h-11 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform" title="PDF içinde ara">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </button>
                 </div>
                 <div class="h-12 shrink-0 bg-white border-t border-slate-200 sm:rounded-b-xl flex items-center justify-center gap-3 px-3">
                     <button id="pdfPrevBtn" class="p-1.5 rounded-lg text-slate-600 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed" title="Önceki Sayfa">
@@ -419,6 +421,10 @@
         let pinchBaslangicZoom = 1;
         let pinchAktif = false;
         let pinchGeciciZoom = 1;
+        let pinchOdakX = 0;
+        let pinchOdakY = 0;
+        let pinchBaslangicKaydirmaX = 0;
+        let pinchBaslangicKaydirmaY = 0;
 
         if (window.pdfjsLib) {
             pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -920,6 +926,12 @@
             pinchBaslangicMesafesi = ikiParmakMesafesi(event.touches);
             pinchBaslangicZoom = pdfYaklastirma;
             pinchGeciciZoom = pdfYaklastirma;
+            const kutu = els.pdfContainer.getBoundingClientRect();
+            pinchOdakX = ((event.touches[0].clientX + event.touches[1].clientX) / 2) - kutu.left;
+            pinchOdakY = ((event.touches[0].clientY + event.touches[1].clientY) / 2) - kutu.top;
+            pinchBaslangicKaydirmaX = els.pdfContainer.scrollLeft;
+            pinchBaslangicKaydirmaY = els.pdfContainer.scrollTop;
+            els.pdfPages.style.transformOrigin = 'top left';
         }, { passive: false });
 
         els.pdfContainer.addEventListener('touchmove', event => {
@@ -930,12 +942,31 @@
             els.pdfPages.style.transform = `scale(${pinchGeciciZoom / pinchBaslangicZoom})`;
         }, { passive: false });
 
-        els.pdfContainer.addEventListener('touchend', async event => {
-            if (!pinchAktif || event.touches.length > 1) return;
+        async function pinchZoomuUygula() {
+            if (!pinchAktif) return;
             pinchAktif = false;
             els.pdfPages.style.transform = '';
+            els.pdfPages.style.transformOrigin = '';
             pdfYaklastirma = Math.round(pinchGeciciZoom * 10) / 10;
-            if (aktifPdf) await pdfSayfalariniGoster(aktifSayfa);
+            if (!aktifPdf) return;
+
+            const oran = pdfYaklastirma / Math.max(0.01, pinchBaslangicZoom);
+            const kayitliAramaSonucu = aktifAramaSonucu;
+            aktifAramaSonucu = -1;
+            await pdfSayfalariniGoster();
+            aktifAramaSonucu = kayitliAramaSonucu;
+            if (aktifAramaSonucu >= 0) tumAramaVurgulariniGoster();
+            els.pdfContainer.scrollLeft = Math.max(0, (pinchBaslangicKaydirmaX + pinchOdakX) * oran - pinchOdakX);
+            els.pdfContainer.scrollTop = Math.max(0, (pinchBaslangicKaydirmaY + pinchOdakY) * oran - pinchOdakY);
+        }
+
+        els.pdfContainer.addEventListener('touchend', event => {
+            if (!pinchAktif || event.touches.length > 1) return;
+            pinchZoomuUygula();
+        }, { passive: false });
+
+        els.pdfContainer.addEventListener('touchcancel', () => {
+            if (pinchAktif) pinchZoomuUygula();
         }, { passive: false });
 
         els.pdfZoomOutBtn.addEventListener('click', async () => {
